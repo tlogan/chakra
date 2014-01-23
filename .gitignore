@@ -1,0 +1,18 @@
+# Chakra 
+bin
+gen
+target
+
+# SBT
+target
+project/target
+project/project
+lib_managed
+
+# IntelliJ IDEA
+.idea*
+.idea_modules
+*.iml
+
+# VIM
+*.swp
