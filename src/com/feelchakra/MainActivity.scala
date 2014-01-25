@@ -10,29 +10,28 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Message
 import android.view._
+import android.widget._
 
 import scala.collection.immutable.List
 
-import org.scaloid.common._
-
 object MainActivity {
 
-   val SelectionChanged = 1;
-   val MainActorConnected = 2;
+   val selectionChanged = 1;
+   val mainActorConnected = 2;
 }
 
-class MainActivity extends SActivity {
+class MainActivity extends Activity {
 
-  private var _fragmentContainer: SFrameLayout = _
+  private var _fragmentContainer: FrameLayout = _
 
   private val that = this
 
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
       msg.obj match {
-        case selection: Selection if (msg.what == MainActivity.SelectionChanged) => 
+        case selection: Selection if (msg.what == MainActivity.selectionChanged) => 
           that.onSelectionChanged(selection); true
-        case selectionList: List[Selection] if (msg.what == MainActivity.MainActorConnected) => 
+        case selectionList: List[Selection] if (msg.what == MainActivity.mainActorConnected) => 
           that.onMainActorConnected(selectionList); true
         case _ => false
       }
@@ -40,34 +39,45 @@ class MainActivity extends SActivity {
   })
 
   private val mainActorRef = MainActor.mainActorRef
-
   
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
 
-    mainActorRef ! MainActor.SetMainActivityHandler(handler)
-
-    contentView = new SVerticalLayout {
-      _fragmentContainer = SFrameLayout().id = 23 
+    setContentView {
+      new LinearLayout(this) {
+        setOrientation(LinearLayout.VERTICAL)
+        addView {
+          _fragmentContainer = new FrameLayout(that) {
+            setId(23)
+          }; _fragmentContainer
+        }
+      }
     }
+
+    mainActorRef ! MainActor.SetMainActivityHandler(handler)
 
   }
 
-  def onSelectionChanged(selection: Selection): Unit = {
-    toast("selection changed to  " + selection.label)
+  private def onSelectionChanged(selection: Selection): Unit = {
+    val transaction = getFragmentManager().beginTransaction()
 
-    getFragmentManager().beginTransaction().replace(_fragmentContainer.id, new Fragment {
+    selection match {
+      case Tracks => 
+        transaction.replace(_fragmentContainer.getId(), new SelectionFragment)
+      case Stations =>
+        transaction.replace(_fragmentContainer.getId(), new Fragment() {
+          override def onCreate(savedState: Bundle): Unit = {
+            super.onCreate(savedState)
+          }
+        })
+    }
 
-      override def onCreate(savedState: Bundle) = {
-        super.onCreate(savedState);
-        toast("create fragment for " + selection.label)
-      }
 
-    }).addToBackStack(null).commit()
+    transaction.addToBackStack(null).commit()
     
   }
 
-  def onMainActorConnected(selectionList: List[Selection]): Unit = {
+  private def onMainActorConnected(selectionList: List[Selection]): Unit = {
 
     that.getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
     that.getActionBar().setDisplayShowTitleEnabled(true)

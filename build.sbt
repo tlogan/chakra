@@ -13,8 +13,6 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.2.3"
 
-libraryDependencies += "org.scaloid" %% "scaloid" % "3.0-8"
-
 useProguard in Android := true 
 
 proguardOptions in Android ++= Seq(

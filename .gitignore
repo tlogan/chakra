@@ -15,4 +15,4 @@ lib_managed
 *.iml
 
 # VIM
-*.swp
+*.sw?
