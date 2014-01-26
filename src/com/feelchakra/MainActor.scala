@@ -12,7 +12,7 @@ object MainActor {
   case class SetMainActivityHandler(mainActivityHandler: Handler) 
   case class SetSelection(selection: Selection) 
 
-  case class SetSelectionFragmentHandler(selectionFragmentHandler: Handler)
+  case class SetTrackSelectionFragmentHandler(selectionFragmentHandler: Handler)
 
   val mainActorRef = ActorSystem("actorSystem").actorOf(Props[MainActor], "mainActor")
 
@@ -24,7 +24,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
   var _selectionFragmentHandler: Handler = _ 
   var _selection: Selection = _ 
 
-  val selectionList = List(Tracks, Stations)
+  val selectionList = List(TrackSelection, StationSelection)
   val trackList = List(
     Track("path//1//", "oops i did it again", "oopsy", "brit"), 
     Track("path//2//", "walking in circles", "oopsy", "brit"), 
@@ -37,10 +37,10 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
       _mainActivityHandler = handler
       _mainActivityHandler.obtainMessage(MainActivity.mainActorConnected, selectionList).sendToTarget()
 
-    case MainActor.SetSelectionFragmentHandler(handler: Handler) =>
+    case MainActor.SetTrackSelectionFragmentHandler(handler: Handler) =>
       _selectionFragmentHandler = handler 
       _selectionFragmentHandler
-        .obtainMessage(SelectionFragment.selectionFragmentConnected, trackList)
+        .obtainMessage(TrackSelectionFragment.mainActorConnected, trackList)
         .sendToTarget()
 
     case MainActor.SetSelection(selection: Selection) => 

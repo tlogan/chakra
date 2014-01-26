@@ -16,8 +16,8 @@ import scala.collection.immutable.List
 
 object MainActivity {
 
-   val selectionChanged = 1;
-   val mainActorConnected = 2;
+   val mainActorConnected = 1;
+   val selectionChanged = 2;
 }
 
 class MainActivity extends Activity {
@@ -29,10 +29,10 @@ class MainActivity extends Activity {
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
       msg.obj match {
-        case selection: Selection if (msg.what == MainActivity.selectionChanged) => 
-          that.onSelectionChanged(selection); true
         case selectionList: List[Selection] if (msg.what == MainActivity.mainActorConnected) => 
           that.onMainActorConnected(selectionList); true
+        case selection: Selection if (msg.what == MainActivity.selectionChanged) => 
+          that.onSelectionChanged(selection); true
         case _ => false
       }
     }
@@ -56,25 +56,6 @@ class MainActivity extends Activity {
 
     mainActorRef ! MainActor.SetMainActivityHandler(handler)
 
-  }
-
-  private def onSelectionChanged(selection: Selection): Unit = {
-    val transaction = getFragmentManager().beginTransaction()
-
-    selection match {
-      case Tracks => 
-        transaction.replace(_fragmentContainer.getId(), new SelectionFragment)
-      case Stations =>
-        transaction.replace(_fragmentContainer.getId(), new Fragment() {
-          override def onCreate(savedState: Bundle): Unit = {
-            super.onCreate(savedState)
-          }
-        })
-    }
-
-
-    transaction.addToBackStack(null).commit()
-    
   }
 
   private def onMainActorConnected(selectionList: List[Selection]): Unit = {
@@ -105,6 +86,25 @@ class MainActivity extends Activity {
     selectionList.foreach(effect) 
 
   }
+
+  private def onSelectionChanged(selection: Selection): Unit = {
+    val transaction = getFragmentManager().beginTransaction()
+
+    selection match {
+      case TrackSelection => 
+        transaction.replace(_fragmentContainer.getId(), new TrackSelectionFragment)
+      case StationSelection =>
+        transaction.replace(_fragmentContainer.getId(), new Fragment() {
+          override def onCreate(savedState: Bundle): Unit = {
+            super.onCreate(savedState)
+          }
+        })
+    }
+
+    transaction.addToBackStack(null).commit()
+    
+  }
+
 
   override def onCreateOptionsMenu(menu: Menu): Boolean  = {
     //getMenuInflater().inflate(R.menu.selection, menu);
