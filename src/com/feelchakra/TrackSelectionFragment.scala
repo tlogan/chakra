@@ -14,11 +14,13 @@ import android.view._
 import android.widget._
 
 import android.graphics.Color
+import rx.lang.scala.Subject
 
 import guava.android.RichListView.listView2RichListView
 
 object TrackSelectionFragment {
    val mainActorConnected = 1;
+   val trackListChanged = 2;
 }
 
 class TrackSelectionFragment extends Fragment {
@@ -34,6 +36,8 @@ class TrackSelectionFragment extends Fragment {
       msg.obj match {
         case trackList: List[Track] if (msg.what == TrackSelectionFragment.mainActorConnected) => 
           that.onMainActorConnected(trackList); true
+        case trackList: List[Track] if (msg.what == TrackSelectionFragment.trackListChanged) => 
+          that.onTrackListChanged(trackList); true
         case _ => false
       }
     }
@@ -76,5 +80,14 @@ class TrackSelectionFragment extends Fragment {
     }  
 
   }
+
+  private def onTrackListChanged(trackList: List[Track]): Unit = {
+
+    _listView.getAdapter() match {
+      case adapter: TrackListAdapter => adapter.setTrackList(trackList)
+    } 
+
+  }
+
 
 }

@@ -13,11 +13,15 @@ import android.view._
 import android.widget._
 
 import scala.collection.immutable.List
+import guava.android.Database
 
+import android.util.Log 
+import scala.util.{Success,Failure}
 object MainActivity {
 
    val mainActorConnected = 1;
    val selectionChanged = 2;
+
 }
 
 class MainActivity extends Activity {
@@ -25,6 +29,7 @@ class MainActivity extends Activity {
   private var _fragmentContainer: FrameLayout = _
 
   private val that = this
+  Log.d("chakra", "started")
 
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
@@ -55,6 +60,7 @@ class MainActivity extends Activity {
     }
 
     mainActorRef ! MainActor.SetMainActivityHandler(handler)
+    mainActorRef ! MainActor.SetMainActivityDatabase(new Database(this))
 
   }
 
@@ -65,8 +71,7 @@ class MainActivity extends Activity {
     that.getActionBar().setDisplayShowHomeEnabled(true)
     that.getActionBar().removeAllTabs();
 
-    val effect: Selection => Unit = selection => {
-
+    selectionList foreach { selection => 
       val tabListener = new ActionBar.TabListener() {
         override def onTabSelected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
           mainActorRef ! MainActor.SetSelection(selectionList(tab.getPosition()))
@@ -83,7 +88,6 @@ class MainActivity extends Activity {
 
       that.getActionBar().addTab(tab)
     }
-    selectionList.foreach(effect) 
 
   }
 
@@ -101,7 +105,7 @@ class MainActivity extends Activity {
         })
     }
 
-    transaction.addToBackStack(null).commit()
+    transaction.commit()
     
   }
 

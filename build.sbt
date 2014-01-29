@@ -11,7 +11,10 @@ scalaVersion := "2.10.2"
  
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.2.3"
+libraryDependencies ++= Seq(
+  "com.typesafe.akka" %% "akka-actor" % "2.2.3",
+  "com.netflix.rxjava" % "rxjava-scala" % "0.16.1"
+)
 
 useProguard in Android := true 
 

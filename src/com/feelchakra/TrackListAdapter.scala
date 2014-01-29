@@ -10,13 +10,18 @@ import android.view.ViewGroup.LayoutParams._
 import android.widget.BaseAdapter
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget._
 import android.graphics.Color
 
-class TrackListAdapter(activity: Activity, trackList: List[Track]) extends BaseAdapter {
+import rx.lang.scala.Observer
 
-  override def getCount(): Int = trackList.size
+class TrackListAdapter(activity: Activity, initialTrackList: List[Track]) extends BaseAdapter {
 
-  override def getItem(position: Int): Track = trackList(getItemId(position).toInt)
+  private var _trackList: List[Track] = initialTrackList
+
+  override def getCount(): Int = _trackList.size
+
+  override def getItem(position: Int): Track = _trackList(getItemId(position).toInt)
 
   override def getItemId(position: Int): Long = position 
 
@@ -39,6 +44,11 @@ class TrackListAdapter(activity: Activity, trackList: List[Track]) extends BaseA
     }
 
 
+  }
+
+  def setTrackList(trackList: List[Track]): Unit = {
+    _trackList = trackList
+    this.notifyDataSetChanged()
   }
 
 }
