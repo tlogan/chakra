@@ -49,12 +49,9 @@ class TrackSelectionFragment extends Fragment {
 
   override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
     _verticalLayout = new LinearLayout(getActivity()) {
+      setOrientation(LinearLayout.VERTICAL)
       addView {
         _listView = new ListView(getActivity()) {
-          setBackgroundColor(Color.GREEN)
-          setLayoutParams {
-            new LinearLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-          }
         }; _listView
       }
 

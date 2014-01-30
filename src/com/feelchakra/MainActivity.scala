@@ -11,9 +11,13 @@ import android.os.Handler
 import android.os.Message
 import android.view._
 import android.widget._
+import android.widget.LinearLayout.LayoutParams._
+import android.view.ViewGroup.LayoutParams._ 
 
 import scala.collection.immutable.List
 import guava.scala.android.Database
+
+import android.graphics.Color
 
 import android.util.Log 
 import scala.util.{Success,Failure}
@@ -21,12 +25,16 @@ object MainActivity {
 
    val mainActorConnected = 1;
    val selectionChanged = 2;
+   
+   val selectionFrameId = 23;
+   val playerFrameId = 56;
 
 }
 
 class MainActivity extends Activity {
 
-  private var _fragmentContainer: FrameLayout = _
+  private var _selectionFrame: FrameLayout = _
+  private var _playerFrame: FrameLayout = _
 
   private val that = this
   Log.d("chakra", "started")
@@ -52,9 +60,22 @@ class MainActivity extends Activity {
       new LinearLayout(this) {
         setOrientation(LinearLayout.VERTICAL)
         addView {
-          _fragmentContainer = new FrameLayout(that) {
-            setId(23)
-          }; _fragmentContainer
+          _selectionFrame = new FrameLayout(that) {
+            setId(MainActivity.selectionFrameId)
+            setLayoutParams {
+              new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
+            }
+            
+          }; _selectionFrame
+        }
+        addView {
+          _playerFrame = new FrameLayout(that) {
+            setId(MainActivity.playerFrameId)
+            setLayoutParams {
+              new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1)
+            }
+            setBackgroundColor(Color.parseColor("#ffa500"))
+          }; _playerFrame
         }
       }
     }
@@ -96,9 +117,9 @@ class MainActivity extends Activity {
 
     selection match {
       case TrackSelection => 
-        transaction.replace(_fragmentContainer.getId(), new TrackSelectionFragment)
+        transaction.replace(_selectionFrame.getId(), new TrackSelectionFragment)
       case StationSelection =>
-        transaction.replace(_fragmentContainer.getId(), new Fragment() {
+        transaction.replace(_selectionFrame.getId(), new Fragment() {
           override def onCreate(savedState: Bundle): Unit = {
             super.onCreate(savedState)
           }
