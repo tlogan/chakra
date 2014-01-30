@@ -16,7 +16,7 @@ import android.widget._
 import android.graphics.Color
 import rx.lang.scala.Subject
 
-import guava.android.RichListView.listView2RichListView
+import guava.scala.android.RichListView.listView2RichListView
 
 object TrackSelectionFragment {
    val mainActorConnected = 1;

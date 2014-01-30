@@ -13,7 +13,7 @@ import android.view._
 import android.widget._
 
 import scala.collection.immutable.List
-import guava.android.Database
+import guava.scala.android.Database
 
 import android.util.Log 
 import scala.util.{Success,Failure}

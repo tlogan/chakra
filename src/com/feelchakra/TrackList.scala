@@ -18,8 +18,8 @@ import scala.collection.mutable.ListBuffer
 
 import android.os.Handler
 
-import guava.android.Database
-import guava.android.Table
+import guava.scala.android.Database
+import guava.scala.android.Table
 
 import android.util.Log 
 import scala.util.{Success,Failure}
