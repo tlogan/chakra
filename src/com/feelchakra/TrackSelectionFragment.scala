@@ -13,14 +13,16 @@ import android.view.ViewGroup.LayoutParams._
 import android.view._
 import android.widget._
 
+import android.util.Log 
+
 import android.graphics.Color
 import rx.lang.scala.Subject
 
 import guava.scala.android.RichListView.listView2RichListView
 
 object TrackSelectionFragment {
-   val mainActorConnected = 1;
-   val trackListChanged = 2;
+  case class OnMainActorConnected(trackList: List[Track])
+  case class OnTrackListChanged(trackList: List[Track])
 }
 
 class TrackSelectionFragment extends Fragment {
@@ -33,10 +35,11 @@ class TrackSelectionFragment extends Fragment {
 
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
+      import TrackSelectionFragment._
       msg.obj match {
-        case trackList: List[Track] if (msg.what == TrackSelectionFragment.mainActorConnected) => 
+        case OnMainActorConnected(trackList) => 
           that.onMainActorConnected(trackList); true
-        case trackList: List[Track] if (msg.what == TrackSelectionFragment.trackListChanged) => 
+        case OnTrackListChanged(trackList) => 
           that.onTrackListChanged(trackList); true
         case _ => false
       }
@@ -72,7 +75,8 @@ class TrackSelectionFragment extends Fragment {
         val track = _listView.getAdapter() match {
           case adapter: TrackListAdapter => adapter.getItem(position)
         } 
-        Toast.makeText(getActivity(), "track " + track.title + " chosen", Toast.LENGTH_SHORT).show()
+        mainActorRef ! MainActor.SetTrack(track) 
+        Log.d("trackSelectionFrag", "setting track: " + track.title)
       }
     }  
 

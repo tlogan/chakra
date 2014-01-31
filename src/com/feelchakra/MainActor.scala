@@ -22,12 +22,14 @@ import android.util.Log
 import scala.util.{Success,Failure}
 object MainActor {
 
-
-  case class SetMainActivityHandler(mainActivityHandler: Handler) 
+  case class SetMainActivityHandler(handler: Handler) 
   case class SetMainActivityDatabase(database: Database) 
   case class SetSelection(selection: Selection) 
+  case class SetTrack(track: Track) 
 
-  case class SetTrackSelectionFragmentHandler(selectionFragmentHandler: Handler)
+  case class SetTrackSelectionFragmentHandler(handler: Handler)
+  case class SetPlayerFragmentHandler(handler: Handler)
+  case object FlipPlayer
 
   val mainActorRef = ActorSystem("actorSystem").actorOf(Props[MainActor], "mainActor")
 
@@ -36,8 +38,13 @@ object MainActor {
 class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSemantics] {
 
   var _mainActivityHandler: Handler = _ 
+  var _playerFragmentHandler: Handler = _ 
   var _mainActivityDatabase: Database = _ 
   var _selection: Selection = _ 
+  var _trackOption: Option[Track] = None
+  var _playlist: List[Track] = List()
+
+  var _playerOpen: Boolean = false 
 
   //track selection fragment handler option (FHO)
   var _trackSelectionFHO: Option[Handler] = None 
@@ -49,7 +56,8 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
     case MainActor.SetMainActivityHandler(handler: Handler) =>
       _mainActivityHandler = handler
-      _mainActivityHandler.obtainMessage(MainActivity.mainActorConnected, selectionList).sendToTarget()
+      _mainActivityHandler.obtainMessage(0, MainActivity.OnMainActorConnected(selectionList, _playerOpen)).sendToTarget()
+
 
     case MainActor.SetMainActivityDatabase(database: Database) =>
       _mainActivityDatabase = database 
@@ -59,8 +67,9 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
           _trackList = trackList
           _trackSelectionFHO match {
             case Some(handler) =>
-              handler.obtainMessage(TrackSelectionFragment.trackListChanged, _trackList)
+              handler.obtainMessage(0, TrackSelectionFragment.OnTrackListChanged(_trackList))
               .sendToTarget()
+
             case None =>
               Log.d("trackSelectionFHO", "None")
           }
@@ -71,12 +80,45 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
     case MainActor.SetTrackSelectionFragmentHandler(handler: Handler) =>
       _trackSelectionFHO = Some(handler) 
-      handler.obtainMessage(TrackSelectionFragment.mainActorConnected, _trackList)
+      handler.obtainMessage(0, TrackSelectionFragment.OnMainActorConnected(_trackList))
         .sendToTarget()
 
     case MainActor.SetSelection(selection: Selection) => 
       _selection = selection
-      _mainActivityHandler.obtainMessage(MainActivity.selectionChanged, selection).sendToTarget()
+      _mainActivityHandler.obtainMessage(0, MainActivity.OnSelectionChanged(selection)).sendToTarget()
+
+
+    case MainActor.SetPlayerFragmentHandler(handler: Handler) =>
+      _playerFragmentHandler = handler
+      handler.obtainMessage(0, PlayerFragment.OnMainActorConnected(_trackOption, _playlist))
+        .sendToTarget()
+
+    case MainActor.SetTrack(track: Track) => 
+      _trackOption = Some(track) 
+      
+      if (!_playlist.contains(track)) {
+        _playlist = _playlist :+ track
+        _playerFragmentHandler.obtainMessage(0, PlayerFragment.OnPlayListChanged(_playlist))
+          .sendToTarget()
+      }
+      _playerFragmentHandler.obtainMessage(0, PlayerFragment.OnTrackOptionChanged(_trackOption))
+        .sendToTarget()
+
+    case MainActor.FlipPlayer =>
+      _playerOpen = !_playerOpen
+      _mainActivityHandler.obtainMessage(0, MainActivity.OnPlayerFlipped(_playerOpen)).sendToTarget()
+      _playerFragmentHandler.obtainMessage(0, PlayerFragment.OnPlayerFlipped(_playerOpen))
+        .sendToTarget()
+
+      /*
+      _trackSelectionFHO match {
+        case Some(handler) =>
+          handler.obtainMessage(TrackSelectionFragment.trackChanged, _trackList)
+            .sendToTarget()
+        case None =>
+          Log.d("trackSelectionFHO", "None when setting track")
+      }
+      */
 
   }
 

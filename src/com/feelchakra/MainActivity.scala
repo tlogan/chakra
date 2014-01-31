@@ -23,8 +23,9 @@ import android.util.Log
 import scala.util.{Success,Failure}
 object MainActivity {
 
-   val mainActorConnected = 1;
-   val selectionChanged = 2;
+   case class OnMainActorConnected(selectionList: List[Selection], playerOpen: Boolean) 
+   case class OnSelectionChanged(selection: Selection) 
+   case class OnPlayerFlipped(playerOpen: Boolean) 
    
    val selectionFrameId = 23;
    val playerFrameId = 56;
@@ -41,11 +42,14 @@ class MainActivity extends Activity {
 
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
+      import MainActivity._
       msg.obj match {
-        case selectionList: List[Selection] if (msg.what == MainActivity.mainActorConnected) => 
-          that.onMainActorConnected(selectionList); true
-        case selection: Selection if (msg.what == MainActivity.selectionChanged) => 
+        case OnMainActorConnected(selectionList, playerOpen) => 
+          that.onMainActorConnected(selectionList, playerOpen); true
+        case OnSelectionChanged(selection) => 
           that.onSelectionChanged(selection); true
+        case OnPlayerFlipped(playerOpen) => 
+          that.onPlayerFlipped(playerOpen); true
         case _ => false
       }
     }
@@ -74,18 +78,20 @@ class MainActivity extends Activity {
             setLayoutParams {
               new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1)
             }
-            setBackgroundColor(Color.parseColor("#ffa500"))
           }; _playerFrame
         }
       }
     }
+
+    val playerFragTrans = getFragmentManager().beginTransaction()
+    playerFragTrans.replace(_playerFrame.getId(), new PlayerFragment).commit()
 
     mainActorRef ! MainActor.SetMainActivityHandler(handler)
     mainActorRef ! MainActor.SetMainActivityDatabase(new Database(this))
 
   }
 
-  private def onMainActorConnected(selectionList: List[Selection]): Unit = {
+  private def onMainActorConnected(selectionList: List[Selection], playerOpen: Boolean): Unit = {
 
     that.getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
     that.getActionBar().setDisplayShowTitleEnabled(true)
@@ -110,6 +116,17 @@ class MainActivity extends Activity {
       that.getActionBar().addTab(tab)
     }
 
+    //openess
+    if (playerOpen) {
+      _selectionFrame.setLayoutParams {
+        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
+      }
+    } else {
+      _selectionFrame.setLayoutParams {
+        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
+      }
+    }
+
   }
 
   private def onSelectionChanged(selection: Selection): Unit = {
@@ -129,7 +146,19 @@ class MainActivity extends Activity {
     transaction.commit()
     
   }
+  private def onPlayerFlipped(playerOpen: Boolean): Unit = {
 
+    if (playerOpen) {
+      _selectionFrame.setLayoutParams {
+        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
+      }
+    } else {
+      _selectionFrame.setLayoutParams {
+        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
+      }
+    }
+    
+  }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean  = {
     //getMenuInflater().inflate(R.menu.selection, menu);
