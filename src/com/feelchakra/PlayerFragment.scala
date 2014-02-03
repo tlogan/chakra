@@ -26,7 +26,7 @@ object PlayerFragment {
 
   case class OnMainActorConnected(trackOption: Option[Track], playlist: List[Track]) 
   case class OnTrackOptionChanged(trackOption: Option[Track]) 
-  case class OnPlayListChanged(playlist: List[Track]) 
+  case class OnPlayListChanged(trackOption: Option[Track], playlist: List[Track]) 
   case class OnPlayerFlipped(playerOpen: Boolean) 
 
 }
@@ -47,8 +47,8 @@ class PlayerFragment extends Fragment {
           that.onMainActorConnected(trackOption, playlist); true
         case OnTrackOptionChanged(trackOption) => 
           that.onTrackOptionChanged(trackOption); true
-        case OnPlayListChanged(playlist) => 
-          that.onPlaylistChanged(playlist); true
+        case OnPlayListChanged(trackOption, playlist) => 
+          that.onPlaylistChanged(trackOption, playlist); true
         case OnPlayerFlipped(playerOpen) => 
           that.onPlayerFlipped(playerOpen); true
         case _ => false
@@ -95,7 +95,7 @@ class PlayerFragment extends Fragment {
 
     //update the track listview
     _listView setAdapter {
-      new PlaylistAdapter(getActivity(), playlist)
+      new PlaylistAdapter(getActivity(), trackOption, playlist)
     } 
 
     _listView setOnItemClick { 
@@ -103,7 +103,7 @@ class PlayerFragment extends Fragment {
         val track = _listView.getAdapter() match {
           case adapter: PlaylistAdapter => adapter.getItem(position)
         } 
-        Toast.makeText(getActivity(), "playlist track: " + track.title, Toast.LENGTH_SHORT).show()
+        mainActorRef ! MainActor.SetTrack(track) 
       }
     }  
 
@@ -115,10 +115,12 @@ class PlayerFragment extends Fragment {
 
   }
 
-  private def onPlaylistChanged(playlist: List[Track]): Unit = {
+  private def onPlaylistChanged(trackOption: Option[Track], playlist: List[Track]): Unit = {
 
     _listView.getAdapter() match {
-      case adapter: PlaylistAdapter => adapter.setPlaylist(playlist)
+      case adapter: PlaylistAdapter => {
+        adapter.update(trackOption, playlist)
+      }
       case _ => {}
     } 
 

@@ -75,7 +75,7 @@ class TrackSelectionFragment extends Fragment {
         val track = _listView.getAdapter() match {
           case adapter: TrackListAdapter => adapter.getItem(position)
         } 
-        mainActorRef ! MainActor.SetTrack(track) 
+        mainActorRef ! MainActor.AddTrackToPlaylist(track) 
         Log.d("trackSelectionFrag", "setting track: " + track.title)
       }
     }  

@@ -31,12 +31,13 @@ class TrackListAdapter(activity: Activity, initialTrackList: List[Track]) extend
 
     new LinearLayout(activity) {
       setOrientation(LinearLayout.VERTICAL)
-      setBackgroundColor(Color.BLUE)
+      setBackgroundColor(Color.GRAY)
       List(track.title, track.album, track.artist) foreach {
         (term: String) => { 
           addView {
             new TextView(activity) {
               setText(term)
+              setTextColor(Color.WHITE)
             }
           }
         } 

@@ -26,6 +26,7 @@ object MainActor {
   case class SetMainActivityDatabase(database: Database) 
   case class SetSelection(selection: Selection) 
   case class SetTrack(track: Track) 
+  case class AddTrackToPlaylist(track: Track) 
 
   case class SetTrackSelectionFragmentHandler(handler: Handler)
   case class SetPlayerFragmentHandler(handler: Handler)
@@ -94,14 +95,29 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
         .sendToTarget()
 
     case MainActor.SetTrack(track: Track) => 
-      _trackOption = Some(track) 
       
       if (!_playlist.contains(track)) {
-        _playlist = _playlist :+ track
-        _playerFragmentHandler.obtainMessage(0, PlayerFragment.OnPlayListChanged(_playlist))
+        _playlist = _playlist.:+(track)
+      }
+
+      _trackOption = Some(track) 
+      _playerFragmentHandler
+        .obtainMessage(0, PlayerFragment.OnPlayListChanged(_trackOption, _playlist))
+        .sendToTarget()
+      _playerFragmentHandler.obtainMessage(0, PlayerFragment.OnTrackOptionChanged(_trackOption))
+        .sendToTarget()
+
+    case MainActor.AddTrackToPlaylist(track) =>
+
+      if (_trackOption == None) {
+        _trackOption = Some(track)
+        _playerFragmentHandler
+          .obtainMessage(0, PlayerFragment.OnTrackOptionChanged(_trackOption))
           .sendToTarget()
       }
-      _playerFragmentHandler.obtainMessage(0, PlayerFragment.OnTrackOptionChanged(_trackOption))
+      _playlist = _playlist.:+(track)
+      _playerFragmentHandler
+        .obtainMessage(0, PlayerFragment.OnPlayListChanged(_trackOption, _playlist))
         .sendToTarget()
 
     case MainActor.FlipPlayer =>
