@@ -24,9 +24,8 @@ import guava.scala.android.RichView.view2RichView
 
 object PlayerFragment {
 
-  case class OnMainActorConnected(trackOption: Option[Track], playlist: List[Track]) 
-  case class OnTrackOptionChanged(trackOption: Option[Track]) 
-  case class OnPlayListChanged(trackOption: Option[Track], playlist: List[Track]) 
+  case class OnMainActorConnected(trackIndex: Int, playlist: List[Track]) 
+  case class OnPlayListChanged(trackIndex: Int, playlist: List[Track]) 
   case class OnPlayerFlipped(playerOpen: Boolean) 
 
 }
@@ -45,10 +44,8 @@ class PlayerFragment extends Fragment {
       msg.obj match {
         case OnMainActorConnected(trackOption, playlist) => 
           that.onMainActorConnected(trackOption, playlist); true
-        case OnTrackOptionChanged(trackOption) => 
-          that.onTrackOptionChanged(trackOption); true
-        case OnPlayListChanged(trackOption, playlist) => 
-          that.onPlaylistChanged(trackOption, playlist); true
+        case OnPlayListChanged(trackIndex, playlist) => 
+          that.onPlaylistChanged(trackIndex, playlist); true
         case OnPlayerFlipped(playerOpen) => 
           that.onPlayerFlipped(playerOpen); true
         case _ => false
@@ -89,13 +86,13 @@ class PlayerFragment extends Fragment {
     verticalLayout
   }
 
-  private def onMainActorConnected(trackOption: Option[Track], playlist: List[Track]): Unit = {
+  private def onMainActorConnected(trackIndex: Int, playlist: List[Track]): Unit = {
 
-    _trackLayout.update(trackOption)
+    _trackLayout.onTrackOptionChanged(playlist.lift(trackIndex))
 
     //update the track listview
     _listView setAdapter {
-      new PlaylistAdapter(getActivity(), trackOption, playlist)
+      new PlaylistAdapter(getActivity(), trackIndex, playlist)
     } 
 
     _listView setOnItemClick { 
@@ -109,20 +106,18 @@ class PlayerFragment extends Fragment {
 
   }
 
-  private def onTrackOptionChanged(trackOption: Option[Track]): Unit = {
 
-    _trackLayout.update(trackOption) 
-
-  }
-
-  private def onPlaylistChanged(trackOption: Option[Track], playlist: List[Track]): Unit = {
+  private def onPlaylistChanged(trackIndex: Int, playlist: List[Track]): Unit = {
 
     _listView.getAdapter() match {
       case adapter: PlaylistAdapter => {
-        adapter.update(trackOption, playlist)
+        adapter.onPlaylistChanged(trackIndex, playlist)
       }
       case _ => {}
     } 
+
+    _trackLayout.onTrackOptionChanged(playlist.lift(trackIndex))
+
 
   }
 

@@ -15,12 +15,10 @@ import android.graphics.Color
 
 import rx.lang.scala.Observer
 
-class PlaylistAdapter(activity: Activity, trackOption: Option[Track], playlist: List[Track]) extends BaseAdapter {
+class PlaylistAdapter(activity: Activity, trackIndex: Int, playlist: List[Track]) extends BaseAdapter {
 
   private var _playlist: List[Track] = playlist
-  private var _trackOption: Option[Track] = trackOption
-
-  private var _passed = true 
+  private var _trackIndex: Int = trackIndex 
 
   override def getCount(): Int = _playlist.size
 
@@ -34,38 +32,35 @@ class PlaylistAdapter(activity: Activity, trackOption: Option[Track], playlist: 
     new LinearLayout(activity) {
 
       val track = getItem(position)
-      
-      _trackOption match {
-        case Some(playingTrack) if playingTrack.path == track.path => { 
-          _passed = false
-          setVisibility(View.GONE)
-        }
-        case _ => {
 
-          setOrientation(LinearLayout.VERTICAL)
-          val bgColor = if (_passed) Color.DKGRAY else Color.GRAY
-          setBackgroundColor(bgColor)
-          List(track.title, track.album, track.artist) foreach {
-            (term: String) => { 
-              addView {
-                new TextView(activity) {
-                  setTextColor(Color.WHITE)
-                  setText(term)
-                }
+      if (getItemId(position) == _trackIndex) {
+        setVisibility(View.GONE)
+      } else {
+
+        setOrientation(LinearLayout.VERTICAL)
+        val bgColor = if (getItemId(position) < _trackIndex) Color.DKGRAY else Color.GRAY
+        setBackgroundColor(bgColor)
+        List(track.title, track.album, track.artist) foreach {
+          (term: String) => { 
+            addView {
+              new TextView(activity) {
+                setTextColor(Color.WHITE)
+                setText(term)
               }
-            } 
-          }
+            }
+          } 
         }
+
       }
+        
+
+
     }
-
-
 
   }
 
-  def update(trackOption: Option[Track], playlist: List[Track]): Unit = {
-    _trackOption = trackOption
-    _passed = true
+  def onPlaylistChanged(trackIndex: Int, playlist: List[Track]): Unit = {
+    _trackIndex = trackIndex
     _playlist = playlist 
     this.notifyDataSetChanged()
   }

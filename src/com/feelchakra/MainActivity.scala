@@ -86,6 +86,9 @@ class MainActivity extends Activity {
     val playerFragTrans = getFragmentManager().beginTransaction()
     playerFragTrans.replace(_playerFrame.getId(), new PlayerFragment).commit()
 
+    val playerServiceIntent = new Intent(this, classOf[PlayerService])
+    startService(playerServiceIntent);
+
     mainActorRef ! MainActor.SetMainActivityHandler(handler)
     mainActorRef ! MainActor.SetMainActivityDatabase(new Database(this))
 

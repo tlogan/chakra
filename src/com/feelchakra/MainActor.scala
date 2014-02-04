@@ -32,6 +32,8 @@ object MainActor {
   case class SetPlayerFragmentHandler(handler: Handler)
   case object FlipPlayer
 
+  case class SetPlayerServiceHandler(handler: Handler)
+
   val mainActorRef = ActorSystem("actorSystem").actorOf(Props[MainActor], "mainActor")
 
 }
@@ -40,9 +42,10 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
   var _mainActivityHandler: Handler = _ 
   var _playerFragmentHandler: Handler = _ 
+  var _playerServiceHandler: Handler = _ 
   var _mainActivityDatabase: Database = _ 
   var _selection: Selection = _ 
-  var _trackOption: Option[Track] = None
+  var _trackIndex: Int = -1 
   var _playlist: List[Track] = List()
 
   var _playerOpen: Boolean = false 
@@ -55,12 +58,12 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
  
   def receive = {
 
-    case MainActor.SetMainActivityHandler(handler: Handler) =>
+    case MainActor.SetMainActivityHandler(handler) =>
       _mainActivityHandler = handler
       _mainActivityHandler.obtainMessage(0, MainActivity.OnMainActorConnected(selectionList, _playerOpen)).sendToTarget()
 
 
-    case MainActor.SetMainActivityDatabase(database: Database) =>
+    case MainActor.SetMainActivityDatabase(database) =>
       _mainActivityDatabase = database 
       val trackListFuture = TrackList(database)
       trackListFuture onComplete { 
@@ -79,45 +82,51 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
         case Failure(t) => Log.d("trackListFuture", "failed: " + t.getMessage)
       }
 
-    case MainActor.SetTrackSelectionFragmentHandler(handler: Handler) =>
+    case MainActor.SetTrackSelectionFragmentHandler(handler) =>
       _trackSelectionFHO = Some(handler) 
       handler.obtainMessage(0, TrackSelectionFragment.OnMainActorConnected(_trackList))
         .sendToTarget()
 
-    case MainActor.SetSelection(selection: Selection) => 
+    case MainActor.SetSelection(selection) => 
       _selection = selection
       _mainActivityHandler.obtainMessage(0, MainActivity.OnSelectionChanged(selection)).sendToTarget()
 
 
-    case MainActor.SetPlayerFragmentHandler(handler: Handler) =>
+    case MainActor.SetPlayerFragmentHandler(handler) =>
       _playerFragmentHandler = handler
-      handler.obtainMessage(0, PlayerFragment.OnMainActorConnected(_trackOption, _playlist))
+      handler.obtainMessage(0, PlayerFragment.OnMainActorConnected(_trackIndex, _playlist))
         .sendToTarget()
 
-    case MainActor.SetTrack(track: Track) => 
-      
+    case MainActor.SetPlayerServiceHandler(handler) => {
+      _playerServiceHandler = handler
+      handler.obtainMessage(0, PlayerService.OnMainActorConnected(_playlist.lift(_trackIndex), true, 0)).sendToTarget()
+    }
+
+    case MainActor.SetTrack(track) => {
       if (!_playlist.contains(track)) {
         _playlist = _playlist.:+(track)
-      }
+      } 
 
-      _trackOption = Some(track) 
+      _trackIndex = _playlist.indexOf(track) 
+
       _playerFragmentHandler
-        .obtainMessage(0, PlayerFragment.OnPlayListChanged(_trackOption, _playlist))
+        .obtainMessage(0, PlayerFragment.OnPlayListChanged(_trackIndex, _playlist))
         .sendToTarget()
-      _playerFragmentHandler.obtainMessage(0, PlayerFragment.OnTrackOptionChanged(_trackOption))
-        .sendToTarget()
+
+      _playerServiceHandler.obtainMessage(0, PlayerService.OnTrackOptionChanged( _playlist.lift(_trackIndex) )).sendToTarget()
+    }
 
     case MainActor.AddTrackToPlaylist(track) =>
 
-      if (_trackOption == None) {
-        _trackOption = Some(track)
-        _playerFragmentHandler
-          .obtainMessage(0, PlayerFragment.OnTrackOptionChanged(_trackOption))
-          .sendToTarget()
-      }
       _playlist = _playlist.:+(track)
+      if (_trackIndex < 0) {
+        _trackIndex = 0
+        _playerServiceHandler.obtainMessage(0, PlayerService.OnTrackOptionChanged(
+          _playlist.lift(_trackIndex) 
+        )).sendToTarget()
+      }
       _playerFragmentHandler
-        .obtainMessage(0, PlayerFragment.OnPlayListChanged(_trackOption, _playlist))
+        .obtainMessage(0, PlayerFragment.OnPlayListChanged(_trackIndex, _playlist))
         .sendToTarget()
 
     case MainActor.FlipPlayer =>
