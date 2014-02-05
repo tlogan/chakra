@@ -28,6 +28,9 @@ import android.os.IBinder
 
 import java.io.IOException
 
+import guava.scala.android.RichMediaPlayer._
+
+
 
 object PlayerService {
 
@@ -74,22 +77,14 @@ class PlayerService extends Service {
 
   override def onCreate(): Unit = {
 
-    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-      override def onPrepared(mp: MediaPlayer): Unit = {
-
-        mp.seekTo(_positionOncePrepared)
-        if (_playOncePrepared) mp.start()
-        _prepared = true
-
-      }
-    })
-    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-
-      override def onCompletion(mp: MediaPlayer): Unit = {
-        //notify mainActor
-      }
+    mediaPlayer.setOnPrepared(mp => {
+      mp.seekTo(_positionOncePrepared)
+      if (_playOncePrepared) mp.start()
+      _prepared = true
 
     })
+
+    mediaPlayer.setOnCompletion(mp => {/*notify main actor*/})
 
     mainActorRef ! MainActor.SetPlayerServiceHandler(handler)
 
