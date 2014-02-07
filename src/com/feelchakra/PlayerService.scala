@@ -30,6 +30,24 @@ import java.io.IOException
 
 import guava.scala.android.RichMediaPlayer._
 
+import java.net.ServerSocket;
+import java.net.Socket;
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.net.wifi.WpsInfo
+import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pInfo
+import android.net.wifi.p2p.WifiP2pManager
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest
+import android.os.IBinder
+import android.widget.Toast
+
+import scala.collection.JavaConverters._
 
 
 object PlayerService {
@@ -38,6 +56,8 @@ object PlayerService {
    case class OnTrackOptionChanged(trackOption: Option[Track]) 
    case class OnPlayStateChanged(playOncePrepared: Boolean) 
    case class OnPositionChanged(positionOncePrepared: Int) 
+
+  case class OnStationOptionChanged(stationOption: Option[Station], serviceName: String, serviceType: String, record: java.util.Map[String, String])
 
 }
 
@@ -57,25 +77,38 @@ class PlayerService extends Service {
           that.onPlayStateChanged(playOncePrepared); true
         case OnPositionChanged(positionOncePrepared) =>
           that.onPositionChanged(positionOncePrepared); true
+        case OnStationOptionChanged(stationOption, serviceName, serviceType, record) =>
+          that.onStationOptionChanged(stationOption, serviceName, serviceType, record); true
         case _ => false
       }
     }
   })
 
 
+
   private val mainActorRef = MainActor.mainActorRef
   private val mediaPlayer = new MediaPlayer()
-  private val that = this;
+  private val that = this
 
   private var _playOncePrepared: Boolean = false
   private var _positionOncePrepared: Int = 0
   private var _prepared: Boolean = false
 
+  private var _manager: WifiP2pManager = _
+  private var _channel: WifiP2pManager.Channel = _
+  private var _broadcastReceiver: BroadcastReceiver = _
+  private var _serverSocket: ServerSocket = _
+  private var _serviceInfo: WifiP2pDnsSdServiceInfo = _
+  private var _serviceRequest: WifiP2pDnsSdServiceRequest = _
+
   override def onBind(intent: Intent): IBinder = {
     return null;
   }
 
+
+
   override def onCreate(): Unit = {
+
 
     mediaPlayer.setOnPrepared(mp => {
       mp.seekTo(_positionOncePrepared)
@@ -83,10 +116,22 @@ class PlayerService extends Service {
       _prepared = true
 
     })
-
     mediaPlayer.setOnCompletion(mp => {/*notify main actor*/})
-
     mainActorRef ! MainActor.SetPlayerServiceHandler(handler)
+
+
+    _manager = that.getSystemService(Context.WIFI_P2P_SERVICE) match {
+      case m: WifiP2pManager => m
+    }
+    _channel = _manager.initialize(that, that.getMainLooper(), null)
+
+    try {
+      _serverSocket = new ServerSocket(0);
+    } catch  {
+      case e: IOException => e.printStackTrace()
+    }
+
+    mainActorRef ! MainActor.SetServerPort(String.valueOf(_serverSocket.getLocalPort()))
 
   }
 
@@ -97,6 +142,38 @@ class PlayerService extends Service {
     onTrackOptionChanged(trackOption)
 
   }
+
+  private def onStationOptionChanged(
+    stationOption: Option[Station], serviceName: String, 
+    serviceType: String, record: java.util.Map[String, String]
+  ): Unit = {
+
+    Toast.makeText(that, "onStationOptionChanged", Toast.LENGTH_SHORT).show()
+
+    _manager.removeGroup(_channel, null)
+    stationOption match {
+      case None => {
+        val serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record);
+        _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
+          override def onSuccess(): Unit = { 
+            _manager.createGroup(_channel, null)
+            Toast.makeText(that, "local service added", Toast.LENGTH_SHORT).show()
+          }
+
+          override def onFailure(reason: Int): Unit = {
+            Toast.makeText(that, "local service failed: " + reason, Toast.LENGTH_SHORT).show()
+          }
+        })
+      }
+      case Some(station) => {
+        //connect to station
+      }
+    }
+
+
+
+  }
+
 
   def onTrackOptionChanged(trackOption: Option[Track]): Unit = {
 

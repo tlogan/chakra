@@ -13,6 +13,7 @@ import android.provider.MediaStore
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable.ListBuffer
+import scala.collection.immutable.HashMap
 
 import android.os.Handler
 
@@ -20,6 +21,13 @@ import guava.scala.android.Database
 import guava.scala.android.Table
 import android.util.Log 
 import scala.util.{Success,Failure}
+
+import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pManager
+import android.net.wifi.p2p.WifiP2pManager._
+
+
+
 object MainActor {
 
   case class SetMainActivityHandler(handler: Handler) 
@@ -33,6 +41,13 @@ object MainActor {
   case object FlipPlayer
 
   case class SetPlayerServiceHandler(handler: Handler)
+
+  case class SetStationSelectionFragmentHandler(handler: Handler)
+  case class AddStation(station: Station)
+  case class CommitStation(device: WifiP2pDevice)
+
+  case class SetServerPort(serverPort: String)
+
 
   val mainActorRef = ActorSystem("actorSystem").actorOf(Props[MainActor], "mainActor")
 
@@ -50,20 +65,31 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
   var _playerOpen: Boolean = false 
 
+  //station selection fragment handler (FH)
+  var _stationSelectionFH: Handler = _ 
+  var _stationList: List[Station] = List(Station("full domain", null, null))
+  var _stagedStationMap: Map[String, Station] = HashMap[String, Station]()
+
   //track selection fragment handler option (FHO)
   var _trackSelectionFHO: Option[Handler] = None 
   var _trackList: List[Track] = List()
 
   val selectionList = List(TrackSelection, StationSelection)
- 
+
+  var _stationOption: Option[Station] = None 
+  val serviceName: String = "_chakra" 
+  val serviceType: String = "_syncstream._tcp" 
+  var _record: java.util.HashMap[String, String] = new java.util.HashMap() 
+
+  import MainActor._
   def receive = {
 
-    case MainActor.SetMainActivityHandler(handler) =>
+    case SetMainActivityHandler(handler) =>
       _mainActivityHandler = handler
       _mainActivityHandler.obtainMessage(0, MainActivity.OnMainActorConnected(selectionList, _playerOpen)).sendToTarget()
 
 
-    case MainActor.SetMainActivityDatabase(database) =>
+    case SetMainActivityDatabase(database) =>
       _mainActivityDatabase = database 
       val trackListFuture = TrackList(database)
       trackListFuture onComplete { 
@@ -82,27 +108,27 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
         case Failure(t) => Log.d("trackListFuture", "failed: " + t.getMessage)
       }
 
-    case MainActor.SetTrackSelectionFragmentHandler(handler) =>
+    case SetTrackSelectionFragmentHandler(handler) =>
       _trackSelectionFHO = Some(handler) 
       handler.obtainMessage(0, TrackSelectionFragment.OnMainActorConnected(_trackList))
         .sendToTarget()
 
-    case MainActor.SetSelection(selection) => 
+    case SetSelection(selection) => 
       _selection = selection
       _mainActivityHandler.obtainMessage(0, MainActivity.OnSelectionChanged(selection)).sendToTarget()
 
 
-    case MainActor.SetPlayerFragmentHandler(handler) =>
+    case SetPlayerFragmentHandler(handler) =>
       _playerFragmentHandler = handler
       handler.obtainMessage(0, PlayerFragment.OnMainActorConnected(_trackIndex, _playlist))
         .sendToTarget()
 
-    case MainActor.SetPlayerServiceHandler(handler) => {
+    case SetPlayerServiceHandler(handler) => {
       _playerServiceHandler = handler
       handler.obtainMessage(0, PlayerService.OnMainActorConnected(_playlist.lift(_trackIndex), true, 0)).sendToTarget()
     }
 
-    case MainActor.SetTrack(track) => {
+    case SetTrack(track) => {
       if (!_playlist.contains(track)) {
         _playlist = _playlist.:+(track)
       } 
@@ -116,7 +142,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
       _playerServiceHandler.obtainMessage(0, PlayerService.OnTrackOptionChanged( _playlist.lift(_trackIndex) )).sendToTarget()
     }
 
-    case MainActor.AddTrackToPlaylist(track) =>
+    case AddTrackToPlaylist(track) =>
 
       _playlist = _playlist.:+(track)
       if (_trackIndex < 0) {
@@ -129,21 +155,39 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
         .obtainMessage(0, PlayerFragment.OnPlayListChanged(_trackIndex, _playlist))
         .sendToTarget()
 
-    case MainActor.FlipPlayer =>
+    case FlipPlayer =>
       _playerOpen = !_playerOpen
       _mainActivityHandler.obtainMessage(0, MainActivity.OnPlayerFlipped(_playerOpen)).sendToTarget()
       _playerFragmentHandler.obtainMessage(0, PlayerFragment.OnPlayerFlipped(_playerOpen))
         .sendToTarget()
 
-      /*
-      _trackSelectionFHO match {
-        case Some(handler) =>
-          handler.obtainMessage(TrackSelectionFragment.trackChanged, _trackList)
-            .sendToTarget()
-        case None =>
-          Log.d("trackSelectionFHO", "None when setting track")
+    case SetStationSelectionFragmentHandler(handler) =>
+      _stationSelectionFH = handler
+      handler.obtainMessage(0, StationSelectionFragment.OnMainActorConnected(_stationList))
+        .sendToTarget()
+
+    case AddStation(station) =>
+      _stagedStationMap = _stagedStationMap.+(station.device.deviceAddress -> station)
+
+    case CommitStation(device) =>
+     if (_stagedStationMap.isDefinedAt(device.deviceAddress)) {
+       _stationList = _stationList :+ _stagedStationMap(device.deviceAddress)
+       _stationSelectionFH
+         .obtainMessage(0, StationSelectionFragment.OnStationListChanged(_stationList))
+         .sendToTarget()
+     }
+
+    case SetServerPort(serverPort) =>
+      _record = {
+        val newMap = new java.util.HashMap[String, String]()
+        newMap.putAll(_record)
+        newMap.put("serverPort", serverPort)
+        newMap
       }
-      */
+      _playerServiceHandler.obtainMessage(0, 
+        PlayerService.OnStationOptionChanged(_stationOption, "_chakra", "_syncstream._tcp", _record)
+      ).sendToTarget()
+
 
   }
 

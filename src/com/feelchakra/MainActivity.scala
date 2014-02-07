@@ -139,11 +139,7 @@ class MainActivity extends Activity {
       case TrackSelection => 
         transaction.replace(_selectionFrame.getId(), new TrackSelectionFragment)
       case StationSelection =>
-        transaction.replace(_selectionFrame.getId(), new Fragment() {
-          override def onCreate(savedState: Bundle): Unit = {
-            super.onCreate(savedState)
-          }
-        })
+        transaction.replace(_selectionFrame.getId(), new StationSelectionFragment)
     }
 
     transaction.commit()
