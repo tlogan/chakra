@@ -47,6 +47,8 @@ import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest
 import android.os.IBinder
 import android.widget.Toast
 
+import android.net.NetworkInfo
+
 import scala.collection.JavaConverters._
 
 
@@ -125,6 +127,42 @@ class PlayerService extends Service {
     }
     _channel = _manager.initialize(that, that.getMainLooper(), null)
 
+    _broadcastReceiver = new BroadcastReceiver() {
+      
+      override def onReceive(context: Context, intent: Intent): Unit = {
+        import WifiP2pManager._
+        intent.getAction() match {
+          case WIFI_P2P_STATE_CHANGED_ACTION => {}
+          case WIFI_P2P_CONNECTION_CHANGED_ACTION => {
+            val networkInfo: NetworkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO)
+            if (networkInfo.isConnected()) {
+              _manager.requestConnectionInfo(_channel, new ConnectionInfoListener() {
+                override def onConnectionInfoAvailable(info: WifiP2pInfo): Unit = {
+                  val groupOwnerAddress = info.groupOwnerAddress.getHostAddress();
+
+                  if (info.groupFormed && info.isGroupOwner) {
+                    Toast.makeText(that, "Connected as Server", Toast.LENGTH_SHORT).show()
+                  } else {
+                    Toast.makeText(that, "Connected as Client", Toast.LENGTH_SHORT).show()
+                  }
+                  
+                }
+              })
+            }
+          }
+        }
+      }
+
+    }
+    val intentFilter = {
+      val i = new IntentFilter();  
+      import WifiP2pManager._
+      List(WIFI_P2P_STATE_CHANGED_ACTION, WIFI_P2P_CONNECTION_CHANGED_ACTION) foreach {
+        action => i.addAction(action) 
+      }; i
+    }
+    registerReceiver(_broadcastReceiver, intentFilter)
+
     try {
       _serverSocket = new ServerSocket(0);
     } catch  {
@@ -150,13 +188,12 @@ class PlayerService extends Service {
 
     Toast.makeText(that, "onStationOptionChanged", Toast.LENGTH_SHORT).show()
 
+    val serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record);
     _manager.removeGroup(_channel, null)
     stationOption match {
       case None => {
-        val serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record);
         _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
-            _manager.createGroup(_channel, null)
             Toast.makeText(that, "local service added", Toast.LENGTH_SHORT).show()
           }
 
@@ -166,7 +203,30 @@ class PlayerService extends Service {
         })
       }
       case Some(station) => {
-        //connect to station
+        _manager.removeLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
+          override def onSuccess(): Unit = { 
+            Toast.makeText(that, "removedLocalServive", Toast.LENGTH_SHORT).show()
+            val config: WifiP2pConfig = { 
+              val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
+              c.wps.setup = WpsInfo.PBC; c
+            }
+            _manager.connect(_channel, config, new WifiP2pManager.ActionListener() {
+              override def onSuccess(): Unit = { 
+                Toast.makeText(that, "success requesting connection", Toast.LENGTH_SHORT).show()
+              }
+
+              override def onFailure(reason: Int): Unit = {
+                Toast
+                  .makeText(that, "failure requesting connection: " + reason, Toast.LENGTH_SHORT)
+                  .show()
+              }
+            })
+          }
+
+          override def onFailure(reason: Int): Unit = {
+            Toast.makeText(that, "removedLocalServive Failed: " + reason, Toast.LENGTH_SHORT).show()
+          }
+        })
       }
     }
 
@@ -211,7 +271,12 @@ class PlayerService extends Service {
 
   override def onStartCommand(intent: Intent, flags: Int, startId: Int): Int = Service.START_STICKY
 
-  override def onDestroy(): Unit =  super.onDestroy()
+  override def onDestroy(): Unit =  {
+    super.onDestroy()
+    unregisterReceiver(_broadcastReceiver)
+  }
+
+
 
 }
 

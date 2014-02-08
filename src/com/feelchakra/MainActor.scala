@@ -47,7 +47,7 @@ object MainActor {
   case class CommitStation(device: WifiP2pDevice)
 
   case class SetServerPort(serverPort: String)
-
+  case class SetStation(station: Station)
 
   val mainActorRef = ActorSystem("actorSystem").actorOf(Props[MainActor], "mainActor")
 
@@ -67,7 +67,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
   //station selection fragment handler (FH)
   var _stationSelectionFH: Handler = _ 
-  var _stationList: List[Station] = List(Station("full domain", null, null))
+  var _stationList: List[Station] = List()
   var _stagedStationMap: Map[String, Station] = HashMap[String, Station]()
 
   //track selection fragment handler option (FHO)
@@ -185,8 +185,16 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
         newMap
       }
       _playerServiceHandler.obtainMessage(0, 
-        PlayerService.OnStationOptionChanged(_stationOption, "_chakra", "_syncstream._tcp", _record)
+        PlayerService.OnStationOptionChanged(_stationOption, serviceName, serviceType, _record)
       ).sendToTarget()
+
+     
+    case SetStation(station) =>
+      _stationOption = Some(station)
+      _playerServiceHandler.obtainMessage(0, 
+        PlayerService.OnStationOptionChanged(_stationOption, serviceName, serviceType, _record)
+      ).sendToTarget()
+
 
 
   }

@@ -32,7 +32,7 @@ class StationListAdapter(activity: Activity, initialStationList: List[Station]) 
     new LinearLayout(activity) {
       setOrientation(LinearLayout.VERTICAL)
       setBackgroundColor(Color.GRAY)
-      List(station.domain, "", "") foreach {
+      List(station.device.deviceName, station.domain, "") foreach {
         (text: String) => { 
           addView {
             new TextView(activity) {
