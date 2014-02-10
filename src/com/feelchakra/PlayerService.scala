@@ -273,6 +273,7 @@ class PlayerService extends Service {
 
   override def onDestroy(): Unit =  {
     super.onDestroy()
+    _manager.removeGroup(_channel, null)
     unregisterReceiver(_broadcastReceiver)
   }
 
