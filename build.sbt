@@ -6,14 +6,17 @@ name := "chakra"
 
 version := "1.0"
  
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.3"
 
  
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
+resolvers += Resolver.sonatypeRepo("snapshots") 
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
-  "com.netflix.rxjava" % "rxjava-scala" % "0.16.1"
+  "com.netflix.rxjava" % "rxjava-scala" % "0.16.1",
+  "org.scala-lang" %% "scala-pickling" % "0.8.0-SNAPSHOT"
 )
 
 useProguard in Android := true 

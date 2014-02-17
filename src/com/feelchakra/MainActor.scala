@@ -26,6 +26,9 @@ import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.wifi.p2p.WifiP2pManager._
 
+import java.net.InetSocketAddress 
+
+import akka.actor.{Actor, ActorRef, Props}
 
 
 object MainActor {
@@ -46,8 +49,11 @@ object MainActor {
   case class AddStation(station: Station)
   case class CommitStation(device: WifiP2pDevice)
 
-  case class SetServerPort(serverPort: String)
   case class SetStation(station: Station)
+  case object StartServer
+  case class StartClient(remoteHost: String)
+
+  case class SetRemoteTrack(track: String)
 
   val mainActorRef = ActorSystem("actorSystem").actorOf(Props[MainActor], "mainActor")
 
@@ -79,7 +85,11 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
   var _stationOption: Option[Station] = None 
   val serviceName: String = "_chakra" 
   val serviceType: String = "_syncstream._tcp" 
-  var _record: java.util.HashMap[String, String] = new java.util.HashMap() 
+
+  var _serverRef: ActorRef = _
+  var _clientRef: ActorRef = _
+
+  val localAddress = new InetSocketAddress("localhost", 0)
 
   import MainActor._
   def receive = {
@@ -126,11 +136,19 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
     case SetPlayerServiceHandler(handler) => {
       _playerServiceHandler = handler
       handler.obtainMessage(0, PlayerService.OnMainActorConnected(_playlist.lift(_trackIndex), true, 0)).sendToTarget()
+
+      handler.obtainMessage(0, 
+        PlayerService.OnProfileChanged(localAddress, serviceName, serviceType)
+      ).sendToTarget()
+
+      handler.obtainMessage(0, 
+        PlayerService.OnStationOptionChanged(_stationOption)
+      ).sendToTarget()
     }
 
     case SetTrack(track) => {
       if (!_playlist.contains(track)) {
-        _playlist = _playlist.:+(track)
+        _playlist = forkTrack(track)
       } 
 
       _trackIndex = _playlist.indexOf(track) 
@@ -144,7 +162,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
     case AddTrackToPlaylist(track) =>
 
-      _playlist = _playlist.:+(track)
+      _playlist = forkTrack(track)
       if (_trackIndex < 0) {
         _trackIndex = 0
         _playerServiceHandler.obtainMessage(0, PlayerService.OnTrackOptionChanged(
@@ -177,26 +195,35 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
          .sendToTarget()
      }
 
-    case SetServerPort(serverPort) =>
-      _record = {
-        val newMap = new java.util.HashMap[String, String]()
-        newMap.putAll(_record)
-        newMap.put("serverPort", serverPort)
-        newMap
-      }
-      _playerServiceHandler.obtainMessage(0, 
-        PlayerService.OnStationOptionChanged(_stationOption, serviceName, serviceType, _record)
-      ).sendToTarget()
-
      
     case SetStation(station) =>
       _stationOption = Some(station)
       _playerServiceHandler.obtainMessage(0, 
-        PlayerService.OnStationOptionChanged(_stationOption, serviceName, serviceType, _record)
+        PlayerService.OnStationOptionChanged(_stationOption)
       ).sendToTarget()
 
+    case StartServer =>
+      _serverRef = context.actorOf(ServerConnector.props(localAddress), "ServerConnector")
 
+    case StartClient(remoteHost) =>
+      _stationOption match {
+        case Some(station) =>
+          val remoteAddress = new InetSocketAddress(remoteHost, station.record.get("port").toInt)
+          _clientRef = context.actorOf(ClientConnector.props(remoteAddress), "ClientConnector")
+          case None => {}
+      }
 
+    case SetRemoteTrack(track) =>
+      _playerServiceHandler.obtainMessage(
+        0, 
+        PlayerService.OnRemoteTrackChanged(track)
+      ).sendToTarget()
+
+  }
+
+  private def forkTrack(track: Track): List[Track] = {
+    _serverRef.!(ServerConnector.OnNextTrack(track))
+    _playlist.:+(track)
   }
 
 }

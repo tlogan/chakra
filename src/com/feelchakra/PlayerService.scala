@@ -30,8 +30,8 @@ import java.io.IOException
 
 import guava.scala.android.RichMediaPlayer._
 
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.ServerSocket
+import java.net.Socket
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -51,15 +51,20 @@ import android.net.NetworkInfo
 
 import scala.collection.JavaConverters._
 
+import java.net.InetSocketAddress 
+
 
 object PlayerService {
 
-   case class OnMainActorConnected(trackOption: Option[Track], playOncePrepared: Boolean, positionOncePrepared: Int)
-   case class OnTrackOptionChanged(trackOption: Option[Track]) 
-   case class OnPlayStateChanged(playOncePrepared: Boolean) 
-   case class OnPositionChanged(positionOncePrepared: Int) 
+  case class OnMainActorConnected(trackOption: Option[Track], playOncePrepared: Boolean, positionOncePrepared: Int)
+  case class OnTrackOptionChanged(trackOption: Option[Track]) 
+  case class OnPlayStateChanged(playOncePrepared: Boolean) 
+  case class OnPositionChanged(positionOncePrepared: Int) 
 
-  case class OnStationOptionChanged(stationOption: Option[Station], serviceName: String, serviceType: String, record: java.util.Map[String, String])
+  case class OnProfileChanged(localAddress: InetSocketAddress, serviceName: String, serviceType: String) 
+  case class OnStationOptionChanged(stationOption: Option[Station])
+
+  case class OnRemoteTrackChanged(track: String)
 
 }
 
@@ -79,8 +84,13 @@ class PlayerService extends Service {
           that.onPlayStateChanged(playOncePrepared); true
         case OnPositionChanged(positionOncePrepared) =>
           that.onPositionChanged(positionOncePrepared); true
-        case OnStationOptionChanged(stationOption, serviceName, serviceType, record) =>
-          that.onStationOptionChanged(stationOption, serviceName, serviceType, record); true
+        case OnProfileChanged(localAddress, serviceName, serviceType) =>
+          that.onProfileChanged(localAddress, serviceName, serviceType); true
+        case OnStationOptionChanged(stationOption) =>
+          that.onStationOptionChanged(stationOption); true
+        case OnRemoteTrackChanged(track) =>
+          Toast.makeText(that, "remote track received: " + track, Toast.LENGTH_SHORT).show()
+          true
         case _ => false
       }
     }
@@ -90,6 +100,7 @@ class PlayerService extends Service {
 
   private val mainActorRef = MainActor.mainActorRef
   private val mediaPlayer = new MediaPlayer()
+
   private val that = this
 
   private var _playOncePrepared: Boolean = false
@@ -106,8 +117,6 @@ class PlayerService extends Service {
   override def onBind(intent: Intent): IBinder = {
     return null;
   }
-
-
 
   override def onCreate(): Unit = {
 
@@ -138,12 +147,15 @@ class PlayerService extends Service {
             if (networkInfo.isConnected()) {
               _manager.requestConnectionInfo(_channel, new ConnectionInfoListener() {
                 override def onConnectionInfoAvailable(info: WifiP2pInfo): Unit = {
-                  val groupOwnerAddress = info.groupOwnerAddress.getHostAddress();
+                  val serverHost = info.groupOwnerAddress.getHostAddress();
 
                   if (info.groupFormed && info.isGroupOwner) {
                     Toast.makeText(that, "Connected as Server", Toast.LENGTH_SHORT).show()
+                    mainActorRef ! MainActor.StartServer 
+
                   } else {
                     Toast.makeText(that, "Connected as Client", Toast.LENGTH_SHORT).show()
+                    mainActorRef ! MainActor.StartClient(serverHost)
                   }
                   
                 }
@@ -163,17 +175,9 @@ class PlayerService extends Service {
     }
     registerReceiver(_broadcastReceiver, intentFilter)
 
-    try {
-      _serverSocket = new ServerSocket(0);
-    } catch  {
-      case e: IOException => e.printStackTrace()
-    }
-
-    mainActorRef ! MainActor.SetServerPort(String.valueOf(_serverSocket.getLocalPort()))
-
   }
 
-  def onMainActorconnected(trackOption: Option[Track], playOncePrepared: Boolean, positionOncePrepared: Int): Unit = {
+  private def onMainActorconnected(trackOption: Option[Track], playOncePrepared: Boolean, positionOncePrepared: Int): Unit = {
 
     _playOncePrepared = playOncePrepared
     _positionOncePrepared = positionOncePrepared
@@ -181,18 +185,25 @@ class PlayerService extends Service {
 
   }
 
-  private def onStationOptionChanged(
-    stationOption: Option[Station], serviceName: String, 
-    serviceType: String, record: java.util.Map[String, String]
-  ): Unit = {
+
+  private def onProfileChanged(localAddress: InetSocketAddress, serviceName: String, serviceType: String): Unit = {
+    val record = {
+      val r = new java.util.HashMap[String, String]()
+      r.put("port", localAddress.getPort().toString)
+      r
+    }
+    _serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record)
+  }
+
+
+  private def onStationOptionChanged(stationOption: Option[Station]): Unit = {
 
     Toast.makeText(that, "onStationOptionChanged", Toast.LENGTH_SHORT).show()
 
-    val serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record);
     _manager.removeGroup(_channel, null)
     stationOption match {
       case None => {
-        _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
+        _manager.addLocalService(_channel, _serviceInfo, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
             Toast.makeText(that, "local service added", Toast.LENGTH_SHORT).show()
           }
@@ -203,7 +214,7 @@ class PlayerService extends Service {
         })
       }
       case Some(station) => {
-        _manager.removeLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
+        _manager.removeLocalService(_channel, _serviceInfo, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
             Toast.makeText(that, "removedLocalServive", Toast.LENGTH_SHORT).show()
             val config: WifiP2pConfig = { 
