@@ -35,6 +35,7 @@ import scala.collection.JavaConversions._
 object StationSelectionFragment {
   case class OnMainActorConnected(stationList: List[Station])
   case class OnStationListChanged(stationList: List[Station])
+  case class OnStationOptionChanged(stationOption: Option[Station]) 
 }
 
 class StationSelectionFragment extends Fragment {
@@ -48,6 +49,8 @@ class StationSelectionFragment extends Fragment {
   private var _manager: WifiP2pManager = _
   private var _channel: WifiP2pManager.Channel = _
 
+  private val serviceRequest = WifiP2pDnsSdServiceRequest.newInstance()
+
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
       import StationSelectionFragment._
@@ -56,6 +59,22 @@ class StationSelectionFragment extends Fragment {
           that.onMainActorConnected(stationList); true
         case OnStationListChanged(stationList) => 
           that.onStationListChanged(stationList); true
+        case OnStationOptionChanged(stationOption) => 
+
+          stationOption match {
+            case None => {}
+            case Some(station) => {
+              _manager.removeServiceRequest(_channel, serviceRequest, new ActionListener() {
+                override def onSuccess(): Unit = {
+                  Toast.makeText(getActivity(), "Remove serviceRequest Success", Toast.LENGTH_SHORT).show()
+                }
+                override def onFailure(code: Int): Unit = {
+                  Toast.makeText(getActivity(), "Remove serviceRequest Failed: " + code, Toast.LENGTH_SHORT).show()
+                }
+              })
+            }
+          }
+          true
         case _ => false
       }
     }
@@ -115,8 +134,6 @@ class StationSelectionFragment extends Fragment {
       override def onDnsSdTxtRecordAvailable(domain: String, record: java.util.Map[String, String], 
         device: WifiP2pDevice
       ): Unit = {
-
-        Toast.makeText(getActivity(), "new record available: " + device.deviceName, Toast.LENGTH_SHORT).show()
         val station = Station(domain, record, device)
         mainActorRef ! MainActor.AddStation(station)
       }
@@ -124,7 +141,6 @@ class StationSelectionFragment extends Fragment {
 
     _manager.setDnsSdResponseListeners(_channel, serviceListener, recordListener)
 
-    val serviceRequest = WifiP2pDnsSdServiceRequest.newInstance()
     _manager.addServiceRequest(_channel, serviceRequest, new ActionListener() {
       override def onSuccess(): Unit = {
         Toast.makeText(getActivity(), "serviceRequest Success", Toast.LENGTH_SHORT).show()
@@ -152,6 +168,10 @@ class StationSelectionFragment extends Fragment {
 
   override def onPause() {
     super.onPause()
+  }
+
+  override def onStop() {
+    super.onStop()
   }
 
   private def onStationListChanged(stationList: List[Station]): Unit = {

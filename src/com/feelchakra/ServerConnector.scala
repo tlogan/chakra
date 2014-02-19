@@ -68,8 +68,6 @@ class ServerConnector(localAddress: InetSocketAddress) extends Actor {
         messengerRef.!(ServerMessenger.OnNextTrack(track: Track))
       })
 
-
-
   }
 
 }

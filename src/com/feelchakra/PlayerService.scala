@@ -140,6 +140,7 @@ class PlayerService extends Service {
       
       override def onReceive(context: Context, intent: Intent): Unit = {
         import WifiP2pManager._
+
         intent.getAction() match {
           case WIFI_P2P_STATE_CHANGED_ACTION => {}
           case WIFI_P2P_CONNECTION_CHANGED_ACTION => {
@@ -147,16 +148,17 @@ class PlayerService extends Service {
             if (networkInfo.isConnected()) {
               _manager.requestConnectionInfo(_channel, new ConnectionInfoListener() {
                 override def onConnectionInfoAvailable(info: WifiP2pInfo): Unit = {
-                  val serverHost = info.groupOwnerAddress.getHostAddress();
-
-                  if (info.groupFormed && info.isGroupOwner) {
-                    Toast.makeText(that, "Connected as Server", Toast.LENGTH_SHORT).show()
-                    mainActorRef ! MainActor.StartServer 
-
-                  } else {
-                    Toast.makeText(that, "Connected as Client", Toast.LENGTH_SHORT).show()
-                    mainActorRef ! MainActor.StartClient(serverHost)
-                  }
+                  Toast.makeText(that, "X formed, owner:" + info.groupFormed + info.isGroupOwner, Toast.LENGTH_SHORT).show()
+                  if (info.groupFormed) {
+                    if (info.isGroupOwner) {
+                      Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
+                      mainActorRef ! MainActor.StartServer 
+                    } else {
+                      Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
+                      //val remoteHost = info.groupOwnerAddress.getHostAddress()
+                      //mainActorRef ! MainActor.StartClient(remoteHost)
+                    }
+                  } 
                   
                 }
               })
@@ -187,6 +189,8 @@ class PlayerService extends Service {
 
 
   private def onProfileChanged(localAddress: InetSocketAddress, serviceName: String, serviceType: String): Unit = {
+
+    Toast.makeText(that, "onProfileChanged", Toast.LENGTH_SHORT).show()
     val record = {
       val r = new java.util.HashMap[String, String]()
       r.put("port", localAddress.getPort().toString)
@@ -200,12 +204,12 @@ class PlayerService extends Service {
 
     Toast.makeText(that, "onStationOptionChanged", Toast.LENGTH_SHORT).show()
 
-    _manager.removeGroup(_channel, null)
     stationOption match {
       case None => {
         _manager.addLocalService(_channel, _serviceInfo, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
             Toast.makeText(that, "local service added", Toast.LENGTH_SHORT).show()
+            _manager.createGroup(_channel, null)
           }
 
           override def onFailure(reason: Int): Unit = {
@@ -214,30 +218,34 @@ class PlayerService extends Service {
         })
       }
       case Some(station) => {
+        /*
         _manager.removeLocalService(_channel, _serviceInfo, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
-            Toast.makeText(that, "removedLocalServive", Toast.LENGTH_SHORT).show()
-            val config: WifiP2pConfig = { 
-              val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
-              c.wps.setup = WpsInfo.PBC; c
-            }
-            _manager.connect(_channel, config, new WifiP2pManager.ActionListener() {
-              override def onSuccess(): Unit = { 
-                Toast.makeText(that, "success requesting connection", Toast.LENGTH_SHORT).show()
-              }
-
-              override def onFailure(reason: Int): Unit = {
-                Toast
-                  .makeText(that, "failure requesting connection: " + reason, Toast.LENGTH_SHORT)
-                  .show()
-              }
-            })
           }
-
           override def onFailure(reason: Int): Unit = {
             Toast.makeText(that, "removedLocalServive Failed: " + reason, Toast.LENGTH_SHORT).show()
           }
         })
+        */
+
+        Toast.makeText(that, "requesting connection to station: " + station.device.deviceName, Toast.LENGTH_SHORT).show()
+        val config: WifiP2pConfig = { 
+          val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
+          c.wps.setup = WpsInfo.PBC; c
+        }
+        _manager.connect(_channel, config, new WifiP2pManager.ActionListener() {
+          override def onSuccess(): Unit = { 
+            Toast.makeText(that, "success requesting connection", Toast.LENGTH_SHORT).show()
+          }
+
+          override def onFailure(reason: Int): Unit = {
+            Toast
+              .makeText(that, "failure requesting connection: " + reason, Toast.LENGTH_SHORT)
+              .show()
+          }
+        })
+
+
       }
     }
 

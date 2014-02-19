@@ -73,7 +73,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
   //station selection fragment handler (FH)
   var _stationSelectionFH: Handler = _ 
-  var _stationList: List[Station] = List()
+  var _stationMap: Map[String, Station] = HashMap[String, Station]()
   var _stagedStationMap: Map[String, Station] = HashMap[String, Station]()
 
   //track selection fragment handler option (FHO)
@@ -86,7 +86,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
   val serviceName: String = "_chakra" 
   val serviceType: String = "_syncstream._tcp" 
 
-  var _serverRef: ActorRef = _
+  var _serverRefOp: Option[ActorRef] = None
   var _clientRef: ActorRef = _
 
   val localAddress = new InetSocketAddress("localhost", 0)
@@ -144,6 +144,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
       handler.obtainMessage(0, 
         PlayerService.OnStationOptionChanged(_stationOption)
       ).sendToTarget()
+
     }
 
     case SetTrack(track) => {
@@ -181,7 +182,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
     case SetStationSelectionFragmentHandler(handler) =>
       _stationSelectionFH = handler
-      handler.obtainMessage(0, StationSelectionFragment.OnMainActorConnected(_stationList))
+      handler.obtainMessage(0, StationSelectionFragment.OnMainActorConnected(_stationMap.values.toList))
         .sendToTarget()
 
     case AddStation(station) =>
@@ -189,28 +190,40 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
     case CommitStation(device) =>
      if (_stagedStationMap.isDefinedAt(device.deviceAddress)) {
-       _stationList = _stationList :+ _stagedStationMap(device.deviceAddress)
+       _stationMap = _stationMap.+((device.deviceAddress, _stagedStationMap(device.deviceAddress)))
        _stationSelectionFH
-         .obtainMessage(0, StationSelectionFragment.OnStationListChanged(_stationList))
+         .obtainMessage(0, StationSelectionFragment.OnStationListChanged(_stationMap.values.toList))
          .sendToTarget()
      }
 
      
     case SetStation(station) =>
       _stationOption = Some(station)
+
+      _stationSelectionFH.obtainMessage(0, 
+        StationSelectionFragment.OnStationOptionChanged(_stationOption)
+      ).sendToTarget()
+
       _playerServiceHandler.obtainMessage(0, 
         PlayerService.OnStationOptionChanged(_stationOption)
       ).sendToTarget()
 
     case StartServer =>
-      _serverRef = context.actorOf(ServerConnector.props(localAddress), "ServerConnector")
-
+      _serverRefOp match {
+        case Some(serverRef) => Log.d("StartServer", "Some:" + serverRef.toString)
+        case None => 
+          Log.d("StartServer", "None")
+          _serverRefOp = Some(context.actorOf(ServerConnector.props(localAddress), "ServerConnector"))
+          Log.d("StartServer", "Post actor creation - None")
+      }
     case StartClient(remoteHost) =>
       _stationOption match {
         case Some(station) =>
           val remoteAddress = new InetSocketAddress(remoteHost, station.record.get("port").toInt)
           _clientRef = context.actorOf(ClientConnector.props(remoteAddress), "ClientConnector")
-          case None => {}
+          case None => {
+            Log.d("StartClient: _stationOption", "None")
+          }
       }
 
     case SetRemoteTrack(track) =>
@@ -222,7 +235,10 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
   }
 
   private def forkTrack(track: Track): List[Track] = {
-    _serverRef.!(ServerConnector.OnNextTrack(track))
+    _serverRefOp match {
+      case Some(serverRef) => serverRef.!(ServerConnector.OnNextTrack(track))
+      case None => {}
+    }
     _playlist.:+(track)
   }
 
