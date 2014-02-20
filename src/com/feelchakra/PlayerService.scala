@@ -73,6 +73,64 @@ class PlayerService extends Service {
   private var _serviceInfoOp: Option[WifiP2pDnsSdServiceInfo] = None
   private var _stationOp: Option[Station] = None
 
+  private val serviceRequest = WifiP2pDnsSdServiceRequest.newInstance()
+
+  import WifiP2pManager._
+
+  private def setDiscovery(stationOption: Option[Station]): Unit = {
+    stationOption match {
+      case None => that.discoverServices()
+      case Some(station) => that.stopDiscovering()
+    }
+  }
+
+  private def stopDiscovering(): Unit = {
+    _manager.removeServiceRequest(_channel, serviceRequest, new ActionListener() {
+      override def onSuccess(): Unit = {
+      }
+      override def onFailure(code: Int): Unit = {
+      }
+    })
+  }
+
+  private def discoverServices(): Unit = {
+    val serviceListener = new DnsSdServiceResponseListener() {
+      override def onDnsSdServiceAvailable(name: String, regType: String, device: WifiP2pDevice): Unit = {
+        mainActorRef ! MainActor.CommitStation(device)
+      }
+    }
+
+    val recordListener = new DnsSdTxtRecordListener() {
+      override def onDnsSdTxtRecordAvailable(domain: String, record: java.util.Map[String, String], 
+        device: WifiP2pDevice
+      ): Unit = {
+        val station = Station(domain, record, device)
+        mainActorRef ! MainActor.AddStation(station)
+      }
+    }
+
+    _manager.setDnsSdResponseListeners(_channel, serviceListener, recordListener)
+
+    _manager.addServiceRequest(_channel, serviceRequest, new ActionListener() {
+      override def onSuccess(): Unit = {
+        Toast.makeText(that, "serviceRequest Success", Toast.LENGTH_SHORT).show()
+      }
+      override def onFailure(code: Int): Unit = {
+        Toast.makeText(that, "serviceRequest Failed: " + code, Toast.LENGTH_SHORT).show()
+      }
+    })
+    _manager.discoverServices(_channel, new ActionListener() {
+      override def onSuccess(): Unit = {
+        Toast.makeText(that, "discover Success", Toast.LENGTH_SHORT).show()
+      }
+      override def onFailure(code: Int): Unit = {
+        Toast.makeText(that, "discover Failed: " + code, Toast.LENGTH_SHORT).show()
+      }
+    })
+
+
+  }
+
   private def setServiceInfo(localAddress: InetSocketAddress, serviceName: String, serviceType: String): Unit = {
 
     Toast.makeText(that, "setServiceInfo", Toast.LENGTH_SHORT).show()
@@ -97,6 +155,9 @@ class PlayerService extends Service {
   }
 
   private def changeStation(stationOption: Option[Station]): Unit = {
+
+    setDiscovery(stationOption)
+    
     _stationOp = stationOption
     _serviceInfoOp match {
       case None => {} 

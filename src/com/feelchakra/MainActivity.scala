@@ -153,4 +153,10 @@ class MainActivity extends Activity {
     false
   }
 
+  override def onDestroy(): Unit = {
+    super.onDestroy()
+    val playerServiceIntent = new Intent(this, classOf[PlayerService])
+    stopService(playerServiceIntent);
+  }
+
 }
