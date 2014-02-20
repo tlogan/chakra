@@ -82,6 +82,8 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
   private val localAddress = new InetSocketAddress("localhost", 0)
   private def trackOption: Option[Track] = _playlist.lift(_trackIndex)
 
+  private var _discovering: Boolean = false
+
   private def setDatabase(database: Database): Unit = {
     _mainActivityDatabase = database 
     val trackListFuture = TrackList(database)
@@ -131,8 +133,11 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
   }
 
   private def setStationOption(stationOption: Option[Station]): Unit = {
+
+    if (stationOption != None) setDiscovering(false)
     _stationOption = stationOption
     notifyHandlers(OnStationOptionChanged(_stationOption))
+
   }
 
 
@@ -146,6 +151,11 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
       case None => {}
     }
     _playlist.:+(track)
+  }
+
+  private def setDiscovering(discovering: Boolean): Unit = {
+    _discovering = discovering
+    notifyHandlers(OnDiscoveringChanged(_discovering))
   }
 
   def receive = {
@@ -165,7 +175,8 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
         OnTrackOptionChanged(trackOption),
         OnPlayStateChanged(true),
         OnPositionChanged(0),
-        OnProfileChanged(localAddress, serviceName, serviceType)
+        OnProfileChanged(localAddress, serviceName, serviceType),
+        OnDiscoveringChanged(_discovering)
       ).foreach(response => {
         handler.obtainMessage(0, response).sendToTarget()
       })
@@ -176,6 +187,11 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
     case SetSelection(selection) => 
       setSelection(selection)
+      selection match {
+        case StationSelection => setDiscovering(true)
+        case TrackSelection => setDiscovering(false)
+      }
+      
 
     case FlipPlayer =>
       setPlayerOpen(!_playerOpen)

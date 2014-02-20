@@ -49,5 +49,7 @@ object OutputHandler {
   case class OnProfileChanged(localAddress: InetSocketAddress, serviceName: String, serviceType: String) extends OnChange
   case class OnRemoteTrackChanged(track: Track) extends OnChange
 
+  case class OnDiscoveringChanged(discovering: Boolean) extends OnChange
+
 
 }

@@ -73,30 +73,31 @@ class PlayerService extends Service {
   private var _serviceInfoOp: Option[WifiP2pDnsSdServiceInfo] = None
   private var _stationOp: Option[Station] = None
 
-  private val serviceRequest = WifiP2pDnsSdServiceRequest.newInstance()
+  private var _serviceRequestOp: Option[WifiP2pDnsSdServiceRequest] = None 
 
   import WifiP2pManager._
 
-  private def setDiscovery(stationOption: Option[Station]): Unit = {
-    stationOption match {
-      case None => that.discoverServices()
-      case Some(station) => that.stopDiscovering()
+  private def stopDiscovering(): Unit = {
+    _serviceRequestOp match {
+      case None => {}
+      case Some(serviceRequest) =>
+        _serviceRequestOp = None
+        _manager.removeServiceRequest(_channel, serviceRequest, new ActionListener() {
+          override def onSuccess(): Unit = {
+          }
+          override def onFailure(code: Int): Unit = {
+          }
+        })
+
     }
   }
 
-  private def stopDiscovering(): Unit = {
-    _manager.removeServiceRequest(_channel, serviceRequest, new ActionListener() {
-      override def onSuccess(): Unit = {
-      }
-      override def onFailure(code: Int): Unit = {
-      }
-    })
-  }
-
   private def discoverServices(): Unit = {
+
     val serviceListener = new DnsSdServiceResponseListener() {
       override def onDnsSdServiceAvailable(name: String, regType: String, device: WifiP2pDevice): Unit = {
         mainActorRef ! MainActor.CommitStation(device)
+        Toast.makeText(that, "service available", Toast.LENGTH_SHORT).show()
       }
     }
 
@@ -105,12 +106,15 @@ class PlayerService extends Service {
         device: WifiP2pDevice
       ): Unit = {
         val station = Station(domain, record, device)
+        Toast.makeText(that, "record available", Toast.LENGTH_SHORT).show()
         mainActorRef ! MainActor.AddStation(station)
       }
     }
 
     _manager.setDnsSdResponseListeners(_channel, serviceListener, recordListener)
 
+    val serviceRequest = WifiP2pDnsSdServiceRequest.newInstance()
+    _serviceRequestOp = Some(serviceRequest)
     _manager.addServiceRequest(_channel, serviceRequest, new ActionListener() {
       override def onSuccess(): Unit = {
         Toast.makeText(that, "serviceRequest Success", Toast.LENGTH_SHORT).show()
@@ -156,8 +160,6 @@ class PlayerService extends Service {
 
   private def changeStation(stationOption: Option[Station]): Unit = {
 
-    setDiscovery(stationOption)
-    
     _stationOp = stationOption
     _serviceInfoOp match {
       case None => {} 
@@ -171,24 +173,19 @@ class PlayerService extends Service {
     }
   }
 
+
   private def advertiseLocalStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
-    _manager.removeGroup(_channel, null) 
+    _manager.removeGroup(_channel, null)
     _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
       override def onSuccess(): Unit = { 
-        Toast.makeText(that, "local service added", Toast.LENGTH_SHORT).show()
         _manager.createGroup(_channel, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
-            Toast.makeText(that, "server group created", Toast.LENGTH_SHORT).show()
           }
-
           override def onFailure(reason: Int): Unit = {
-            Toast.makeText(that, "server group failed: " + reason, Toast.LENGTH_SHORT).show()
           }
         })
       }
-
       override def onFailure(reason: Int): Unit = {
-        Toast.makeText(that, "local service failed: " + reason, Toast.LENGTH_SHORT).show()
       }
     })
   }
@@ -198,27 +195,22 @@ class PlayerService extends Service {
       override def onSuccess(): Unit = { 
       }
       override def onFailure(reason: Int): Unit = {
-        Toast.makeText(that, "removedLocalServive Failed: " + reason, Toast.LENGTH_SHORT).show()
       }
     })
   }
 
   private def tuneIntoStation(station: Station): Unit = {
     _manager.removeGroup(_channel, null) 
-    Toast.makeText(that, "requesting connection to station: " + station.device.deviceName, Toast.LENGTH_SHORT).show()
     val config: WifiP2pConfig = { 
       val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
       c.wps.setup = WpsInfo.PBC; c
     }
     _manager.connect(_channel, config, new WifiP2pManager.ActionListener() {
       override def onSuccess(): Unit = { 
-        Toast.makeText(that, "success requesting connection", Toast.LENGTH_SHORT).show()
+        Toast.makeText(that, "requesting connection", Toast.LENGTH_SHORT).show()
       }
-
       override def onFailure(reason: Int): Unit = {
-        Toast
-          .makeText(that, "failure requesting connection: " + reason, Toast.LENGTH_SHORT)
-          .show()
+        Toast.makeText(that, "failed requesting connection: " + reason, Toast.LENGTH_SHORT).show()
       }
     })
 
@@ -264,6 +256,8 @@ class PlayerService extends Service {
     override def handleMessage(msg: Message): Boolean = {
       import OutputHandler._
       msg.obj match {
+        case OnDiscoveringChanged(discovering: Boolean) => 
+          if (discovering) discoverServices() else stopDiscovering(); true
         case OnTrackOptionChanged(trackOption) => 
           that.prepareTrack(trackOption); true
         case OnPlayStateChanged(playOncePrepared) =>
