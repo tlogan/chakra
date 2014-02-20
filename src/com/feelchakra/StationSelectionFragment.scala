@@ -132,10 +132,10 @@ class StationSelectionFragment extends Fragment {
   private def stopDiscovering(): Unit = {
     _manager.removeServiceRequest(_channel, serviceRequest, new ActionListener() {
       override def onSuccess(): Unit = {
-        Toast.makeText(getActivity(), "Remove serviceRequest Success", Toast.LENGTH_SHORT).show()
+        Log.d("chakra", "activity: " + getActivity())
       }
       override def onFailure(code: Int): Unit = {
-        Toast.makeText(getActivity(), "Remove serviceRequest Failed: " + code, Toast.LENGTH_SHORT).show()
+        Log.d("chakra", "stop discovery failed: " + code)
       }
     })
   }

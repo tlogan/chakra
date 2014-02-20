@@ -111,10 +111,19 @@ class PlayerService extends Service {
   }
 
   private def advertiseLocalStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
+    _manager.removeGroup(_channel, null) 
     _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
       override def onSuccess(): Unit = { 
         Toast.makeText(that, "local service added", Toast.LENGTH_SHORT).show()
-        _manager.createGroup(_channel, null)
+        _manager.createGroup(_channel, new WifiP2pManager.ActionListener() {
+          override def onSuccess(): Unit = { 
+            Toast.makeText(that, "server group created", Toast.LENGTH_SHORT).show()
+          }
+
+          override def onFailure(reason: Int): Unit = {
+            Toast.makeText(that, "server group failed: " + reason, Toast.LENGTH_SHORT).show()
+          }
+        })
       }
 
       override def onFailure(reason: Int): Unit = {
@@ -134,7 +143,7 @@ class PlayerService extends Service {
   }
 
   private def tuneIntoStation(station: Station): Unit = {
-
+    _manager.removeGroup(_channel, null) 
     Toast.makeText(that, "requesting connection to station: " + station.device.deviceName, Toast.LENGTH_SHORT).show()
     val config: WifiP2pConfig = { 
       val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
@@ -226,7 +235,6 @@ class PlayerService extends Service {
 
     })
     mediaPlayer.setOnCompletion(mp => {/*notify main actor*/})
-    mainActorRef ! MainActor.Subscribe(handler)
 
 
     _manager = that.getSystemService(Context.WIFI_P2P_SERVICE) match {
@@ -274,6 +282,8 @@ class PlayerService extends Service {
       }; i
     }
     registerReceiver(_broadcastReceiver, intentFilter)
+
+    mainActorRef ! MainActor.Subscribe(handler)
 
   }
 
