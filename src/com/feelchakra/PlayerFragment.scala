@@ -22,32 +22,62 @@ import rx.lang.scala.Subject
 import guava.scala.android.RichListView.listView2RichListView
 import guava.scala.android.RichView.view2RichView
 
-object PlayerFragment {
-
-  case class OnMainActorConnected(trackIndex: Int, playlist: List[Track]) 
-  case class OnPlayListChanged(trackIndex: Int, playlist: List[Track]) 
-  case class OnPlayerFlipped(playerOpen: Boolean) 
-
-}
-
 class PlayerFragment extends Fragment {
 
   private val that = this
   private val mainActorRef = MainActor.mainActorRef
-  private var _listView: ListView = _
+  private var _playlistView: ListView = _
   private var _trackLayout: TrackLayout = _
   private var _adapter: PlaylistAdapter = _
 
+  private def setPlaylistCurrentTrack(trackIndex: Int): Unit = {
+    _playlistView.getAdapter() match {
+      case adapter: PlaylistAdapter => {
+        adapter.setTrackIndex(trackIndex)
+      }
+      case _ => {}
+    } 
+  }
+
+  private def populatePlaylistView(playlist: List[Track]): Unit = {
+    _playlistView.getAdapter() match {
+      case adapter: PlaylistAdapter => {
+        adapter.setPlaylist(playlist)
+      }
+      case _ => {}
+    } 
+  }
+
+  private def setTrackOption(trackOption: Option[Track]): Unit = {
+    _trackLayout.setTrackOption(trackOption)
+  }
+
+  private def resizePlaylistView(playerOpen: Boolean): Unit = {
+
+    if (playerOpen) {
+      _playlistView.setLayoutParams {
+        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
+      }
+    } else {
+      _playlistView.setLayoutParams {
+        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
+      }
+    }
+
+  }
+
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
-      import PlayerFragment._
+      import OutputHandler._ 
       msg.obj match {
-        case OnMainActorConnected(trackOption, playlist) => 
-          that.onMainActorConnected(trackOption, playlist); true
-        case OnPlayListChanged(trackIndex, playlist) => 
-          that.onPlaylistChanged(trackIndex, playlist); true
-        case OnPlayerFlipped(playerOpen) => 
-          that.onPlayerFlipped(playerOpen); true
+        case OnTrackIndexChanged(trackIndex) => 
+          that.setPlaylistCurrentTrack(trackIndex); true
+        case OnPlaylistChanged(playlist) => 
+          that.populatePlaylistView(playlist); true
+        case OnTrackOptionChanged(trackOption) => 
+          that.setTrackOption(trackOption); true
+        case OnPlayerOpenChanged(playerOpen) => 
+          that.resizePlaylistView(playerOpen); true
         case _ => false
       }
      false
@@ -64,75 +94,34 @@ class PlayerFragment extends Fragment {
 
       addView {
         _trackLayout = new TrackLayout(getActivity)
-        _trackLayout.setOnClick {
+        _trackLayout.setOnClick(
           view => { mainActorRef ! MainActor.FlipPlayer }
-        }
+        )
         _trackLayout
 
       }
 
       addView {
-        _listView = new ListView(getActivity()) {
+        _playlistView = new ListView(getActivity()) {
           setBackgroundColor(Color.YELLOW)
-          setLayoutParams {
+          setLayoutParams(
             new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
+          ) 
+        }
+        val adapter = new PlaylistAdapter(getActivity())
+        _playlistView.setAdapter(adapter)
+        _playlistView.setOnItemClick( 
+          (parent: AdapterView[_], view: View, position: Int, id: Long) => {
+            val trackIndex = adapter.getItemId(position)
+            mainActorRef ! MainActor.ChangeTrackByIndex(trackIndex.toInt) 
           }
-        }; _listView
+        ); _playlistView 
       }
 
     }
 
-    mainActorRef ! MainActor.SetPlayerFragmentHandler(handler) 
+    mainActorRef ! MainActor.Subscribe(handler) 
     verticalLayout
-  }
-
-  private def onMainActorConnected(trackIndex: Int, playlist: List[Track]): Unit = {
-
-    _trackLayout.onTrackOptionChanged(playlist.lift(trackIndex))
-
-    //update the track listview
-    _listView setAdapter {
-      new PlaylistAdapter(getActivity(), trackIndex, playlist)
-    } 
-
-    _listView setOnItemClick { 
-      (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-        val track = _listView.getAdapter() match {
-          case adapter: PlaylistAdapter => adapter.getItem(position)
-        } 
-        mainActorRef ! MainActor.SetTrack(track) 
-      }
-    }  
-
-  }
-
-
-  private def onPlaylistChanged(trackIndex: Int, playlist: List[Track]): Unit = {
-
-    _listView.getAdapter() match {
-      case adapter: PlaylistAdapter => {
-        adapter.onPlaylistChanged(trackIndex, playlist)
-      }
-      case _ => {}
-    } 
-
-    _trackLayout.onTrackOptionChanged(playlist.lift(trackIndex))
-
-
-  }
-
-  private def onPlayerFlipped(playerOpen: Boolean): Unit = {
-
-    if (playerOpen) {
-      _listView.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
-      }
-    } else {
-      _listView.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
-      }
-    }
-
   }
 
 }

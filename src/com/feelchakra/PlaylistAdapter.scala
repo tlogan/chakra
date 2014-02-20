@@ -15,10 +15,10 @@ import android.graphics.Color
 
 import rx.lang.scala.Observer
 
-class PlaylistAdapter(activity: Activity, trackIndex: Int, playlist: List[Track]) extends BaseAdapter {
+class PlaylistAdapter(activity: Activity) extends BaseAdapter {
 
-  private var _playlist: List[Track] = playlist
-  private var _trackIndex: Int = trackIndex 
+  private var _playlist: List[Track] = List() 
+  private var _trackIndex: Int = -1 
 
   override def getCount(): Int = _playlist.size
 
@@ -58,10 +58,13 @@ class PlaylistAdapter(activity: Activity, trackIndex: Int, playlist: List[Track]
     }
 
   }
-
-  def onPlaylistChanged(trackIndex: Int, playlist: List[Track]): Unit = {
-    _trackIndex = trackIndex
+  def setPlaylist(playlist: List[Track]): Unit = {
     _playlist = playlist 
+    this.notifyDataSetChanged()
+  }
+
+  def setTrackIndex(trackIndex: Int): Unit = {
+    _trackIndex = trackIndex
     this.notifyDataSetChanged()
   }
 

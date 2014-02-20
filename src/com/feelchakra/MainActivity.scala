@@ -21,11 +21,8 @@ import android.graphics.Color
 
 import android.util.Log 
 import scala.util.{Success,Failure}
-object MainActivity {
 
-   case class OnMainActorConnected(selectionList: List[Selection], playerOpen: Boolean) 
-   case class OnSelectionChanged(selection: Selection) 
-   case class OnPlayerFlipped(playerOpen: Boolean) 
+object MainActivity {
    
    val selectionFrameId = 23;
    val playerFrameId = 56;
@@ -36,26 +33,77 @@ class MainActivity extends Activity {
 
   private var _selectionFrame: FrameLayout = _
   private var _playerFrame: FrameLayout = _
-
   private val that = this
-  Log.d("chakra", "started")
+
+
+  private val mainActorRef = MainActor.mainActorRef
+
+
+  private def createSelectionTabs(selectionList: List[Selection]): Unit = {
+    that.getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
+    that.getActionBar().setDisplayShowTitleEnabled(true)
+    that.getActionBar().setDisplayShowHomeEnabled(true)
+    that.getActionBar().removeAllTabs();
+
+    selectionList foreach { selection => 
+      val tabListener = new ActionBar.TabListener() {
+        override def onTabSelected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
+          mainActorRef ! MainActor.SetSelection(selectionList(tab.getPosition()))
+        }
+
+        override def onTabUnselected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
+        }
+
+        override def onTabReselected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
+        }
+      }
+
+      val tab = that.getActionBar().newTab().setText(selection.label).setTabListener(tabListener)
+
+      that.getActionBar().addTab(tab)
+    }
+  }
+
+  private def setPlayerVisibility(playerOpen: Boolean): Unit = {
+    if (playerOpen) {
+      _selectionFrame.setLayoutParams {
+        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
+      }
+    } else {
+      _selectionFrame.setLayoutParams {
+        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
+      }
+    }
+  }
+
+  private def replaceSelectionFragment(selection: Selection): Unit = {
+    val transaction = getFragmentManager().beginTransaction()
+
+    selection match {
+      case TrackSelection => 
+        transaction.replace(_selectionFrame.getId(), new TrackSelectionFragment)
+      case StationSelection =>
+        transaction.replace(_selectionFrame.getId(), new StationSelectionFragment)
+    }
+
+    transaction.commit()
+    
+  }
 
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
-      import MainActivity._
+      import OutputHandler._
       msg.obj match {
-        case OnMainActorConnected(selectionList, playerOpen) => 
-          that.onMainActorConnected(selectionList, playerOpen); true
+        case OnSelectionListChanged(selectionList) => 
+          that.createSelectionTabs(selectionList); true
+        case OnPlayerOpenChanged(playerOpen) => 
+          that.setPlayerVisibility(playerOpen); true
         case OnSelectionChanged(selection) => 
-          that.onSelectionChanged(selection); true
-        case OnPlayerFlipped(playerOpen) => 
-          that.onPlayerFlipped(playerOpen); true
+          that.replaceSelectionFragment(selection); true
         case _ => false
       }
     }
   })
-
-  private val mainActorRef = MainActor.mainActorRef
   
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
@@ -89,84 +137,20 @@ class MainActivity extends Activity {
     val playerServiceIntent = new Intent(this, classOf[PlayerService])
     startService(playerServiceIntent);
 
-    mainActorRef ! MainActor.SetMainActivityHandler(handler)
     mainActorRef ! MainActor.SetMainActivityDatabase(new Database(this))
 
-  }
+    mainActorRef ! MainActor.Subscribe(handler)
 
-  private def onMainActorConnected(selectionList: List[Selection], playerOpen: Boolean): Unit = {
-
-    that.getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
-    that.getActionBar().setDisplayShowTitleEnabled(true)
-    that.getActionBar().setDisplayShowHomeEnabled(true)
-    that.getActionBar().removeAllTabs();
-
-    selectionList foreach { selection => 
-      val tabListener = new ActionBar.TabListener() {
-        override def onTabSelected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
-          mainActorRef ! MainActor.SetSelection(selectionList(tab.getPosition()))
-        }
-
-        override def onTabUnselected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
-        }
-
-        override def onTabReselected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
-        }
-      }
-
-      val tab = that.getActionBar().newTab().setText(selection.label).setTabListener(tabListener)
-
-      that.getActionBar().addTab(tab)
-    }
-
-    //openess
-    if (playerOpen) {
-      _selectionFrame.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
-      }
-    } else {
-      _selectionFrame.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
-      }
-    }
-
-  }
-
-  private def onSelectionChanged(selection: Selection): Unit = {
-    val transaction = getFragmentManager().beginTransaction()
-
-    selection match {
-      case TrackSelection => 
-        transaction.replace(_selectionFrame.getId(), new TrackSelectionFragment)
-      case StationSelection =>
-        transaction.replace(_selectionFrame.getId(), new StationSelectionFragment)
-    }
-
-    transaction.commit()
-    
-  }
-  private def onPlayerFlipped(playerOpen: Boolean): Unit = {
-
-    if (playerOpen) {
-      _selectionFrame.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
-      }
-    } else {
-      _selectionFrame.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
-      }
-    }
-    
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean  = {
     //getMenuInflater().inflate(R.menu.selection, menu);
 
-    super.onCreateOptionsMenu(menu);
+    super.onCreateOptionsMenu(menu)
   }
 
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    false;
+    false
   }
 
 }

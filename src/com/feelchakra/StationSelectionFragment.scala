@@ -32,11 +32,6 @@ import android.content.IntentFilter
 import guava.scala.android.RichListView.listView2RichListView
 import scala.collection.JavaConversions._ 
 
-object StationSelectionFragment {
-  case class OnMainActorConnected(stationList: List[Station])
-  case class OnStationListChanged(stationList: List[Station])
-  case class OnStationOptionChanged(stationOption: Option[Station]) 
-}
 
 class StationSelectionFragment extends Fragment {
 
@@ -53,28 +48,12 @@ class StationSelectionFragment extends Fragment {
 
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
-      import StationSelectionFragment._
+      import OutputHandler._
       msg.obj match {
-        case OnMainActorConnected(stationList) => 
-          that.onMainActorConnected(stationList); true
         case OnStationListChanged(stationList) => 
-          that.onStationListChanged(stationList); true
+          that.populateListView(stationList); true
         case OnStationOptionChanged(stationOption) => 
-
-          stationOption match {
-            case None => {}
-            case Some(station) => {
-              _manager.removeServiceRequest(_channel, serviceRequest, new ActionListener() {
-                override def onSuccess(): Unit = {
-                  Toast.makeText(getActivity(), "Remove serviceRequest Success", Toast.LENGTH_SHORT).show()
-                }
-                override def onFailure(code: Int): Unit = {
-                  Toast.makeText(getActivity(), "Remove serviceRequest Failed: " + code, Toast.LENGTH_SHORT).show()
-                }
-              })
-            }
-          }
-          true
+          that.setDiscovery(stationOption); true
         case _ => false
       }
     }
@@ -102,27 +81,66 @@ class StationSelectionFragment extends Fragment {
       }
     }
 
-    mainActorRef ! MainActor.SetStationSelectionFragmentHandler(handler) 
+    mainActorRef ! MainActor.Subscribe(handler) 
 
     _verticalLayout
   }
 
-  private def onMainActorConnected(stationList: List[Station]): Unit = {
 
 
-    _listView setAdapter {
-      new StationListAdapter(getActivity(), stationList)
+  override def onResume() {
+    super.onResume()
+  }
+
+  override def onPause() {
+    super.onPause()
+  }
+
+  override def onStop() {
+    super.onStop()
+    that.stopDiscovering()
+  }
+
+  private def populateListView(stationList: List[Station]): Unit = {
+
+    _listView.getAdapter() match {
+      case adapter: StationListAdapter => {
+        adapter.onStationListChanged(stationList)
+      }
+      case _ => {
+        val adapter = new StationListAdapter(getActivity(), stationList)
+        _listView.setAdapter(adapter) 
+
+        _listView.setOnItemClick( 
+          (parent: AdapterView[_], view: View, position: Int, id: Long) => {
+            val station = adapter.getItem(position)
+            mainActorRef ! MainActor.SetStation(station) 
+          }
+        )  
+      }
     } 
 
-    _listView setOnItemClick { 
-      (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-        val station = _listView.getAdapter() match {
-          case adapter: StationListAdapter => adapter.getItem(position)
-        } 
-        mainActorRef ! MainActor.SetStation(station) 
-        Log.d("stationSelectionFrag", "setting station list: " + stationList.size)
+  }
+
+  private def setDiscovery(stationOption: Option[Station]): Unit = {
+    stationOption match {
+      case None => that.discoverServices()
+      case Some(station) => that.stopDiscovering()
+    }
+  }
+
+  private def stopDiscovering(): Unit = {
+    _manager.removeServiceRequest(_channel, serviceRequest, new ActionListener() {
+      override def onSuccess(): Unit = {
+        Toast.makeText(getActivity(), "Remove serviceRequest Success", Toast.LENGTH_SHORT).show()
       }
-    }  
+      override def onFailure(code: Int): Unit = {
+        Toast.makeText(getActivity(), "Remove serviceRequest Failed: " + code, Toast.LENGTH_SHORT).show()
+      }
+    })
+  }
+
+  private def discoverServices(): Unit = {
 
     val serviceListener = new DnsSdServiceResponseListener() {
       override def onDnsSdServiceAvailable(name: String, regType: String, device: WifiP2pDevice): Unit = {
@@ -161,26 +179,6 @@ class StationSelectionFragment extends Fragment {
 
   }
 
-
-  override def onResume() {
-    super.onResume()
-  }
-
-  override def onPause() {
-    super.onPause()
-  }
-
-  override def onStop() {
-    super.onStop()
-  }
-
-  private def onStationListChanged(stationList: List[Station]): Unit = {
-
-    _listView.getAdapter() match {
-      case adapter: StationListAdapter => adapter.onStationListChanged(stationList)
-    } 
-
-  }
 
 
 }

@@ -20,11 +20,6 @@ import rx.lang.scala.Subject
 
 import guava.scala.android.RichListView.listView2RichListView
 
-object TrackSelectionFragment {
-  case class OnMainActorConnected(trackList: List[Track])
-  case class OnTrackListChanged(trackList: List[Track])
-}
-
 class TrackSelectionFragment extends Fragment {
 
   private val that = this
@@ -35,12 +30,10 @@ class TrackSelectionFragment extends Fragment {
 
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
-      import TrackSelectionFragment._
+      import OutputHandler._
       msg.obj match {
-        case OnMainActorConnected(trackList) => 
-          that.onMainActorConnected(trackList); true
         case OnTrackListChanged(trackList) => 
-          that.onTrackListChanged(trackList); true
+          that.populateListView(trackList); true
         case _ => false
       }
     }
@@ -60,32 +53,27 @@ class TrackSelectionFragment extends Fragment {
 
     }
 
-    mainActorRef ! MainActor.SetTrackSelectionFragmentHandler(handler) 
+    mainActorRef ! MainActor.Subscribe(handler) 
     _verticalLayout
   }
 
-  private def onMainActorConnected(trackList: List[Track]): Unit = {
 
-    _listView setAdapter {
-      new TrackListAdapter(getActivity(), trackList)
-    } 
-
-    _listView setOnItemClick { 
-      (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-        val track = _listView.getAdapter() match {
-          case adapter: TrackListAdapter => adapter.getItem(position)
-        } 
-        mainActorRef ! MainActor.AddTrackToPlaylist(track) 
-        Log.d("trackSelectionFrag", "setting track: " + track.title)
-      }
-    }  
-
-  }
-
-  private def onTrackListChanged(trackList: List[Track]): Unit = {
-
+  private def populateListView(trackList: List[Track]): Unit = {
+    
     _listView.getAdapter() match {
-      case adapter: TrackListAdapter => adapter.setTrackList(trackList)
+      case adapter: TrackListAdapter => {
+        adapter.setTrackList(trackList)
+      }
+      case _ => {
+        val adapter = new TrackListAdapter(getActivity(), trackList)
+        _listView.setAdapter(adapter) 
+        _listView.setOnItemClick( 
+          (parent: AdapterView[_], view: View, position: Int, id: Long) => {
+            val track =  adapter.getItem(position)
+            mainActorRef ! MainActor.AddTrackToPlaylist(track) 
+          }
+        ) 
+      }
     } 
 
   }

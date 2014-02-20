@@ -61,7 +61,7 @@ class ClientMessenger(connectionRef: ActorRef) extends Actor {
     case Received(data) => 
       waitForData match {
         case WaitForTrack =>
-          mainActorRef ! MainActor.SetRemoteTrack(data.toString)
+          mainActorRef ! MainActor.SetRemoteTrack(Track(data.toString, "", "", ""))
           context.become(receiveTrack(WaitForTrackFile))
         case WaitForTrackFile =>
           context.become(receiveTrack(WaitForTrack))

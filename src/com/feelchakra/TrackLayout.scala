@@ -26,7 +26,7 @@ class TrackLayout(context: Context) extends LinearLayout(context) {
      new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1)
    }
 
-   def onTrackOptionChanged(trackOption: Option[Track]): Unit = {
+   def setTrackOption(trackOption: Option[Track]): Unit = {
      removeAllViews()
      trackOption match {
        case Some(track) =>

@@ -53,49 +53,7 @@ import scala.collection.JavaConverters._
 
 import java.net.InetSocketAddress 
 
-
-object PlayerService {
-
-  case class OnMainActorConnected(trackOption: Option[Track], playOncePrepared: Boolean, positionOncePrepared: Int)
-  case class OnTrackOptionChanged(trackOption: Option[Track]) 
-  case class OnPlayStateChanged(playOncePrepared: Boolean) 
-  case class OnPositionChanged(positionOncePrepared: Int) 
-
-  case class OnProfileChanged(localAddress: InetSocketAddress, serviceName: String, serviceType: String) 
-  case class OnStationOptionChanged(stationOption: Option[Station])
-
-  case class OnRemoteTrackChanged(track: String)
-
-}
-
 class PlayerService extends Service {
-
-  private val handler = new Handler(new Handler.Callback() {
-    override def handleMessage(msg: Message): Boolean = {
-      import PlayerService._
-      msg.obj match {
-        case OnMainActorConnected(
-          trackOption, playOncePrepared, positionOncePrepared
-        ) =>
-          that.onMainActorconnected(trackOption, playOncePrepared, positionOncePrepared); true
-        case OnTrackOptionChanged(trackOption) => 
-          that.onTrackOptionChanged(trackOption); true
-        case OnPlayStateChanged(playOncePrepared) =>
-          that.onPlayStateChanged(playOncePrepared); true
-        case OnPositionChanged(positionOncePrepared) =>
-          that.onPositionChanged(positionOncePrepared); true
-        case OnProfileChanged(localAddress, serviceName, serviceType) =>
-          that.onProfileChanged(localAddress, serviceName, serviceType); true
-        case OnStationOptionChanged(stationOption) =>
-          that.onStationOptionChanged(stationOption); true
-        case OnRemoteTrackChanged(track) =>
-          Toast.makeText(that, "remote track received: " + track, Toast.LENGTH_SHORT).show()
-          true
-        case _ => false
-      }
-    }
-  })
-
 
 
   private val mainActorRef = MainActor.mainActorRef
@@ -111,8 +69,148 @@ class PlayerService extends Service {
   private var _channel: WifiP2pManager.Channel = _
   private var _broadcastReceiver: BroadcastReceiver = _
   private var _serverSocket: ServerSocket = _
-  private var _serviceInfo: WifiP2pDnsSdServiceInfo = _
-  private var _serviceRequest: WifiP2pDnsSdServiceRequest = _
+
+  private var _serviceInfoOp: Option[WifiP2pDnsSdServiceInfo] = None
+  private var _stationOp: Option[Station] = None
+
+  private def setServiceInfo(localAddress: InetSocketAddress, serviceName: String, serviceType: String): Unit = {
+
+    Toast.makeText(that, "setServiceInfo", Toast.LENGTH_SHORT).show()
+    val record = {
+      val r = new java.util.HashMap[String, String]()
+      r.put("port", localAddress.getPort().toString)
+      r
+    }
+    _serviceInfoOp match {
+      case None => {} 
+      case Some(serviceInfo) => removeLocalStation(serviceInfo)
+    }
+
+    val serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record)
+    _serviceInfoOp = Some(serviceInfo)
+    _stationOp match {
+      case None => advertiseLocalStation(serviceInfo)
+      case Some(station) => {} 
+    }
+
+
+  }
+
+  private def changeStation(stationOption: Option[Station]): Unit = {
+    _stationOp = stationOption
+    _serviceInfoOp match {
+      case None => {} 
+      case Some(serviceInfo) => {
+        removeLocalStation(serviceInfo)
+        _stationOp match {
+          case None => advertiseLocalStation(serviceInfo)
+          case Some(station) => tuneIntoStation(station)
+        }
+      }
+    }
+  }
+
+  private def advertiseLocalStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
+    _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
+      override def onSuccess(): Unit = { 
+        Toast.makeText(that, "local service added", Toast.LENGTH_SHORT).show()
+        _manager.createGroup(_channel, null)
+      }
+
+      override def onFailure(reason: Int): Unit = {
+        Toast.makeText(that, "local service failed: " + reason, Toast.LENGTH_SHORT).show()
+      }
+    })
+  }
+
+  private def removeLocalStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
+    _manager.removeLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
+      override def onSuccess(): Unit = { 
+      }
+      override def onFailure(reason: Int): Unit = {
+        Toast.makeText(that, "removedLocalServive Failed: " + reason, Toast.LENGTH_SHORT).show()
+      }
+    })
+  }
+
+  private def tuneIntoStation(station: Station): Unit = {
+
+    Toast.makeText(that, "requesting connection to station: " + station.device.deviceName, Toast.LENGTH_SHORT).show()
+    val config: WifiP2pConfig = { 
+      val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
+      c.wps.setup = WpsInfo.PBC; c
+    }
+    _manager.connect(_channel, config, new WifiP2pManager.ActionListener() {
+      override def onSuccess(): Unit = { 
+        Toast.makeText(that, "success requesting connection", Toast.LENGTH_SHORT).show()
+      }
+
+      override def onFailure(reason: Int): Unit = {
+        Toast
+          .makeText(that, "failure requesting connection: " + reason, Toast.LENGTH_SHORT)
+          .show()
+      }
+    })
+
+
+
+  }
+
+
+  def prepareTrack(trackOption: Option[Track]): Unit = {
+
+    try {
+      mediaPlayer.reset()
+      _prepared = false
+
+      trackOption match {
+        case Some(track) => {
+          mediaPlayer.setDataSource(track.path)
+          mediaPlayer.prepareAsync()
+        }
+        case None => {}
+      }
+    } catch {
+      case e: IOException => e.printStackTrace()
+    }
+
+  }
+
+  def setPlayOncePrepared(playOncePrepared: Boolean): Unit = {
+
+    _playOncePrepared = playOncePrepared
+    if (_prepared) mediaPlayer.start() 
+
+  }
+
+  def setPositionOncePrepared(positionOncePrepared: Int): Unit = {
+
+    _positionOncePrepared = positionOncePrepared 
+    if (_prepared) mediaPlayer.seekTo(_positionOncePrepared) 
+
+  }
+
+  private val handler = new Handler(new Handler.Callback() {
+    override def handleMessage(msg: Message): Boolean = {
+      import OutputHandler._
+      msg.obj match {
+        case OnTrackOptionChanged(trackOption) => 
+          that.prepareTrack(trackOption); true
+        case OnPlayStateChanged(playOncePrepared) =>
+          that.setPlayOncePrepared(playOncePrepared); true
+        case OnPositionChanged(positionOncePrepared) =>
+          that.setPositionOncePrepared(positionOncePrepared); true
+        case OnProfileChanged(localAddress, serviceName, serviceType) =>
+          that.setServiceInfo(localAddress, serviceName, serviceType); true
+        case OnStationOptionChanged(stationOption) =>
+          that.changeStation(stationOption); true
+        case OnRemoteTrackChanged(track) =>
+          Toast.makeText(that, "remote track received: " + track, Toast.LENGTH_SHORT).show()
+          true
+        case _ => false
+      }
+    }
+  })
 
   override def onBind(intent: Intent): IBinder = {
     return null;
@@ -128,7 +226,7 @@ class PlayerService extends Service {
 
     })
     mediaPlayer.setOnCompletion(mp => {/*notify main actor*/})
-    mainActorRef ! MainActor.SetPlayerServiceHandler(handler)
+    mainActorRef ! MainActor.Subscribe(handler)
 
 
     _manager = that.getSystemService(Context.WIFI_P2P_SERVICE) match {
@@ -176,115 +274,6 @@ class PlayerService extends Service {
       }; i
     }
     registerReceiver(_broadcastReceiver, intentFilter)
-
-  }
-
-  private def onMainActorconnected(trackOption: Option[Track], playOncePrepared: Boolean, positionOncePrepared: Int): Unit = {
-
-    _playOncePrepared = playOncePrepared
-    _positionOncePrepared = positionOncePrepared
-    onTrackOptionChanged(trackOption)
-
-  }
-
-
-  private def onProfileChanged(localAddress: InetSocketAddress, serviceName: String, serviceType: String): Unit = {
-
-    Toast.makeText(that, "onProfileChanged", Toast.LENGTH_SHORT).show()
-    val record = {
-      val r = new java.util.HashMap[String, String]()
-      r.put("port", localAddress.getPort().toString)
-      r
-    }
-    _serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record)
-  }
-
-
-  private def onStationOptionChanged(stationOption: Option[Station]): Unit = {
-
-    Toast.makeText(that, "onStationOptionChanged", Toast.LENGTH_SHORT).show()
-
-    stationOption match {
-      case None => {
-        _manager.addLocalService(_channel, _serviceInfo, new WifiP2pManager.ActionListener() {
-          override def onSuccess(): Unit = { 
-            Toast.makeText(that, "local service added", Toast.LENGTH_SHORT).show()
-            _manager.createGroup(_channel, null)
-          }
-
-          override def onFailure(reason: Int): Unit = {
-            Toast.makeText(that, "local service failed: " + reason, Toast.LENGTH_SHORT).show()
-          }
-        })
-      }
-      case Some(station) => {
-        /*
-        _manager.removeLocalService(_channel, _serviceInfo, new WifiP2pManager.ActionListener() {
-          override def onSuccess(): Unit = { 
-          }
-          override def onFailure(reason: Int): Unit = {
-            Toast.makeText(that, "removedLocalServive Failed: " + reason, Toast.LENGTH_SHORT).show()
-          }
-        })
-        */
-
-        Toast.makeText(that, "requesting connection to station: " + station.device.deviceName, Toast.LENGTH_SHORT).show()
-        val config: WifiP2pConfig = { 
-          val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
-          c.wps.setup = WpsInfo.PBC; c
-        }
-        _manager.connect(_channel, config, new WifiP2pManager.ActionListener() {
-          override def onSuccess(): Unit = { 
-            Toast.makeText(that, "success requesting connection", Toast.LENGTH_SHORT).show()
-          }
-
-          override def onFailure(reason: Int): Unit = {
-            Toast
-              .makeText(that, "failure requesting connection: " + reason, Toast.LENGTH_SHORT)
-              .show()
-          }
-        })
-
-
-      }
-    }
-
-
-
-  }
-
-
-  def onTrackOptionChanged(trackOption: Option[Track]): Unit = {
-
-    try {
-      mediaPlayer.reset()
-      _prepared = false
-
-      trackOption match {
-        case Some(track) => {
-          mediaPlayer.setDataSource(track.path)
-          mediaPlayer.prepareAsync()
-        }
-        case None => {}
-      }
-    } catch {
-      case e: IOException => e.printStackTrace()
-    }
-
-  }
-
-  def onPlayStateChanged(playOncePrepared: Boolean): Unit = {
-
-    _playOncePrepared = playOncePrepared
-    if (_prepared) mediaPlayer.start() 
-
-
-  }
-
-  def onPositionChanged(positionOncePrepared: Int): Unit = {
-
-    _positionOncePrepared = positionOncePrepared 
-    if (_prepared) mediaPlayer.seekTo(_positionOncePrepared) 
 
   }
 
