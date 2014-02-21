@@ -175,11 +175,20 @@ class PlayerService extends Service {
 
 
   private def advertiseLocalStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
-    _manager.removeGroup(_channel, null)
+    _manager.removeGroup(_channel, new WifiP2pManager.ActionListener() {
+          override def onSuccess(): Unit = { 
+            Toast.makeText(that, "server group removed", Toast.LENGTH_SHORT).show()
+          }
+          override def onFailure(reason: Int): Unit = {
+            Toast.makeText(that, "failed removing server group: " + reason, Toast.LENGTH_SHORT).show()
+          }
+        })
+
     _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
       override def onSuccess(): Unit = { 
         _manager.createGroup(_channel, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
+            Toast.makeText(that, "server group created", Toast.LENGTH_SHORT).show()
           }
           override def onFailure(reason: Int): Unit = {
           }
@@ -313,7 +322,7 @@ class PlayerService extends Service {
                   if (info.groupFormed) {
                     if (info.isGroupOwner) {
                       Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
-                      mainActorRef ! MainActor.StartServer 
+                      //mainActorRef ! MainActor.StartServer 
                     } else {
                       Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
                       //val remoteHost = info.groupOwnerAddress.getHostAddress()
@@ -323,6 +332,8 @@ class PlayerService extends Service {
                   
                 }
               })
+            } else {
+              Toast.makeText(that, "network disconnected", Toast.LENGTH_SHORT).show()
             }
           }
         }
