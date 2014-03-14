@@ -50,6 +50,7 @@ object OutputHandler {
   case class OnRemoteTrackChanged(track: Track) extends OnChange
 
   case class OnDiscoveringChanged(discovering: Boolean) extends OnChange
+  case class OnAdvertisingChanged(advertising: Boolean) extends OnChange
 
 
 }

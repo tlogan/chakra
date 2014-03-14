@@ -71,33 +71,157 @@ class PlayerService extends Service {
   private var _serverSocket: ServerSocket = _
 
   private var _serviceInfoOp: Option[WifiP2pDnsSdServiceInfo] = None
-  private var _stationOp: Option[Station] = None
-
   private var _serviceRequestOp: Option[WifiP2pDnsSdServiceRequest] = None 
+  private var _advertising: Boolean = false 
+
+  private val handler = new Handler(new Handler.Callback() {
+    override def handleMessage(msg: Message): Boolean = {
+      import OutputHandler._
+      msg.obj match {
+        case OnDiscoveringChanged(discovering: Boolean) => 
+          if (discovering) discoverServices() else stopDiscovering(); true
+        case OnTrackOptionChanged(trackOption) => 
+          that.prepareTrack(trackOption); true
+        case OnPlayStateChanged(playOncePrepared) =>
+          that.setPlayOncePrepared(playOncePrepared); true
+        case OnPositionChanged(positionOncePrepared) =>
+          that.setPositionOncePrepared(positionOncePrepared); true
+        case OnProfileChanged(localAddress, serviceName, serviceType) =>
+          that.setServiceInfo(localAddress, serviceName, serviceType); true
+        case OnStationOptionChanged(stationOption) =>
+          that.changeStation(stationOption); true
+        case OnRemoteTrackChanged(track) =>
+          Toast.makeText(that, "remote track received: " + track, Toast.LENGTH_SHORT).show()
+          true
+        case _ => false
+      }
+    }
+  })
+
+  override def onBind(intent: Intent): IBinder = {
+    return null;
+  }
+
+  override def onCreate(): Unit = {
+
+    mediaPlayer.setOnPrepared(mp => {
+      mp.seekTo(_positionOncePrepared)
+      if (_playOncePrepared) mp.start()
+      _prepared = true
+
+    })
+    mediaPlayer.setOnCompletion(mp => {/*notify main actor*/})
+
+
+    _manager = that.getSystemService(Context.WIFI_P2P_SERVICE) match {
+      case m: WifiP2pManager => m
+    }
+    _channel = _manager.initialize(that, that.getMainLooper(), null)
+
+    _broadcastReceiver = new BroadcastReceiver() {
+      
+      override def onReceive(context: Context, intent: Intent): Unit = {
+        import WifiP2pManager._
+
+        intent.getAction() match {
+          case WIFI_P2P_STATE_CHANGED_ACTION => {
+           //Toast.makeText(that, "state changed", Toast.LENGTH_SHORT).show()
+          }
+
+          case WIFI_P2P_PEERS_CHANGED_ACTION => {
+           //Toast.makeText(that, "peers changed", Toast.LENGTH_SHORT).show()
+          }
+
+          case WIFI_P2P_THIS_DEVICE_CHANGED_ACTION => {
+           //Toast.makeText(that, "this device changed", Toast.LENGTH_SHORT).show()
+          }
+
+          case WIFI_P2P_PEERS_CHANGED_ACTION => {
+          // Toast.makeText(that, "peers changed", Toast.LENGTH_SHORT).show()
+          }
+
+          case WIFI_P2P_CONNECTION_CHANGED_ACTION => {
+            val networkInfo: NetworkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO)
+            if (networkInfo.isConnected()) {
+              _manager.requestConnectionInfo(_channel, new ConnectionInfoListener() {
+                override def onConnectionInfoAvailable(info: WifiP2pInfo): Unit = {
+                  if (info.groupFormed) {
+                    if (info.isGroupOwner) {
+                      Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
+                      //mainActorRef ! MainActor.StartServer 
+                    } else {
+                      Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
+                      //val remoteHost = info.groupOwnerAddress.getHostAddress()
+                      //mainActorRef ! MainActor.StartClient(remoteHost)
+                    }
+                  } 
+                  
+                }
+              })
+            } else {
+              Toast.makeText(that, "network disconnected", Toast.LENGTH_SHORT).show()
+            }
+          }
+
+        }
+      }
+
+    }
+    val intentFilter = {
+      val i = new IntentFilter();  
+      import WifiP2pManager._
+      List(WIFI_P2P_STATE_CHANGED_ACTION, 
+        WIFI_P2P_PEERS_CHANGED_ACTION, 
+        WIFI_P2P_THIS_DEVICE_CHANGED_ACTION, 
+        WIFI_P2P_CONNECTION_CHANGED_ACTION) foreach {
+        action => i.addAction(action) 
+      }; i
+    }
+    registerReceiver(_broadcastReceiver, intentFilter)
+
+    mainActorRef ! MainActor.Subscribe(this.toString, handler)
+    mainActorRef ! MainActor.BecomeTheStation
+
+  }
+
+  override def onStartCommand(intent: Intent, flags: Int, startId: Int): Int = Service.START_STICKY
+
+  override def onDestroy(): Unit =  {
+    super.onDestroy()
+    stopDiscovering()
+    removeLegacyConnection()
+    unregisterReceiver(_broadcastReceiver)
+    mainActorRef ! MainActor.Unsubscribe(this.toString)
+  }
 
   import WifiP2pManager._
 
   private def stopDiscovering(): Unit = {
+
+    Toast.makeText(that, "stopping discovery", Toast.LENGTH_SHORT).show()
+
     _serviceRequestOp match {
       case None => {}
       case Some(serviceRequest) =>
-        _serviceRequestOp = None
         _manager.removeServiceRequest(_channel, serviceRequest, new ActionListener() {
           override def onSuccess(): Unit = {
           }
           override def onFailure(code: Int): Unit = {
           }
         })
+        _serviceRequestOp = None
 
     }
   }
 
   private def discoverServices(): Unit = {
 
+    Toast.makeText(that, "starting discovery", Toast.LENGTH_SHORT).show()
+
     val serviceListener = new DnsSdServiceResponseListener() {
-      override def onDnsSdServiceAvailable(name: String, regType: String, device: WifiP2pDevice): Unit = {
+      override def onDnsSdServiceAvailable(name: String, 
+        regType: String, device: WifiP2pDevice): Unit = {
         mainActorRef ! MainActor.CommitStation(device)
-        Toast.makeText(that, "service available", Toast.LENGTH_SHORT).show()
       }
     }
 
@@ -106,7 +230,6 @@ class PlayerService extends Service {
         device: WifiP2pDevice
       ): Unit = {
         val station = Station(domain, record, device)
-        Toast.makeText(that, "record available", Toast.LENGTH_SHORT).show()
         mainActorRef ! MainActor.AddStation(station)
       }
     }
@@ -114,18 +237,20 @@ class PlayerService extends Service {
     _manager.setDnsSdResponseListeners(_channel, serviceListener, recordListener)
 
     val serviceRequest = WifiP2pDnsSdServiceRequest.newInstance()
-    _serviceRequestOp = Some(serviceRequest)
     _manager.addServiceRequest(_channel, serviceRequest, new ActionListener() {
       override def onSuccess(): Unit = {
-        Toast.makeText(that, "serviceRequest Success", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(that, "serviceRequest Success", Toast.LENGTH_SHORT).show()
       }
       override def onFailure(code: Int): Unit = {
         Toast.makeText(that, "serviceRequest Failed: " + code, Toast.LENGTH_SHORT).show()
       }
     })
+
+    _serviceRequestOp = Some(serviceRequest)
+
     _manager.discoverServices(_channel, new ActionListener() {
       override def onSuccess(): Unit = {
-        Toast.makeText(that, "discover Success", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(that, "discover Success", Toast.LENGTH_SHORT).show()
       }
       override def onFailure(code: Int): Unit = {
         Toast.makeText(that, "discover Failed: " + code, Toast.LENGTH_SHORT).show()
@@ -137,79 +262,96 @@ class PlayerService extends Service {
 
   private def setServiceInfo(localAddress: InetSocketAddress, serviceName: String, serviceType: String): Unit = {
 
-    Toast.makeText(that, "setServiceInfo", Toast.LENGTH_SHORT).show()
-    val record = {
-      val r = new java.util.HashMap[String, String]()
-      r.put("port", localAddress.getPort().toString)
-      r
-    }
-    _serviceInfoOp match {
-      case None => {} 
-      case Some(serviceInfo) => removeLocalStation(serviceInfo)
-    }
+    val record = new java.util.HashMap[String, String]()
+    record.put("port", localAddress.getPort().toString)
 
     val serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record)
+    if (_advertising) { 
+      _serviceInfoOp match {
+        case Some(oldServiceInfo) => 
+          _manager.removeLocalService(_channel, oldServiceInfo, null)
+        case None => {} 
+      }
+      becomeTheStation(serviceInfo)
+    }
     _serviceInfoOp = Some(serviceInfo)
-    _stationOp match {
-      case None => advertiseLocalStation(serviceInfo)
-      case Some(station) => {} 
+
+  }
+
+  private def tryBecomingTheStation(): Unit = {
+    _advertising = true
+    _serviceInfoOp match {
+      case Some(serviceInfo) => becomeTheStation(serviceInfo)
+      case None => {}
+    }
+  }
+
+
+
+  private def removeLegacyConnection(): Unit = {
+
+    if (_advertising) { 
+      _advertising = false
+      _serviceInfoOp match {
+        case Some(oldServiceInfo) => 
+          _manager.removeLocalService(_channel, oldServiceInfo, null)
+        case None => {} 
+      }
+    } else {
+      _manager.cancelConnect(_channel, new WifiP2pManager.ActionListener() {
+        override def onSuccess(): Unit = { 
+        }
+        override def onFailure(reason: Int): Unit = {
+          Toast.makeText(that, "failed cancelling connect: " + reason, Toast.LENGTH_SHORT).show()
+        }
+      }) 
     }
 
+    _manager.removeGroup(_channel, new WifiP2pManager.ActionListener() {
+      override def onSuccess(): Unit = { 
+        //Toast.makeText(that, "server group removed", Toast.LENGTH_SHORT).show()
+      }
+      override def onFailure(reason: Int): Unit = {
+        Toast.makeText(that, "failed removing group: " + reason, Toast.LENGTH_SHORT).show()
+      }
+    }) 
 
   }
 
   private def changeStation(stationOption: Option[Station]): Unit = {
 
-    _stationOp = stationOption
-    _serviceInfoOp match {
-      case None => {} 
-      case Some(serviceInfo) => {
-        removeLocalStation(serviceInfo)
-        _stationOp match {
-          case None => advertiseLocalStation(serviceInfo)
-          case Some(station) => tuneIntoStation(station)
-        }
-      }
+    removeLegacyConnection()
+
+    stationOption match {
+      case Some(station) => tuneIntoStation(station)
+      case None => tryBecomingTheStation() 
     }
+
   }
 
-
-  private def advertiseLocalStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
-    _manager.removeGroup(_channel, new WifiP2pManager.ActionListener() {
-          override def onSuccess(): Unit = { 
-            Toast.makeText(that, "server group removed", Toast.LENGTH_SHORT).show()
-          }
-          override def onFailure(reason: Int): Unit = {
-            Toast.makeText(that, "failed removing server group: " + reason, Toast.LENGTH_SHORT).show()
-          }
-        })
+  private def becomeTheStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
 
     _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
       override def onSuccess(): Unit = { 
+
         _manager.createGroup(_channel, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
-            Toast.makeText(that, "server group created", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(that, "creating group", Toast.LENGTH_SHORT).show()
           }
           override def onFailure(reason: Int): Unit = {
+            Toast.makeText(that, "failed creating group", Toast.LENGTH_SHORT).show()
           }
         })
       }
       override def onFailure(reason: Int): Unit = {
+        Toast.makeText(that, "failed advertising", Toast.LENGTH_SHORT).show()
       }
     })
   }
 
-  private def removeLocalStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
-    _manager.removeLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
-      override def onSuccess(): Unit = { 
-      }
-      override def onFailure(reason: Int): Unit = {
-      }
-    })
-  }
 
   private def tuneIntoStation(station: Station): Unit = {
-    _manager.removeGroup(_channel, null) 
+    
     val config: WifiP2pConfig = { 
       val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
       c.wps.setup = WpsInfo.PBC; c
@@ -222,8 +364,6 @@ class PlayerService extends Service {
         Toast.makeText(that, "failed requesting connection: " + reason, Toast.LENGTH_SHORT).show()
       }
     })
-
-
 
   }
 
@@ -261,105 +401,7 @@ class PlayerService extends Service {
 
   }
 
-  private val handler = new Handler(new Handler.Callback() {
-    override def handleMessage(msg: Message): Boolean = {
-      import OutputHandler._
-      msg.obj match {
-        case OnDiscoveringChanged(discovering: Boolean) => 
-          if (discovering) discoverServices() else stopDiscovering(); true
-        case OnTrackOptionChanged(trackOption) => 
-          that.prepareTrack(trackOption); true
-        case OnPlayStateChanged(playOncePrepared) =>
-          that.setPlayOncePrepared(playOncePrepared); true
-        case OnPositionChanged(positionOncePrepared) =>
-          that.setPositionOncePrepared(positionOncePrepared); true
-        case OnProfileChanged(localAddress, serviceName, serviceType) =>
-          that.setServiceInfo(localAddress, serviceName, serviceType); true
-        case OnStationOptionChanged(stationOption) =>
-          that.changeStation(stationOption); true
-        case OnRemoteTrackChanged(track) =>
-          Toast.makeText(that, "remote track received: " + track, Toast.LENGTH_SHORT).show()
-          true
-        case _ => false
-      }
-    }
-  })
 
-  override def onBind(intent: Intent): IBinder = {
-    return null;
-  }
-
-  override def onCreate(): Unit = {
-
-
-    mediaPlayer.setOnPrepared(mp => {
-      mp.seekTo(_positionOncePrepared)
-      if (_playOncePrepared) mp.start()
-      _prepared = true
-
-    })
-    mediaPlayer.setOnCompletion(mp => {/*notify main actor*/})
-
-
-    _manager = that.getSystemService(Context.WIFI_P2P_SERVICE) match {
-      case m: WifiP2pManager => m
-    }
-    _channel = _manager.initialize(that, that.getMainLooper(), null)
-
-    _broadcastReceiver = new BroadcastReceiver() {
-      
-      override def onReceive(context: Context, intent: Intent): Unit = {
-        import WifiP2pManager._
-
-        intent.getAction() match {
-          case WIFI_P2P_STATE_CHANGED_ACTION => {}
-          case WIFI_P2P_CONNECTION_CHANGED_ACTION => {
-            val networkInfo: NetworkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO)
-            if (networkInfo.isConnected()) {
-              _manager.requestConnectionInfo(_channel, new ConnectionInfoListener() {
-                override def onConnectionInfoAvailable(info: WifiP2pInfo): Unit = {
-                  Toast.makeText(that, "X formed, owner:" + info.groupFormed + info.isGroupOwner, Toast.LENGTH_SHORT).show()
-                  if (info.groupFormed) {
-                    if (info.isGroupOwner) {
-                      Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
-                      //mainActorRef ! MainActor.StartServer 
-                    } else {
-                      Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
-                      //val remoteHost = info.groupOwnerAddress.getHostAddress()
-                      //mainActorRef ! MainActor.StartClient(remoteHost)
-                    }
-                  } 
-                  
-                }
-              })
-            } else {
-              Toast.makeText(that, "network disconnected", Toast.LENGTH_SHORT).show()
-            }
-          }
-        }
-      }
-
-    }
-    val intentFilter = {
-      val i = new IntentFilter();  
-      import WifiP2pManager._
-      List(WIFI_P2P_STATE_CHANGED_ACTION, WIFI_P2P_CONNECTION_CHANGED_ACTION) foreach {
-        action => i.addAction(action) 
-      }; i
-    }
-    registerReceiver(_broadcastReceiver, intentFilter)
-
-    mainActorRef ! MainActor.Subscribe(handler)
-
-  }
-
-  override def onStartCommand(intent: Intent, flags: Int, startId: Int): Int = Service.START_STICKY
-
-  override def onDestroy(): Unit =  {
-    super.onDestroy()
-    _manager.removeGroup(_channel, null)
-    unregisterReceiver(_broadcastReceiver)
-  }
 
 
 

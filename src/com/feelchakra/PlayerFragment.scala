@@ -120,8 +120,13 @@ class PlayerFragment extends Fragment {
 
     }
 
-    mainActorRef ! MainActor.Subscribe(handler) 
+    mainActorRef ! MainActor.Subscribe(this.toString, handler) 
     verticalLayout
+  }
+
+  override def onDestroy(): Unit =  {
+    super.onDestroy()
+    mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
 
 }

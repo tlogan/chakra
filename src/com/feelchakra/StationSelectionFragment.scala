@@ -68,7 +68,7 @@ class StationSelectionFragment extends Fragment {
       }
     }
 
-    mainActorRef ! MainActor.Subscribe(handler) 
+    mainActorRef ! MainActor.Subscribe(this.toString, handler) 
 
     _verticalLayout
   }
@@ -87,6 +87,12 @@ class StationSelectionFragment extends Fragment {
     super.onStop()
   }
 
+  override def onDestroy(): Unit =  {
+    super.onDestroy()
+    mainActorRef ! MainActor.Unsubscribe(this.toString)
+  }
+
+
   private def populateListView(stationList: List[Station]): Unit = {
 
     _listView.getAdapter() match {
@@ -100,7 +106,7 @@ class StationSelectionFragment extends Fragment {
         _listView.setOnItemClick( 
           (parent: AdapterView[_], view: View, position: Int, id: Long) => {
             val station = adapter.getItem(position)
-            mainActorRef ! MainActor.SetStation(station) 
+            mainActorRef ! MainActor.ConnectToStation(station) 
           }
         )  
       }

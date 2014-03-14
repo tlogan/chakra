@@ -35,6 +35,9 @@ class MainActivity extends Activity {
   private var _playerFrame: FrameLayout = _
   private val that = this
 
+  private val trackSelectionFragment =  new TrackSelectionFragment;
+  private val stationSelectionFragment = new StationSelectionFragment;
+
 
   private val mainActorRef = MainActor.mainActorRef
 
@@ -81,9 +84,9 @@ class MainActivity extends Activity {
 
     selection match {
       case TrackSelection => 
-        transaction.replace(_selectionFrame.getId(), new TrackSelectionFragment)
+        transaction.replace(_selectionFrame.getId(), trackSelectionFragment)
       case StationSelection =>
-        transaction.replace(_selectionFrame.getId(), new StationSelectionFragment)
+        transaction.replace(_selectionFrame.getId(), stationSelectionFragment)
     }
 
     transaction.commit()
@@ -139,7 +142,7 @@ class MainActivity extends Activity {
 
     mainActorRef ! MainActor.SetMainActivityDatabase(new Database(this))
 
-    mainActorRef ! MainActor.Subscribe(handler)
+    mainActorRef ! MainActor.Subscribe(this.toString, handler)
 
   }
 
@@ -157,6 +160,9 @@ class MainActivity extends Activity {
     super.onDestroy()
     val playerServiceIntent = new Intent(this, classOf[PlayerService])
     stopService(playerServiceIntent);
+    mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
+
+
 
 }

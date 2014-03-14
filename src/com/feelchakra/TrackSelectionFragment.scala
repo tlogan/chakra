@@ -53,10 +53,14 @@ class TrackSelectionFragment extends Fragment {
 
     }
 
-    mainActorRef ! MainActor.Subscribe(handler) 
+    mainActorRef ! MainActor.Subscribe(this.toString, handler) 
     _verticalLayout
   }
 
+  override def onDestroy(): Unit =  {
+    super.onDestroy()
+    mainActorRef ! MainActor.Unsubscribe(this.toString)
+  }
 
   private def populateListView(trackList: List[Track]): Unit = {
     
