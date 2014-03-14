@@ -72,7 +72,7 @@ class PlayerService extends Service {
 
   private var _serviceInfoOp: Option[WifiP2pDnsSdServiceInfo] = None
   private var _serviceRequestOp: Option[WifiP2pDnsSdServiceRequest] = None 
-  private var _advertising: Boolean = false 
+  private var _isStation: Boolean = false 
 
   private val handler = new Handler(new Handler.Callback() {
     override def handleMessage(msg: Message): Boolean = {
@@ -180,7 +180,6 @@ class PlayerService extends Service {
     registerReceiver(_broadcastReceiver, intentFilter)
 
     mainActorRef ! MainActor.Subscribe(this.toString, handler)
-    mainActorRef ! MainActor.BecomeTheStation
 
   }
 
@@ -266,20 +265,25 @@ class PlayerService extends Service {
     record.put("port", localAddress.getPort().toString)
 
     val serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(serviceName, serviceType, record)
-    if (_advertising) { 
+    Toast.makeText(that, "isStation: " + _isStation, Toast.LENGTH_SHORT).show()
+    if (_isStation) { 
       _serviceInfoOp match {
-        case Some(oldServiceInfo) => 
-          _manager.removeLocalService(_channel, oldServiceInfo, null)
-        case None => {} 
+        case None =>
+          //if this device should be the station but the service info wasn't available before
+          //then become the station now that it is available
+          becomeTheStation(serviceInfo)
+        case Some(oldServiceInfo) =>
+          //if there is an old serviceInfo then this device already became the station
+          //so just readvertise with the new serviceInfo 
+          readvertise(oldServiceInfo, serviceInfo)
       }
-      becomeTheStation(serviceInfo)
     }
     _serviceInfoOp = Some(serviceInfo)
 
   }
 
   private def tryBecomingTheStation(): Unit = {
-    _advertising = true
+    _isStation = true
     _serviceInfoOp match {
       case Some(serviceInfo) => becomeTheStation(serviceInfo)
       case None => {}
@@ -287,11 +291,18 @@ class PlayerService extends Service {
   }
 
 
+  private def readvertise(oldServiceInfo: WifiP2pDnsSdServiceInfo, 
+    newServiceInfo: WifiP2pDnsSdServiceInfo): Unit = {
+    _manager.removeLocalService(_channel, oldServiceInfo, null)
+    _manager.addLocalService(_channel, newServiceInfo, null)
+  }
+
+
 
   private def removeLegacyConnection(): Unit = {
 
-    if (_advertising) { 
-      _advertising = false
+    if (_isStation) { 
+      _isStation = false
       _serviceInfoOp match {
         case Some(oldServiceInfo) => 
           _manager.removeLocalService(_channel, oldServiceInfo, null)
@@ -302,7 +313,7 @@ class PlayerService extends Service {
         override def onSuccess(): Unit = { 
         }
         override def onFailure(reason: Int): Unit = {
-          Toast.makeText(that, "failed cancelling connect: " + reason, Toast.LENGTH_SHORT).show()
+          Toast.makeText(that, "failed canceling connect: " + reason, Toast.LENGTH_SHORT).show()
         }
       }) 
     }
@@ -333,10 +344,9 @@ class PlayerService extends Service {
 
     _manager.addLocalService(_channel, serviceInfo, new WifiP2pManager.ActionListener() {
       override def onSuccess(): Unit = { 
-
         _manager.createGroup(_channel, new WifiP2pManager.ActionListener() {
           override def onSuccess(): Unit = { 
-            //Toast.makeText(that, "creating group", Toast.LENGTH_SHORT).show()
+            Toast.makeText(that, "creating group", Toast.LENGTH_SHORT).show()
           }
           override def onFailure(reason: Int): Unit = {
             Toast.makeText(that, "failed creating group", Toast.LENGTH_SHORT).show()
