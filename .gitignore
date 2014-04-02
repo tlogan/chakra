@@ -2,6 +2,7 @@
 bin
 gen
 target
+local.properties
 
 # SBT
 target
