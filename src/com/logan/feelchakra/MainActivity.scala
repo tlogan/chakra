@@ -1,26 +1,4 @@
-package com.feelchakra
-
-import android.app.Activity
-import android.app.Fragment
-import android.os.Bundle
-import android.app.ActionBar
-import android.app.FragmentTransaction
-import android.content.Intent
-import android.os.Bundle
-import android.os.Handler
-import android.os.Message
-import android.view._
-import android.widget._
-import android.widget.LinearLayout.LayoutParams._
-import android.view.ViewGroup.LayoutParams._ 
-
-import scala.collection.immutable.List
-import guava.scala.android.Database
-
-import android.graphics.Color
-
-import android.util.Log 
-import scala.util.{Success,Failure}
+package com.logan.feelchakra
 
 object MainActivity {
    
@@ -43,21 +21,21 @@ class MainActivity extends Activity {
 
 
   private def createSelectionTabs(selectionList: List[Selection]): Unit = {
-    that.getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
+    that.getActionBar().setNavigationMode(NAVIGATION_MODE_TABS)
     that.getActionBar().setDisplayShowTitleEnabled(true)
     that.getActionBar().setDisplayShowHomeEnabled(true)
     that.getActionBar().removeAllTabs();
 
     selectionList foreach { selection => 
-      val tabListener = new ActionBar.TabListener() {
-        override def onTabSelected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
+      val tabListener = new TabListener() {
+        override def onTabSelected(tab: Tab, ft: FragmentTransaction): Unit = {
           mainActorRef ! MainActor.SetSelection(selectionList(tab.getPosition()))
         }
 
-        override def onTabUnselected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
+        override def onTabUnselected(tab: Tab, ft: FragmentTransaction): Unit = {
         }
 
-        override def onTabReselected(tab: ActionBar.Tab, ft: FragmentTransaction): Unit = {
+        override def onTabReselected(tab: Tab, ft: FragmentTransaction): Unit = {
         }
       }
 
@@ -70,11 +48,11 @@ class MainActivity extends Activity {
   private def setPlayerVisibility(playerOpen: Boolean): Unit = {
     if (playerOpen) {
       _selectionFrame.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
+        new LLLayoutParams(MATCH_PARENT, 0, 0)
       }
     } else {
       _selectionFrame.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
+        new LLLayoutParams(MATCH_PARENT, 0, 6)
       }
     }
   }
@@ -93,7 +71,7 @@ class MainActivity extends Activity {
     
   }
 
-  private val handler = new Handler(new Handler.Callback() {
+  private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import OutputHandler._
       msg.obj match {
@@ -113,12 +91,12 @@ class MainActivity extends Activity {
 
     setContentView {
       new LinearLayout(this) {
-        setOrientation(LinearLayout.VERTICAL)
+        setOrientation(VERTICAL)
         addView {
           _selectionFrame = new FrameLayout(that) {
             setId(MainActivity.selectionFrameId)
             setLayoutParams {
-              new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
+              new LLLayoutParams(MATCH_PARENT, 0, 6)
             }
             
           }; _selectionFrame
@@ -127,7 +105,7 @@ class MainActivity extends Activity {
           _playerFrame = new FrameLayout(that) {
             setId(MainActivity.playerFrameId)
             setLayoutParams {
-              new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1)
+              new LLLayoutParams(MATCH_PARENT, 0, 1)
             }
           }; _playerFrame
         }

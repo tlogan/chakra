@@ -1,19 +1,4 @@
-package com.feelchakra
-
-import scala.collection.immutable.List
-
-import android.app.Activity
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams
-import android.view.ViewGroup.LayoutParams._
-import android.widget.BaseAdapter
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget._
-import android.graphics.Color
-
-import rx.lang.scala.Observer
+package com.logan.feelchakra
 
 class StationListAdapter(activity: Activity, initialStationList: List[Station]) extends BaseAdapter {
 
@@ -30,14 +15,14 @@ class StationListAdapter(activity: Activity, initialStationList: List[Station]) 
     val station = getItem(position)
 
     new LinearLayout(activity) {
-      setOrientation(LinearLayout.VERTICAL)
-      setBackgroundColor(Color.GRAY)
+      setOrientation(VERTICAL)
+      setBackgroundColor(GRAY)
       List(station.device.deviceName, station.domain, "") foreach {
         (text: String) => { 
           addView {
             new TextView(activity) {
               setText(text)
-              setTextColor(Color.WHITE)
+              setTextColor(WHITE)
             }
           }
         } 

@@ -1,34 +1,17 @@
-package com.feelchakra
+package com.logan.feelchakra
 
-import android.app.Fragment
-import android.os.Bundle
-import android.os.Handler
-import android.os.Message
-import android.content.Context
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams
-import android.view.ViewGroup.LayoutParams._
-import android.view._
-import android.widget._
-
-
-import android.util.Log 
-
-import android.graphics.Color
-import rx.lang.scala.Subject
-
-import guava.scala.android.RichListView.listView2RichListView
-import guava.scala.android.RichView.view2RichView
 
 class PlayerFragment extends Fragment {
+
 
   private val that = this
   private val mainActorRef = MainActor.mainActorRef
   private var _playlistView: ListView = _
   private var _trackLayout: TrackLayout = _
   private var _adapter: PlaylistAdapter = _
+
+  import RichView.view2RichView
+  import RichListView.listView2RichListView
 
   private def setPlaylistCurrentTrack(trackIndex: Int): Unit = {
     _playlistView.getAdapter() match {
@@ -56,17 +39,17 @@ class PlayerFragment extends Fragment {
 
     if (playerOpen) {
       _playlistView.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 6)
+        new LLLayoutParams(MATCH_PARENT, 0, 6)
       }
     } else {
       _playlistView.setLayoutParams {
-        new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
+        new LLLayoutParams(MATCH_PARENT, 0, 0)
       }
     }
 
   }
 
-  private val handler = new Handler(new Handler.Callback() {
+  private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import OutputHandler._ 
       msg.obj match {
@@ -90,7 +73,7 @@ class PlayerFragment extends Fragment {
 
   override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
     val verticalLayout = new LinearLayout(getActivity()) {
-      setOrientation(LinearLayout.VERTICAL)
+      setOrientation(VERTICAL)
 
       addView {
         _trackLayout = new TrackLayout(getActivity)
@@ -103,9 +86,9 @@ class PlayerFragment extends Fragment {
 
       addView {
         _playlistView = new ListView(getActivity()) {
-          setBackgroundColor(Color.YELLOW)
+          setBackgroundColor(YELLOW)
           setLayoutParams(
-            new LinearLayout.LayoutParams(MATCH_PARENT, 0, 0)
+            new LLLayoutParams(MATCH_PARENT, 0, 0)
           ) 
         }
         val adapter = new PlaylistAdapter(getActivity())

@@ -1,37 +1,4 @@
-package com.feelchakra
-
-import android.app.Fragment
-import android.os.Bundle
-import android.os.Handler
-import android.os.Message
-import android.content.Context
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams
-import android.view.ViewGroup.LayoutParams._
-import android.view._
-import android.widget._
-import android.net.wifi.p2p.WifiP2pDevice
-import android.net.wifi.p2p.WifiP2pManager
-import android.net.wifi.p2p.WifiP2pManager._
-import android.net.wifi.p2p.nsd.WifiP2pServiceRequest
-import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest
-
-import android.widget.Toast
-
-import android.util.Log 
-
-import android.graphics.Color
-import rx.lang.scala.Subject
-
-import android.content.BroadcastReceiver
-import android.content.Intent
-import android.content.IntentFilter
-
-import guava.scala.android.RichListView.listView2RichListView
-import scala.collection.JavaConversions._ 
-
+package com.logan.feelchakra
 
 class StationSelectionFragment extends Fragment {
 
@@ -41,8 +8,9 @@ class StationSelectionFragment extends Fragment {
   private var _listView: ListView = _
   private var _adapter: StationListAdapter = _
 
+  import RichListView.listView2RichListView
 
-  private val handler = new Handler(new Handler.Callback() {
+  private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import OutputHandler._
       msg.obj match {
@@ -61,7 +29,7 @@ class StationSelectionFragment extends Fragment {
 
   override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
     _verticalLayout = new LinearLayout(getActivity()) {
-      setOrientation(LinearLayout.VERTICAL)
+      setOrientation(VERTICAL)
       addView {
         _listView = new ListView(getActivity()) {
         }; _listView

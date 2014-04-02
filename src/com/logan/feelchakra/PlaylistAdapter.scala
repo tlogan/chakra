@@ -1,19 +1,4 @@
-package com.feelchakra
-
-import scala.collection.immutable.List
-
-import android.app.Activity
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams
-import android.view.ViewGroup.LayoutParams._
-import android.widget.BaseAdapter
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget._
-import android.graphics.Color
-
-import rx.lang.scala.Observer
+package com.logan.feelchakra
 
 class PlaylistAdapter(activity: Activity) extends BaseAdapter {
 
@@ -34,17 +19,17 @@ class PlaylistAdapter(activity: Activity) extends BaseAdapter {
       val track = getItem(position)
 
       if (getItemId(position) == _trackIndex) {
-        setVisibility(View.GONE)
+        setVisibility(GONE)
       } else {
 
-        setOrientation(LinearLayout.VERTICAL)
-        val bgColor = if (getItemId(position) < _trackIndex) Color.DKGRAY else Color.GRAY
+        setOrientation(VERTICAL)
+        val bgColor = if (getItemId(position) < _trackIndex) DKGRAY else GRAY
         setBackgroundColor(bgColor)
         List(track.title, track.album, track.artist) foreach {
           (term: String) => { 
             addView {
               new TextView(activity) {
-                setTextColor(Color.WHITE)
+                setTextColor(WHITE)
                 setText(term)
               }
             }

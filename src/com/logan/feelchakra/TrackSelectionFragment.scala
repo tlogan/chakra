@@ -1,24 +1,6 @@
-package com.feelchakra
+package com.logan.feelchakra
 
-import android.app.Fragment
-import android.os.Bundle
-import android.os.Handler
-import android.os.Message
-import android.content.Context
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams
-import android.view.ViewGroup.LayoutParams._
-import android.view._
-import android.widget._
-
-import android.util.Log 
-
-import android.graphics.Color
-import rx.lang.scala.Subject
-
-import guava.scala.android.RichListView.listView2RichListView
+import RichListView.listView2RichListView
 
 class TrackSelectionFragment extends Fragment {
 
@@ -28,7 +10,7 @@ class TrackSelectionFragment extends Fragment {
   private var _listView: ListView = _
   private var _adapter: TrackListAdapter = _
 
-  private val handler = new Handler(new Handler.Callback() {
+  private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import OutputHandler._
       msg.obj match {
@@ -45,7 +27,7 @@ class TrackSelectionFragment extends Fragment {
 
   override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
     _verticalLayout = new LinearLayout(getActivity()) {
-      setOrientation(LinearLayout.VERTICAL)
+      setOrientation(VERTICAL)
       addView {
         _listView = new ListView(getActivity()) {
         }; _listView

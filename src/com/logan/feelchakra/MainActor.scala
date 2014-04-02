@@ -1,35 +1,6 @@
-package com.feelchakra
+package com.logan.feelchakra
 
-import akka.actor.Actor
-import akka.actor.Props
-import akka.actor.ActorSystem
-import akka.dispatch.RequiresMessageQueue
-import akka.dispatch.UnboundedMessageQueueSemantics
-
-import rx.lang.scala.subjects.ReplaySubject
-import rx.lang.scala.Observer
-import scala.concurrent.Future
-import android.provider.MediaStore 
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.collection.mutable.ListBuffer
-import scala.collection.immutable.HashMap
-
-import android.os.Handler
-
-import guava.scala.android.Database
-import guava.scala.android.Table
-import android.util.Log 
-import scala.util.{Success,Failure}
-
-import android.net.wifi.p2p.WifiP2pDevice
-import android.net.wifi.p2p.WifiP2pManager
-import android.net.wifi.p2p.WifiP2pManager._
-
-import java.net.InetSocketAddress 
-
-import akka.actor.{Actor, ActorRef, Props}
-
+import android.util.Log
 
 object MainActor {
 
@@ -56,10 +27,12 @@ object MainActor {
 
 }
 
-class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSemantics] {
+class MainActor extends Actor {
 
   import MainActor._
   import OutputHandler._
+  import scala.concurrent.ExecutionContext.Implicits.global
+
 
   private var _handlers: HashMap[String, Handler] = HashMap()
   private def notifyHandlers(response: OnChange): Unit = {
@@ -162,11 +135,11 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
 
     case StartServer =>
       _serverRefOp match {
-        case Some(serverRef) => Log.d("StartServer", "Some:" + serverRef.toString)
+        case Some(serverRef) => Log.d("chakra", "Some:" + serverRef.toString)
         case None => 
-          Log.d("StartServer", "None")
+          Log.d("chakra", "None")
           _serverRefOp = Some(context.actorOf(ServerConnector.props(localAddress), "ServerConnector"))
-          Log.d("StartServer", "Post actor creation - None")
+          Log.d("chakra", "Post actor creation - None")
       }
     case StartClient(remoteHost) =>
       _stationOption match {
@@ -174,7 +147,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
           val remoteAddress = new InetSocketAddress(remoteHost, station.record.get("port").toInt)
           _clientRefOp = Some(context.actorOf(ClientConnector.props(remoteAddress), "ClientConnector"))
           case None => {
-            Log.d("StartClient: _stationOption", "None")
+            Log.d("chakra", " _stationOption None")
           }
       }
 
@@ -189,7 +162,7 @@ class MainActor extends Actor with RequiresMessageQueue[UnboundedMessageQueueSem
     val trackListFuture = TrackList(database)
     trackListFuture.onComplete({ 
       case Success(trackList) => setTrackList(trackList)
-      case Failure(t) => Log.d("trackListFuture", "failed: " + t.getMessage)
+      case Failure(t) => Log.d("chakra", "trakListFuture failed: " + t.getMessage)
     })
   }
 

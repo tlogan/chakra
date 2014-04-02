@@ -1,4 +1,4 @@
-package com.feelchakra
+package com.logan.feelchakra
 
 import android.app.Fragment
 
