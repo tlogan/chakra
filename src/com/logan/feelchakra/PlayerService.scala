@@ -2,6 +2,7 @@ package com.logan.feelchakra
 
 import RichMediaPlayer.mediaPlayer2RichMediaPlayer
 import android.widget.Toast
+import android.util.Log
 
 class PlayerService extends Service {
 
@@ -23,6 +24,7 @@ class PlayerService extends Service {
   private var _serviceInfoOp: Option[WifiP2pDnsSdServiceInfo] = None
   private var _serviceRequestOp: Option[WifiP2pDnsSdServiceRequest] = None 
   private var _isStation: Boolean = false 
+  private var _groupFormed: Boolean = false 
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
@@ -41,7 +43,7 @@ class PlayerService extends Service {
         case OnStationOptionChanged(stationOption) =>
           that.changeStation(stationOption); true
         case OnRemoteTrackChanged(track) =>
-          Toast.makeText(that, "remote track received: " + track, Toast.LENGTH_SHORT).show()
+          Log.d("chakra", "remote track received: " + track)
           true
         case _ => false
       }
@@ -96,20 +98,27 @@ class PlayerService extends Service {
               _manager.requestConnectionInfo(_channel, new ConnectionInfoListener() {
                 override def onConnectionInfoAvailable(info: WifiP2pInfo): Unit = {
                   if (info.groupFormed) {
+
+                    _groupFormed = true
+
                     if (info.isGroupOwner) {
                       Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
+                      Log.d("chakra", "X Connected as Server")
                       //mainActorRef ! MainActor.StartServer 
                     } else {
                       Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
+                      Log.d("chakra", "X Connected as Client")
                       //val remoteHost = info.groupOwnerAddress.getHostAddress()
                       //mainActorRef ! MainActor.StartClient(remoteHost)
                     }
-                  } 
+                  } else {
+                    _groupFormed = false 
+                  }
                   
                 }
               })
             } else {
-              Toast.makeText(that, "network disconnected", Toast.LENGTH_SHORT).show()
+              _groupFormed = false 
             }
           }
 
@@ -137,22 +146,22 @@ class PlayerService extends Service {
   override def onDestroy(): Unit =  {
     super.onDestroy()
     stopDiscovering()
-    removeLegacyConnection()
+    removeLegacyConnection(() => {})
     unregisterReceiver(_broadcastReceiver)
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
 
   private def stopDiscovering(): Unit = {
 
-    Toast.makeText(that, "stopping discovery", Toast.LENGTH_SHORT).show()
-
     _serviceRequestOp match {
       case None => {}
       case Some(serviceRequest) =>
         _manager.removeServiceRequest(_channel, serviceRequest, new WifiActionListener() {
           override def onSuccess(): Unit = {
+            Toast.makeText(that, "stopping discovery", Toast.LENGTH_SHORT).show()
           }
           override def onFailure(code: Int): Unit = {
+            Toast.makeText(that, "failed stopping discovery", Toast.LENGTH_SHORT).show()
           }
         })
         _serviceRequestOp = None
@@ -189,6 +198,7 @@ class PlayerService extends Service {
       }
       override def onFailure(code: Int): Unit = {
         Toast.makeText(that, "serviceRequest Failed: " + code, Toast.LENGTH_SHORT).show()
+        Log.d("chakra", "serviceRequest Failed: " + code)
       }
     })
 
@@ -200,6 +210,7 @@ class PlayerService extends Service {
       }
       override def onFailure(code: Int): Unit = {
         Toast.makeText(that, "discover Failed: " + code, Toast.LENGTH_SHORT).show()
+        Log.d("chakra", "discover Failed: " + code)
       }
     })
 
@@ -246,44 +257,61 @@ class PlayerService extends Service {
 
 
 
-  private def removeLegacyConnection(): Unit = {
+  private def removeLegacyConnection(onCompletion: () => Unit): Unit = {
 
-    if (_isStation) { 
-      _isStation = false
-      _serviceInfoOp match {
-        case Some(oldServiceInfo) => 
-          _manager.removeLocalService(_channel, oldServiceInfo, null)
-        case None => {} 
-      }
-    } else {
-      _manager.cancelConnect(_channel, new WifiActionListener() {
+    if (_groupFormed) {
+      _manager.removeGroup(_channel, new WifiActionListener() {
         override def onSuccess(): Unit = { 
+          onCompletion()
+          Toast.makeText(that, "legacy group removed", Toast.LENGTH_SHORT).show()
         }
         override def onFailure(reason: Int): Unit = {
-          Toast.makeText(that, "failed canceling connect: " + reason, Toast.LENGTH_SHORT).show()
+          Toast.makeText(that, "failed removing group: " + reason, Toast.LENGTH_SHORT).show()
+          Log.d("chakra", "failed removing group: " + reason)
         }
       }) 
-    }
 
-    _manager.removeGroup(_channel, new WifiActionListener() {
-      override def onSuccess(): Unit = { 
-        //Toast.makeText(that, "server group removed", Toast.LENGTH_SHORT).show()
+      if (_isStation) { 
+        _serviceInfoOp match {
+          case Some(oldServiceInfo) => 
+            _manager.removeLocalService(_channel, oldServiceInfo, null)
+          case None => {} 
+        }
+        _isStation = false
+      } 
+
+      /*
+
+      if (false) {
+        _manager.cancelConnect(_channel, new WifiActionListener() {
+          override def onSuccess(): Unit = { 
+          }
+          override def onFailure(reason: Int): Unit = {
+            Toast.makeText(that, "failed canceling connect: " + reason, Toast.LENGTH_SHORT).show()
+            Log.d("chakra", "failed canceling connect: " + reason)
+          }
+        }) 
       }
-      override def onFailure(reason: Int): Unit = {
-        Toast.makeText(that, "failed removing group: " + reason, Toast.LENGTH_SHORT).show()
-      }
-    }) 
+      */
+
+    } else {
+      Toast.makeText(that, "nothing removed", Toast.LENGTH_SHORT).show()
+      onCompletion()
+    }
 
   }
 
   private def changeStation(stationOption: Option[Station]): Unit = {
 
-    removeLegacyConnection()
+    removeLegacyConnection(
+      () => {
+        stationOption match {
+          case Some(station) => tuneIntoStation(station)
+          case None => tryBecomingTheStation() 
+        }
+      }
+    )
 
-    stationOption match {
-      case Some(station) => tuneIntoStation(station)
-      case None => tryBecomingTheStation() 
-    }
 
   }
 
@@ -291,34 +319,32 @@ class PlayerService extends Service {
 
     _manager.addLocalService(_channel, serviceInfo, new WifiActionListener() {
       override def onSuccess(): Unit = { 
-        _manager.createGroup(_channel, new WifiActionListener() {
-          override def onSuccess(): Unit = { 
-            Toast.makeText(that, "creating group", Toast.LENGTH_SHORT).show()
-          }
-          override def onFailure(reason: Int): Unit = {
-            Toast.makeText(that, "failed creating group", Toast.LENGTH_SHORT).show()
-          }
-        })
+        Toast.makeText(that, "advertising", Toast.LENGTH_SHORT).show()
       }
       override def onFailure(reason: Int): Unit = {
         Toast.makeText(that, "failed advertising", Toast.LENGTH_SHORT).show()
+        Log.d("chakra", "failed advertising" + reason)
       }
     })
   }
 
 
   private def tuneIntoStation(station: Station): Unit = {
-    
+
     val config: WifiP2pConfig = { 
-      val c = new WifiP2pConfig(); c.deviceAddress = station.device.deviceAddress 
+      val c = new WifiP2pConfig() 
+      c.deviceAddress = station.device.deviceAddress 
+      c.groupOwnerIntent = 0
       c.wps.setup = WpsInfoPBC; c
     }
     _manager.connect(_channel, config, new WifiActionListener() {
       override def onSuccess(): Unit = { 
         Toast.makeText(that, "requesting connection", Toast.LENGTH_SHORT).show()
+        Log.d("chakra", "requesting connection")
       }
       override def onFailure(reason: Int): Unit = {
         Toast.makeText(that, "failed requesting connection: " + reason, Toast.LENGTH_SHORT).show()
+        Log.d("chakra", "failed requesting connection: " + reason)
       }
     })
 
@@ -357,9 +383,6 @@ class PlayerService extends Service {
     if (_prepared) mediaPlayer.seekTo(_positionOncePrepared) 
 
   }
-
-
-
 
 
 }
