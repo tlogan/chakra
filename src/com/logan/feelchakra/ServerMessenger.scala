@@ -1,5 +1,7 @@
 package com.logan.feelchakra
 
+import android.util.Log
+
 object ServerMessenger {
 
   def props(connectionRef: ActorRef): Props = {
@@ -26,6 +28,7 @@ class ServerMessenger(connectionRef: ActorRef) extends Actor {
 
 
     case OnNextTrack(track) => 
+      Log.d("chakra", "sending through serverMessenger: " + track.path)
       val message = CompoundWrite(Write(ByteString(track.path)), WriteFile(track.path, 0, 0, Ack)) 
       connectionRef.!(message)
 

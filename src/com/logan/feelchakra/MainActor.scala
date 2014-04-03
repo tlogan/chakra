@@ -134,12 +134,15 @@ class MainActor extends Actor {
       setDiscovering(_selection == StationSelection)
 
     case StartServer =>
+      Log.d("chakra", "starting server")
       _serverRefOp match {
         case Some(serverRef) => Log.d("chakra", "Some:" + serverRef.toString)
         case None => 
-          Log.d("chakra", "None")
-          _serverRefOp = Some(context.actorOf(ServerConnector.props(localAddress), "ServerConnector"))
-          Log.d("chakra", "Post actor creation - None")
+          Log.d("chakra", "Pre None")
+          val serverRef = context.actorOf(ServerConnector.props(), "ServerConnector")
+          serverRef.!(ServerConnector.BindAddress(localAddress))
+          _serverRefOp = Some(serverRef)
+          Log.d("chakra", "Post serverConnector creation - None")
       }
     case StartClient(remoteHost) =>
       _stationOption match {

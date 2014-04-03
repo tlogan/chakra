@@ -104,12 +104,14 @@ class PlayerService extends Service {
                     if (info.isGroupOwner) {
                       Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
                       Log.d("chakra", "X Connected as Server")
-                      //mainActorRef ! MainActor.StartServer 
+                      mainActorRef ! MainActor.StartServer 
                     } else {
                       Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
+                      /*
                       Log.d("chakra", "X Connected as Client")
-                      //val remoteHost = info.groupOwnerAddress.getHostAddress()
-                      //mainActorRef ! MainActor.StartClient(remoteHost)
+                      val remoteHost = info.groupOwnerAddress.getHostAddress()
+                      mainActorRef ! MainActor.StartClient(remoteHost)
+                      */
                     }
                   } else {
                     _groupFormed = false 
@@ -146,7 +148,7 @@ class PlayerService extends Service {
   override def onDestroy(): Unit =  {
     super.onDestroy()
     stopDiscovering()
-    removeLegacyConnection(() => {})
+    removeLegacyConnection()
     unregisterReceiver(_broadcastReceiver)
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
@@ -257,12 +259,11 @@ class PlayerService extends Service {
 
 
 
-  private def removeLegacyConnection(onCompletion: () => Unit): Unit = {
+  private def removeLegacyConnection(): Unit = {
 
     if (_groupFormed) {
       _manager.removeGroup(_channel, new WifiActionListener() {
         override def onSuccess(): Unit = { 
-          onCompletion()
           Toast.makeText(that, "legacy group removed", Toast.LENGTH_SHORT).show()
         }
         override def onFailure(reason: Int): Unit = {
@@ -296,22 +297,18 @@ class PlayerService extends Service {
 
     } else {
       Toast.makeText(that, "nothing removed", Toast.LENGTH_SHORT).show()
-      onCompletion()
     }
 
   }
 
   private def changeStation(stationOption: Option[Station]): Unit = {
 
-    removeLegacyConnection(
-      () => {
-        stationOption match {
-          case Some(station) => tuneIntoStation(station)
-          case None => tryBecomingTheStation() 
-        }
-      }
-    )
+    removeLegacyConnection()
 
+    stationOption match {
+      case Some(station) => tuneIntoStation(station)
+      case None => tryBecomingTheStation() 
+    }
 
   }
 
