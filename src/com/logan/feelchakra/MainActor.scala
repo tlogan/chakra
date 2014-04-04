@@ -15,7 +15,7 @@ object MainActor {
   case object FlipPlayer
   case class AddStation(station: Station)
   case class CommitStation(device: WifiP2pDevice)
-  case class ConnectToStation(station: Station)
+  case class RequestStation(station: Station)
   case object BecomeTheStation
   case object AcceptRemotes 
   case class ConnectRemote(remoteHost: String)
@@ -127,7 +127,7 @@ class MainActor extends Actor {
         setStationMap(_stationMap.+((device.deviceAddress, station)))
       }
      
-    case ConnectToStation(station) =>
+    case RequestStation(station) =>
       setDiscovering(false)
       setStationOption(Some(station))
 
@@ -141,9 +141,11 @@ class MainActor extends Actor {
     case ConnectRemote(remoteHost) =>
       _stationOption match {
         case Some(station) =>
-          val remoteAddress = new InetSocketAddress(remoteHost, station.record.get("port").toInt)
+          val remoteAddress = 
+            new InetSocketAddress(remoteHost, station.record.get("port").toInt)
           networkRef.!(Network.ConnectRemote(remoteAddress))
         case None => 
+          Log.d("chakra", "Can't connect when station Op is NONE")
       }
 
     case SetRemoteTrack(track) =>

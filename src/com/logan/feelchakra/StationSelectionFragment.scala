@@ -74,7 +74,7 @@ class StationSelectionFragment extends Fragment {
         _listView.setOnItemClick( 
           (parent: AdapterView[_], view: View, position: Int, id: Long) => {
             val station = adapter.getItem(position)
-            mainActorRef ! MainActor.ConnectToStation(station) 
+            mainActorRef ! MainActor.RequestStation(station) 
           }
         )  
       }

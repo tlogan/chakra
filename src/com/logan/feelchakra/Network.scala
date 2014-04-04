@@ -9,7 +9,6 @@ object Network {
     Props[Network]
   }
 
-
   case class AcceptRemotes(localAddress: InetSocketAddress)
   case class ConnectRemote(remoteAddress: InetSocketAddress)
 
