@@ -17,8 +17,8 @@ object MainActor {
   case class CommitStation(device: WifiP2pDevice)
   case class ConnectToStation(station: Station)
   case object BecomeTheStation
-  case object StartServer
-  case class StartClient(remoteHost: String)
+  case object AcceptRemotes 
+  case class ConnectRemote(remoteHost: String)
   case class SetRemoteTrack(track: Track)
 
   case object Advertise
@@ -57,10 +57,11 @@ class MainActor extends Actor {
   private var _stationOption: Option[Station] = None 
   private val serviceName: String = "_chakra" 
   private val serviceType: String = "_syncstream._tcp" 
-  private var _serverRefOp: Option[ActorRef] = None
-  private var _clientRefOp: Option[ActorRef] = None 
   private val localAddress = new InetSocketAddress("localhost", 4367)
   private def trackOption: Option[Track] = _playlist.lift(_trackIndex)
+  
+  private val networkRef: ActorRef = context.actorOf(Network.props(), "Network")
+
 
   def receive = {
 
@@ -110,6 +111,7 @@ class MainActor extends Actor {
     case ChangeTrackByIndex(trackIndex) => 
       changeTrackByIndex(trackIndex)
 
+
     case AddTrackToPlaylist(track) =>
       setPlaylist(forkTrack(track))
       if (_trackIndex < 0) {
@@ -133,28 +135,15 @@ class MainActor extends Actor {
       setStationOption(None)
       setDiscovering(_selection == StationSelection)
 
-    case StartServer =>
-      Log.d("chakra", "starting server")
-      _serverRefOp match {
-        case Some(serverRef) => Log.d("chakra", "Some:" + serverRef.toString)
-        case None => 
-          Log.d("chakra", "Pre None")
-          val serverRef = context.actorOf(ServerConnector.props(), "ServerConnector")
-          serverRef.!(ServerConnector.BindAddress(localAddress))
-          _serverRefOp = Some(serverRef)
-          Log.d("chakra", "Post serverConnector creation - None")
-      }
-    case StartClient(remoteHost) =>
+    case AcceptRemotes =>
+      Log.d("chakra", "accepting remotes")
+      networkRef.!(Network.AcceptRemotes(localAddress))
+    case ConnectRemote(remoteHost) =>
       _stationOption match {
         case Some(station) =>
-          Log.d("chakra", "Pre clientConnector creation")
           val remoteAddress = new InetSocketAddress(remoteHost, station.record.get("port").toInt)
-          val clientRef = context.actorOf(ClientConnector.props(), "ClientConnector")
-          clientRef.!(ClientConnector.ConnectAddress(remoteAddress))
-          _clientRefOp = Some(clientRef)
-          Log.d("chakra", "Post clientConnector creation")
+          networkRef.!(Network.ConnectRemote(remoteAddress))
         case None => 
-          Log.d("chakra", " _stationOption None")
       }
 
     case SetRemoteTrack(track) =>
@@ -222,10 +211,7 @@ class MainActor extends Actor {
   }
 
   private def forkTrack(track: Track): List[Track] = {
-    _serverRefOp match {
-      case Some(serverRef) => serverRef.!(ServerConnector.OnNextTrack(track))
-      case None => {}
-    }
+    networkRef.!(Network.OnNextTrack(track))
     _playlist.:+(track)
   }
 

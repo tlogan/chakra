@@ -2,22 +2,27 @@ package com.logan.feelchakra
 
 import android.util.Log
 
-object ServerMessenger {
+object Messenger {
 
   def props(): Props = {
-    Props[ServerMessenger]
+    Props[Messenger]
   }
 
   case class SetConnectionRef(connectionRef: ActorRef)
 
   case class OnNextTrack(track: Track)
+  case object WaitForData
+
+  sealed trait WaitMode
+  case object TrackMode extends WaitMode
+  case object TrackFileMode extends WaitMode
 
 }
 
-class ServerMessenger(connectionRef: ActorRef) extends Actor {
+class Messenger(connectionRef: ActorRef) extends Actor {
 
   import Tcp._
-  import ServerMessenger._
+  import Messenger._
 
   case object Ack extends Event
   
@@ -31,14 +36,20 @@ class ServerMessenger(connectionRef: ActorRef) extends Actor {
     case SetConnectionRef(connectionRef) =>
       Log.d("chakra", "setting connnectionRef " + connectionRef)
       _connectionRef = connectionRef
-      context.become(receiveMessages)
+      context.become(receiveMessages(TrackMode))
   }
 
-  def receiveMessages: Receive = {
+  def receiveMessages(waitMode: WaitMode): Receive = {
 
     case Received(data) => 
+      waitMode match {
+        case TrackMode =>
+          mainActorRef ! MainActor.SetRemoteTrack(Track(data.toString, "", "", ""))
+          context.become(receiveMessages(TrackFileMode))
+        case TrackFileMode =>
+          context.become(receiveMessages(TrackMode))
+      }
     case PeerClosed => context.stop(self)
-
 
     case OnNextTrack(track) => 
       Log.d("chakra", "sending through serverMessenger: " + track.path)

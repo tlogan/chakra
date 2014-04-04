@@ -105,12 +105,12 @@ class PlayerService extends Service {
                     if (info.isGroupOwner) {
                       Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
                       Log.d("chakra", "X Connected as Server")
-                      mainActorRef ! MainActor.StartServer 
+                      mainActorRef ! MainActor.AcceptRemotes 
                     } else {
                       Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
                       Log.d("chakra", "X Connected as Client")
                       val remoteHost = info.groupOwnerAddress.getHostAddress()
-                      mainActorRef ! MainActor.StartClient(remoteHost)
+                      mainActorRef ! MainActor.ConnectRemote(remoteHost)
                     }
                   } else {
                     _groupFormed = false 
