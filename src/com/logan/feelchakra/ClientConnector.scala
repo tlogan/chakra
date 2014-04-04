@@ -1,29 +1,43 @@
 package com.logan.feelchakra
 
+import android.util.Log
+
 object ClientConnector {
 
-  def props(remoteAddress: InetSocketAddress): Props = {
-    Props(classOf[ClientConnector], remoteAddress)
+  def props(): Props = {
+    Props[ClientConnector]
   }
+
+  case class ConnectAddress(remoteAddress: InetSocketAddress)
 
 }
 
-class ClientConnector(remoteAddress: InetSocketAddress) extends Actor {
+class ClientConnector extends Actor {
 
-  import Tcp._
+  import ClientConnector._
   import context.system
 
-  IO(Tcp) ! Connect(remoteAddress)
 
   var _messengerRef: ActorRef = _ 
+  var _r: InetSocketAddress = _
 
   def receive = {
 
-    case  CommandFailed(_: Connect) => context.stop(self)
-    case  c @ Connected(remote, local) =>
+    case ConnectAddress(remoteAddress) =>
+      Log.d("chakra", "Connecting: " + remoteAddress)
+      _r = remoteAddress
+      IO(Tcp) ! Tcp.Connect(remoteAddress)
+
+    case  Tcp.CommandFailed(_: Tcp.Connect) => 
+      Log.d("chakra", "Command Failed")
+      context.stop(self)
+
+    case  c @ Tcp.Connected(remote, local) =>
+      Log.d("chakra", "Connected")
       val connectionRef = sender
-      _messengerRef = context.actorOf(ClientMessenger.props(connectionRef))
-      connectionRef ! Register(_messengerRef)
+      _messengerRef = context.actorOf(ClientMessenger.props())
+      _messengerRef ! ClientMessenger.SetConnectionRef(connectionRef)
+      connectionRef ! Tcp.Register(_messengerRef)
 
   }
 

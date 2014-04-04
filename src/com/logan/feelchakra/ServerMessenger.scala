@@ -4,9 +4,11 @@ import android.util.Log
 
 object ServerMessenger {
 
-  def props(connectionRef: ActorRef): Props = {
-    Props(classOf[ServerMessenger], connectionRef)
+  def props(): Props = {
+    Props[ServerMessenger]
   }
+
+  case class SetConnectionRef(connectionRef: ActorRef)
 
   case class OnNextTrack(track: Track)
 
@@ -18,10 +20,21 @@ class ServerMessenger(connectionRef: ActorRef) extends Actor {
   import ServerMessenger._
 
   case object Ack extends Event
+  
+  var _connectionRef: ActorRef = _
 
   val mainActorRef = MainActor.mainActorRef
 
-  def receive = {
+  def receive = receiveConnectionRef
+
+  def receiveConnectionRef: Receive = {
+    case SetConnectionRef(connectionRef) =>
+      Log.d("chakra", "setting connnectionRef " + connectionRef)
+      _connectionRef = connectionRef
+      context.become(receiveMessages)
+  }
+
+  def receiveMessages: Receive = {
 
     case Received(data) => 
     case PeerClosed => context.stop(self)

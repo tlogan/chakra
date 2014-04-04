@@ -2,6 +2,17 @@ package com.logan.feelchakra
 
 import android.util.Log
 
+object ServerConnector {
+
+  def props(): Props = {
+    Props[ServerConnector]
+  }
+
+  case class OnNextTrack(track: Track)
+  case class BindAddress(localAddress: InetSocketAddress)
+
+}
+
 class ServerConnector extends Actor {
 
   import Tcp._
@@ -15,11 +26,15 @@ class ServerConnector extends Actor {
     case BindAddress(localAddress) =>
       Log.d("chakra", "Binding Address:  " + localAddress)
       IO(Tcp) ! Bind(self, localAddress)
-    case b @ Bound(localAddress) => {}
-    case CommandFailed(_: Bind) => context.stop(self)
+    case b @ Bound(localAddress) => 
+      Log.d("chakra", "Bound: " + localAddress)
+    case CommandFailed(_: Bind) => 
+      Log.d("chakra", "Binding Failed")
+      context.stop(self)
     case c @ Connected(remote, local) =>
       val connectionRef = sender
-      val messengerRef = context.actorOf(ServerMessenger.props(connectionRef))
+      val messengerRef = context.actorOf(ServerMessenger.props())
+      messengerRef ! ServerMessenger.SetConnectionRef(connectionRef)
       _messengerRefs = _messengerRefs.+((remote, messengerRef))
       connectionRef ! Register(messengerRef)
 
@@ -35,14 +50,4 @@ class ServerConnector extends Actor {
 
 }
 
-object ServerConnector {
-
-  def props(): Props = {
-    Props[ServerConnector]
-  }
-
-  case class OnNextTrack(track: Track)
-  case class BindAddress(localAddress: InetSocketAddress)
-
-}
 

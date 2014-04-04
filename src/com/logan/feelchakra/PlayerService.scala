@@ -44,6 +44,7 @@ class PlayerService extends Service {
           that.changeStation(stationOption); true
         case OnRemoteTrackChanged(track) =>
           Log.d("chakra", "remote track received: " + track)
+          Toast.makeText(that, "remote track received: " + track.path, Toast.LENGTH_SHORT).show()
           true
         case _ => false
       }
@@ -107,11 +108,9 @@ class PlayerService extends Service {
                       mainActorRef ! MainActor.StartServer 
                     } else {
                       Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
-                      /*
                       Log.d("chakra", "X Connected as Client")
                       val remoteHost = info.groupOwnerAddress.getHostAddress()
                       mainActorRef ! MainActor.StartClient(remoteHost)
-                      */
                     }
                   } else {
                     _groupFormed = false 

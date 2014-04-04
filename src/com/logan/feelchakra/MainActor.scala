@@ -59,7 +59,7 @@ class MainActor extends Actor {
   private val serviceType: String = "_syncstream._tcp" 
   private var _serverRefOp: Option[ActorRef] = None
   private var _clientRefOp: Option[ActorRef] = None 
-  private val localAddress = new InetSocketAddress("localhost", 0)
+  private val localAddress = new InetSocketAddress("localhost", 4367)
   private def trackOption: Option[Track] = _playlist.lift(_trackIndex)
 
   def receive = {
@@ -147,11 +147,14 @@ class MainActor extends Actor {
     case StartClient(remoteHost) =>
       _stationOption match {
         case Some(station) =>
+          Log.d("chakra", "Pre clientConnector creation")
           val remoteAddress = new InetSocketAddress(remoteHost, station.record.get("port").toInt)
-          _clientRefOp = Some(context.actorOf(ClientConnector.props(remoteAddress), "ClientConnector"))
-          case None => {
-            Log.d("chakra", " _stationOption None")
-          }
+          val clientRef = context.actorOf(ClientConnector.props(), "ClientConnector")
+          clientRef.!(ClientConnector.ConnectAddress(remoteAddress))
+          _clientRefOp = Some(clientRef)
+          Log.d("chakra", "Post clientConnector creation")
+        case None => 
+          Log.d("chakra", " _stationOption None")
       }
 
     case SetRemoteTrack(track) =>
