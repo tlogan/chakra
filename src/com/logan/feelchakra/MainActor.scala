@@ -4,6 +4,10 @@ import android.util.Log
 
 object MainActor {
 
+  def props(): Props = {
+    Props[MainActor]
+  }
+
   //Requests
   case class Subscribe(key: String, handler: Handler) 
   case class Unsubscribe(key: String) 
@@ -22,8 +26,6 @@ object MainActor {
   case class SetRemoteTrack(track: Track)
 
   case object Advertise
-
-  val mainActorRef = ActorSystem("actorSystem").actorOf(Props[MainActor], "mainActor")
 
 }
 

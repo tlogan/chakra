@@ -5,7 +5,6 @@ class PlayerFragment extends Fragment {
 
 
   private val that = this
-  private val mainActorRef = MainActor.mainActorRef
   private var _playlistView: ListView = _
   private var _trackLayout: TrackLayout = _
   private var _adapter: PlaylistAdapter = _

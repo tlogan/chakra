@@ -134,5 +134,7 @@ package com.logan {
     type ReplaySubject[T] = rx.lang.scala.subjects.ReplaySubject[T]
     type Observer[-T] = rx.lang.scala.Observer[T]
 
+    val mainActorRef = ActorSystem("actorSystem").actorOf(MainActor.props(), "mainActor")
+
   }
 }

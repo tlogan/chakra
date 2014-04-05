@@ -16,10 +16,6 @@ class MainActivity extends Activity {
   private val trackSelectionFragment =  new TrackSelectionFragment;
   private val stationSelectionFragment = new StationSelectionFragment;
 
-
-  private val mainActorRef = MainActor.mainActorRef
-
-
   private def createSelectionTabs(selectionList: List[Selection]): Unit = {
     that.getActionBar().setNavigationMode(NAVIGATION_MODE_TABS)
     that.getActionBar().setDisplayShowTitleEnabled(true)

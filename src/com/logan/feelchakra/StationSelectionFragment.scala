@@ -3,7 +3,6 @@ package com.logan.feelchakra
 class StationSelectionFragment extends Fragment {
 
   private val that = this
-  private val mainActorRef = MainActor.mainActorRef
   private var _verticalLayout: LinearLayout = _
   private var _listView: ListView = _
   private var _adapter: StationListAdapter = _

@@ -28,8 +28,6 @@ class Messenger(connectionRef: ActorRef) extends Actor {
   
   var _connectionRef: ActorRef = _
 
-  val mainActorRef = MainActor.mainActorRef
-
   def receive = receiveConnectionRef
 
   def receiveConnectionRef: Receive = {

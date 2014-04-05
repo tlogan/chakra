@@ -1,7 +1,5 @@
 package com.logan.feelchakra
 
-import android.app.Fragment
-
 sealed trait Selection {
   val label: String
 }

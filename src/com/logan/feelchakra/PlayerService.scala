@@ -6,11 +6,8 @@ import android.util.Log
 
 class PlayerService extends Service {
 
-
-  private val mainActorRef = MainActor.mainActorRef
-  private val mediaPlayer = new MediaPlayer()
-
   private val that = this
+  private val mediaPlayer = new MediaPlayer()
 
   private var _playOncePrepared: Boolean = false
   private var _positionOncePrepared: Int = 0
