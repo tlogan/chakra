@@ -25,6 +25,8 @@ object MainActor {
   case class ConnectRemote(remoteHost: String)
   case class SetRemoteTrack(track: Track)
 
+  case class SetLocalAddress(localAddress: InetSocketAddress)
+
   case object Advertise
 
 }
@@ -59,17 +61,25 @@ class MainActor extends Actor {
   private var _stationOption: Option[Station] = None 
   private val serviceName: String = "_chakra" 
   private val serviceType: String = "_syncstream._tcp" 
-  private val localAddress = new InetSocketAddress("localhost", 4367)
   private def trackOption: Option[Track] = _playlist.lift(_trackIndex)
   
   private val networkRef: ActorRef = context.actorOf(Network.props(), "Network")
+  
+  private var _localAddressOp: Option[InetSocketAddress] = None
 
 
   def receive = {
 
     case Subscribe(key, handler) =>
+
+      _localAddressOp match {
+        case Some(localAddress) => 
+          val response = OnProfileChanged(localAddress, serviceName, serviceType)
+          handler.obtainMessage(0, response).sendToTarget()
+        case None =>
+      }
+
       List(
-        OnProfileChanged(localAddress, serviceName, serviceType),
         OnSelectionListChanged(selectionList),
         OnPlayerOpenChanged(_playerOpen),
         OnSelectionChanged(_selection),
@@ -137,9 +147,12 @@ class MainActor extends Actor {
       setStationOption(None)
       setDiscovering(_selection == StationSelection)
 
+    case SetLocalAddress(localAddress) =>
+      setLocalAddress(localAddress)
+
     case AcceptRemotes =>
       Log.d("chakra", "accepting remotes")
-      networkRef.!(Network.AcceptRemotes(localAddress))
+      networkRef.!(Network.AcceptRemotes(new InetSocketAddress("localhost", 0)))
     case ConnectRemote(remoteHost) =>
       _stationOption match {
         case Some(station) =>
@@ -153,6 +166,11 @@ class MainActor extends Actor {
     case SetRemoteTrack(track) =>
       setRemoteTrack(track)
 
+  }
+
+  private def setLocalAddress(localAddress: InetSocketAddress): Unit = {
+    _localAddressOp = Some(localAddress)
+    notifyHandlers(OnProfileChanged(localAddress, serviceName, serviceType))
   }
 
 

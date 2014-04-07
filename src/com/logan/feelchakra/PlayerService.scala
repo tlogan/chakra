@@ -102,7 +102,6 @@ class PlayerService extends Service {
                     if (info.isGroupOwner) {
                       Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
                       Log.d("chakra", "X Connected as Server")
-                      mainActorRef ! MainActor.AcceptRemotes 
                     } else {
                       Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
                       Log.d("chakra", "X Connected as Client")
@@ -136,6 +135,8 @@ class PlayerService extends Service {
     registerReceiver(_broadcastReceiver, intentFilter)
 
     mainActorRef ! MainActor.Subscribe(this.toString, handler)
+
+    mainActorRef ! MainActor.AcceptRemotes 
 
   }
 

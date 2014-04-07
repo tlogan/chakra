@@ -30,6 +30,7 @@ class Server extends Actor {
       IO(Tcp) ! Bind(self, localAddress)
     case b @ Bound(localAddress) => 
       Log.d("chakra", "Bound: " + localAddress)
+      mainActorRef ! MainActor.SetLocalAddress(localAddress)
     case CommandFailed(x: Bind) => 
       Log.d("chakra", "Binding Failed: " + x)
       context.stop(self)
