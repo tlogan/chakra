@@ -75,19 +75,21 @@ class PlayerService extends Service {
         intent.getAction() match {
 
           case WIFI_P2P_STATE_CHANGED_ACTION => {
-           //Toast.makeText(that, "state changed", Toast.LENGTH_SHORT).show()
+            val m = "p2p state changed"
+            Toast.makeText(that, m, Toast.LENGTH_SHORT).show()
+            Log.d("chakra", m)
           }
 
           case WIFI_P2P_PEERS_CHANGED_ACTION => {
-           //Toast.makeText(that, "peers changed", Toast.LENGTH_SHORT).show()
+            val m = "peers changed"
+            Toast.makeText(that, m, Toast.LENGTH_SHORT).show()
+            Log.d("chakra", m)
           }
 
           case WIFI_P2P_THIS_DEVICE_CHANGED_ACTION => {
-           //Toast.makeText(that, "this device changed", Toast.LENGTH_SHORT).show()
-          }
-
-          case WIFI_P2P_PEERS_CHANGED_ACTION => {
-          // Toast.makeText(that, "peers changed", Toast.LENGTH_SHORT).show()
+            val m = "this device changed"
+            Toast.makeText(that, m, Toast.LENGTH_SHORT).show()
+            Log.d("chakra", m)
           }
 
           case WIFI_P2P_CONNECTION_CHANGED_ACTION => {
@@ -278,20 +280,6 @@ class PlayerService extends Service {
         _isStation = false
       } 
 
-      /*
-
-      if (false) {
-        _manager.cancelConnect(_channel, new WifiActionListener() {
-          override def onSuccess(): Unit = { 
-          }
-          override def onFailure(reason: Int): Unit = {
-            Toast.makeText(that, "failed canceling connect: " + reason, Toast.LENGTH_SHORT).show()
-            Log.d("chakra", "failed canceling connect: " + reason)
-          }
-        }) 
-      }
-      */
-
     } else {
       Toast.makeText(that, "nothing removed", Toast.LENGTH_SHORT).show()
     }
@@ -314,6 +302,7 @@ class PlayerService extends Service {
     _manager.addLocalService(_channel, serviceInfo, new WifiActionListener() {
       override def onSuccess(): Unit = { 
         Toast.makeText(that, "advertising", Toast.LENGTH_SHORT).show()
+        mainActorRef ! MainActor.Discover
       }
       override def onFailure(reason: Int): Unit = {
         Toast.makeText(that, "failed advertising", Toast.LENGTH_SHORT).show()
@@ -328,7 +317,7 @@ class PlayerService extends Service {
     val config: WifiP2pConfig = { 
       val c = new WifiP2pConfig() 
       c.deviceAddress = station.device.deviceAddress 
-      c.groupOwnerIntent = 0
+      c.groupOwnerIntent = 0 
       c.wps.setup = WpsInfoPBC; c
     }
     _manager.connect(_channel, config, new WifiActionListener() {

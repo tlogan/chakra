@@ -12,6 +12,7 @@ object Server {
   case class BindAddress(localAddress: InetSocketAddress)
   case class ChangeAcceptance(accept: Boolean)
   case class OnNextTrack(track: Track)
+  case object Stop
 
 }
 
@@ -24,6 +25,10 @@ class Server extends Actor {
   var _messengerRefs: HashMap[InetSocketAddress, ActorRef] = HashMap[InetSocketAddress, ActorRef]()
 
   def receive = { 
+
+    case Stop => 
+      Log.d("chakra", "Stopping server")
+      context.stop(self)
 
     case BindAddress(localAddress) =>
       Log.d("chakra", "Binding Address:  " + localAddress)

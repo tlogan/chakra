@@ -17,10 +17,6 @@ class Client extends Actor {
   import Client._
   import context.system
 
-
-  var _messengerRef: ActorRef = _ 
-  var _r: InetSocketAddress = _
-
   def receive = {
 
     case ConnectAddress(remoteAddress) =>

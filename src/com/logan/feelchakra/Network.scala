@@ -35,6 +35,7 @@ class Network extends Actor {
       serverRef.!(Server.BindAddress(localAddress))
 
     case ConnectRemote(remoteAddress) =>
+      Log.d("chakra", "Network connecting remotes: " + remoteAddress)
       clientRef.!(Client.ConnectAddress(remoteAddress))
 
     case AddMessenger(remote, connectionRef) =>

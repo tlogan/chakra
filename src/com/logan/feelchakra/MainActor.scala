@@ -28,6 +28,7 @@ object MainActor {
   case class SetLocalAddress(localAddress: InetSocketAddress)
 
   case object Advertise
+  case object Discover 
 
 }
 
@@ -111,10 +112,9 @@ class MainActor extends Actor {
 
     case SetSelection(selection) => 
       setSelection(selection)
-      selection match {
-        case TrackSelection => setDiscovering(false)
-        case StationSelection => setDiscovering(_stationOption == None)
-      }
+
+    case Discover => 
+      setDiscovering(true)
       
 
     case FlipPlayer =>
@@ -154,8 +154,10 @@ class MainActor extends Actor {
       Log.d("chakra", "accepting remotes")
       networkRef.!(Network.AcceptRemotes(new InetSocketAddress("localhost", 0)))
     case ConnectRemote(remoteHost) =>
+       Log.d("chakra", "Main Actor connecting remote: " + remoteHost)
       _stationOption match {
         case Some(station) =>
+          Log.d("chakra", "Main Actor connecting to station using remoteHost: " + remoteHost)
           val remoteAddress = 
             new InetSocketAddress(remoteHost, station.record.get("port").toInt)
           networkRef.!(Network.ConnectRemote(remoteAddress))
