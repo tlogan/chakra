@@ -14,7 +14,7 @@ object Messenger {
 
 }
 
-class Messenger(connectionRef: ActorRef) extends Actor {
+class Messenger extends Actor {
 
   import Messenger._
 

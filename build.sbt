@@ -14,7 +14,7 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 resolvers += Resolver.sonatypeRepo("snapshots") 
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.2.3",
+  "com.typesafe.akka" %% "akka-actor" % "2.3.2",
   "com.netflix.rxjava" % "rxjava-scala" % "0.16.1",
   "org.scala-lang" %% "scala-pickling" % "0.8.0-SNAPSHOT"
 )
