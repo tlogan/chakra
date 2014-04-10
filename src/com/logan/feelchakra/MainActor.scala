@@ -35,13 +35,12 @@ object MainActor {
 class MainActor extends Actor {
 
   import MainActor._
-  import OutputHandler._
+  import UI._
   import scala.concurrent.ExecutionContext.Implicits.global
 
-
-  private var _handlers: HashMap[String, Handler] = HashMap()
+  private var _uis: HashMap[String, Handler] = HashMap()
   private def notifyHandlers(response: OnChange): Unit = {
-    _handlers.foreach(pair => {
+    _uis.foreach(pair => {
       val handler = pair._2
       handler.obtainMessage(0, response).sendToTarget()
     })
@@ -83,40 +82,10 @@ class MainActor extends Actor {
   def receive = {
 
     case Subscribe(key, handler) =>
-
-      _localAddressOp match {
-        case Some(localAddress) => 
-          val response = OnProfileChanged(localAddress, serviceName, serviceType)
-          handler.obtainMessage(0, response).sendToTarget()
-        case None =>
-      }
-
-      List(
-        OnSelectionListChanged(selectionList),
-        OnPlayerOpenChanged(_playerOpen),
-        OnSelectionChanged(_selection),
-        OnStationOptionChanged(_stationOption),
-        OnDiscoveringChanged(_discovering),
-        OnAdvertisingChanged(_advertising),
-        OnStationListChanged(_stationMap.values.toList),
-        OnTrackIndexChanged(_trackIndex),
-        OnPlaylistChanged(_playlist),
-        OnPlayerOpenChanged(_playerOpen),
-        OnSelectionChanged(_selection),
-        OnTrackListChanged(_trackList),
-        OnTrackOptionChanged(trackOption),
-        OnPlayStateChanged(true),
-        OnPositionChanged(0)
-      ).foreach(response => {
-        handler.obtainMessage(0, response).sendToTarget()
-      })
-      Log.d("chakra", "subscribing " + key)
-      _handlers = _handlers.+((key, handler))
+      subscribe(key, handler)
 
     case Unsubscribe(key) =>
-      Log.d("chakra", "ubsubscribing " + key)
-      _handlers = _handlers.-(key)
-      Log.d("chakra", "handlers size: " + _handlers.size)
+      _uis = _uis.-(key)
 
     case SetMainActivityDatabase(database) =>
       setDatabase(database)
@@ -160,7 +129,7 @@ class MainActor extends Actor {
 
     case AcceptRemotes =>
       Log.d("chakra", "accepting remotes")
-      networkRef.!(Network.AcceptRemotes(new InetSocketAddress("localhost", 0)))
+      networkRef.!(Network.AcceptRemotes)
     case ConnectRemote(remoteHost) =>
        Log.d("chakra", "Main Actor connecting remote: " + remoteHost)
       _stationOption match {
@@ -175,6 +144,39 @@ class MainActor extends Actor {
 
     case SetRemoteTrack(track) =>
       setRemoteTrack(track)
+
+  }
+
+
+  private def subscribe(key: String, ui: Handler): Unit = {
+
+    _localAddressOp match {
+      case Some(localAddress) => 
+        val response = OnProfileChanged(localAddress, serviceName, serviceType)
+        ui.obtainMessage(0, response).sendToTarget()
+      case None =>
+    }
+
+    List(
+      OnSelectionListChanged(selectionList),
+      OnPlayerOpenChanged(_playerOpen),
+      OnSelectionChanged(_selection),
+      OnStationOptionChanged(_stationOption),
+      OnDiscoveringChanged(_discovering),
+      OnAdvertisingChanged(_advertising),
+      OnStationListChanged(_stationMap.values.toList),
+      OnTrackIndexChanged(_trackIndex),
+      OnPlaylistChanged(_playlist),
+      OnPlayerOpenChanged(_playerOpen),
+      OnSelectionChanged(_selection),
+      OnTrackListChanged(_trackList),
+      OnTrackOptionChanged(trackOption),
+      OnPlayStateChanged(true),
+      OnPositionChanged(0)
+    ).foreach(response => {
+      ui.obtainMessage(0, response).sendToTarget()
+    })
+    _uis = _uis.+((key, ui))
 
   }
 

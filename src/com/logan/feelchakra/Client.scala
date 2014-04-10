@@ -8,7 +8,7 @@ object Client {
     Props[Client]
   }
 
-  case class ConnectAddress(remoteAddress: InetSocketAddress)
+  case class Connect(remoteAddress: InetSocketAddress)
 
 }
 
@@ -18,7 +18,7 @@ class Client extends Actor {
 
   def receive = {
 
-    case ConnectAddress(remoteAddress) =>
+    case Connect(remoteAddress) =>
       Log.d("chakra", "Connecting: " + remoteAddress)
       val socket = new Socket()
       try {

@@ -11,7 +11,7 @@ class StationSelectionFragment extends Fragment {
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
-      import OutputHandler._
+      import UI._
       msg.obj match {
         case OnStationListChanged(stationList) => 
           that.populateListView(stationList); true

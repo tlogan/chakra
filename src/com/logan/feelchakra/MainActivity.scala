@@ -69,7 +69,7 @@ class MainActivity extends Activity {
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
-      import OutputHandler._
+      import UI._
       msg.obj match {
         case OnSelectionListChanged(selectionList) => 
           that.createSelectionTabs(selectionList); true

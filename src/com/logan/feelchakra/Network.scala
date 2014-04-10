@@ -10,7 +10,7 @@ object Network {
   }
 
   case class SetSubject(subject: ReplaySubject[Track])
-  case class AcceptRemotes(localAddress: InetSocketAddress)
+  case object AcceptRemotes
   case class ConnectRemote(remoteAddress: InetSocketAddress)
 
   case class AddMessenger(remote: InetSocketAddress, socket: Socket)
@@ -37,12 +37,12 @@ class Network extends Actor {
     case SetSubject(subject) =>
       _playlistSubject = subject
 
-    case AcceptRemotes(localAddress) =>
-      serverRef.!(Server.BindAddress(localAddress))
+    case AcceptRemotes =>
+      serverRef.!(Server.Accept)
 
     case ConnectRemote(remoteAddress) =>
       Log.d("chakra", "Network connecting remotes: " + remoteAddress)
-      clientRef.!(Client.ConnectAddress(remoteAddress))
+      clientRef.!(Client.Connect(remoteAddress))
 
     case AddMessenger(remote, socket) =>
       Log.d("chakra", "adding new messenger: " + remote)
@@ -55,7 +55,6 @@ class Network extends Actor {
       })
 
   }
-
 
 }
 

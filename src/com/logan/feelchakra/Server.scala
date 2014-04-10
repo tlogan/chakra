@@ -8,7 +8,7 @@ object Server {
     Props[Server]
   }
 
-  case class BindAddress(localAddress: InetSocketAddress)
+  case object Accept 
 
 }
 
@@ -18,22 +18,19 @@ class Server extends Actor {
 
   def receive = { 
 
-    case BindAddress(localAddress) =>
+    case Accept =>
       try {
-        val port = localAddress.getPort()
-        val serverSocket = new ServerSocket(port);
-
+        val serverSocket = new ServerSocket(0);
         val newLocalAddress = {
-          new InetSocketAddress(localAddress.getHostName(), serverSocket.getLocalPort())
+          new InetSocketAddress("localhost", serverSocket.getLocalPort())
         }
-
         mainActorRef ! MainActor.SetLocalAddress(newLocalAddress)
 
         while (true){
           try {
             val socket = serverSocket.accept();
             val remote = {
-              new InetSocketAddress(localAddress.getAddress(), socket.getPort())
+              new InetSocketAddress(socket.getInetAddress(), socket.getPort())
             }
             context.parent ! Network.AddMessenger(remote, socket)
           } catch {

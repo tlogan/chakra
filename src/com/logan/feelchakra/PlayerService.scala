@@ -25,7 +25,7 @@ class PlayerService extends Service {
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
-      import OutputHandler._
+      import UI._
       msg.obj match {
         case OnDiscoveringChanged(discovering: Boolean) => 
           if (discovering) discoverServices() else stopDiscovering(); true
@@ -74,23 +74,9 @@ class PlayerService extends Service {
 
         intent.getAction() match {
 
-          case WIFI_P2P_STATE_CHANGED_ACTION => {
-            val m = "p2p state changed"
-            Toast.makeText(that, m, Toast.LENGTH_SHORT).show()
-            Log.d("chakra", m)
-          }
-
-          case WIFI_P2P_PEERS_CHANGED_ACTION => {
-            val m = "peers changed"
-            Toast.makeText(that, m, Toast.LENGTH_SHORT).show()
-            Log.d("chakra", m)
-          }
-
-          case WIFI_P2P_THIS_DEVICE_CHANGED_ACTION => {
-            val m = "this device changed"
-            Toast.makeText(that, m, Toast.LENGTH_SHORT).show()
-            Log.d("chakra", m)
-          }
+          case WIFI_P2P_STATE_CHANGED_ACTION => {}
+          case WIFI_P2P_PEERS_CHANGED_ACTION => {}
+          case WIFI_P2P_THIS_DEVICE_CHANGED_ACTION => {}
 
           case WIFI_P2P_CONNECTION_CHANGED_ACTION => {
             val networkInfo: NetworkInfo = intent.getParcelableExtra(EXTRA_NETWORK_INFO)
@@ -102,11 +88,11 @@ class PlayerService extends Service {
                     _groupFormed = true
 
                     if (info.isGroupOwner) {
-                      Toast.makeText(that, "X Connected as Server", Toast.LENGTH_SHORT).show()
-                      Log.d("chakra", "X Connected as Server")
+                      Toast.makeText(that, "Connected as Server", Toast.LENGTH_SHORT).show()
+                      Log.d("chakra", "Connected as Server")
                     } else {
-                      Toast.makeText(that, "X Connected as Client", Toast.LENGTH_SHORT).show()
-                      Log.d("chakra", "X Connected as Client")
+                      Toast.makeText(that, "Connected as Client", Toast.LENGTH_SHORT).show()
+                      Log.d("chakra", "Connected as Client")
                       val remoteHost = info.groupOwnerAddress.getHostAddress()
                       mainActorRef ! MainActor.ConnectRemote(remoteHost)
                     }

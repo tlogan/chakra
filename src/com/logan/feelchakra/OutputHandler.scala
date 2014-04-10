@@ -1,6 +1,6 @@
 package com.logan.feelchakra
 
-object OutputHandler {
+object UI {
 
   sealed trait OnChange 
   case class OnSelectionListChanged(selectionList: List[Selection]) extends OnChange
