@@ -9,10 +9,11 @@ object Network {
     Props[Network]
   }
 
+  case class SetSubject(subject: ReplaySubject[Track])
   case class AcceptRemotes(localAddress: InetSocketAddress)
   case class ConnectRemote(remoteAddress: InetSocketAddress)
 
-  case class AddMessenger(remote: InetSocketAddress, connectionRef: ActorRef)
+  case class AddMessenger(remote: InetSocketAddress, socket: Socket)
 
   case class OnNextTrack(track: Track)
   case class WaitFrom(remoteAddress: InetSocketAddress)
@@ -27,9 +28,14 @@ class Network extends Actor {
 
   private var clientRef: ActorRef = context.actorOf(Client.props(), "Client")
 
+  private var _playlistSubject: ReplaySubject[Track] = _
+
   private var _messengerRefs: HashMap[InetSocketAddress, ActorRef] = HashMap[InetSocketAddress, ActorRef]()
 
   def receive = {
+
+    case SetSubject(subject) =>
+      _playlistSubject = subject
 
     case AcceptRemotes(localAddress) =>
       serverRef.!(Server.BindAddress(localAddress))
@@ -38,17 +44,12 @@ class Network extends Actor {
       Log.d("chakra", "Network connecting remotes: " + remoteAddress)
       clientRef.!(Client.ConnectAddress(remoteAddress))
 
-    case AddMessenger(remote, connectionRef) =>
+    case AddMessenger(remote, socket) =>
+      Log.d("chakra", "adding new messenger: " + remote)
       val messengerRef = context.actorOf(Messenger.props())
-      messengerRef ! Messenger.SetConnectionRef(connectionRef)
-      connectionRef ! Tcp.Register(messengerRef)
+      messengerRef ! Messenger.SetSocket(socket)
       _messengerRefs = _messengerRefs.+((remote, messengerRef))
-
-
-    case OnNextTrack(track) =>
-      Log.d("chakra", "sending through network messengers: " + _messengerRefs.size)
-      _messengerRefs.foreach(pair => {
-        val messengerRef = pair._2 
+      _playlistSubject.subscribe(track => {
         Log.d("chakra", "sending through network: " + track.path)
         messengerRef.!(Messenger.OnNextTrack(track: Track))
       })

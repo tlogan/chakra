@@ -1,6 +1,7 @@
 package com.logan.feelchakra
 
 import android.util.Log
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object Messenger {
 
@@ -8,51 +9,74 @@ object Messenger {
     Props[Messenger]
   }
 
-  case class SetConnectionRef(connectionRef: ActorRef)
-
+  case class SetSocket(socket: Socket)
   case class OnNextTrack(track: Track)
-  case object WaitForData
-
-  sealed trait WaitMode
-  case object TrackMode extends WaitMode
-  case object TrackFileMode extends WaitMode
 
 }
 
 class Messenger(connectionRef: ActorRef) extends Actor {
 
-  import Tcp._
   import Messenger._
 
-  case object Ack extends Event
-  
-  var _connectionRef: ActorRef = _
+  def receive = receiveSocket
 
-  def receive = receiveConnectionRef
+  def receiveSocket: Receive = {
+    case SetSocket(socket) =>
+      Log.d("chakra", "setting socket " + socket)
+      Future {
+        while (true){
+          try {
+            readTrack(socket);
+          } catch {
+            case e: IOException => 
+              e.printStackTrace();
+              try {
+                socket.close();
+              } catch {
+                case e: IOException => e.printStackTrace();
+              }
+          }
+        }
+      }
+      context.become(receiveMessages(socket))
 
-  def receiveConnectionRef: Receive = {
-    case SetConnectionRef(connectionRef) =>
-      Log.d("chakra", "setting connnectionRef " + connectionRef)
-      _connectionRef = connectionRef
-      context.become(receiveMessages(TrackMode))
   }
 
-  def receiveMessages(waitMode: WaitMode): Receive = {
-
-    case Received(data) => 
-      waitMode match {
-        case TrackMode =>
-          mainActorRef ! MainActor.SetRemoteTrack(Track(data.toString, "", "", ""))
-          context.become(receiveMessages(TrackFileMode))
-        case TrackFileMode =>
-          context.become(receiveMessages(TrackMode))
-      }
-    case PeerClosed => context.stop(self)
+  def receiveMessages(socket: Socket): Receive = {
 
     case OnNextTrack(track) => 
       Log.d("chakra", "sending through serverMessenger: " + track.path)
-      val message = CompoundWrite(Write(ByteString(track.path)), WriteFile(track.path, 0, 0, Ack)) 
-      connectionRef.!(message)
+      writeTrack(track, socket)
+
+  }
+
+  def writeTrack(track: Track, socket: Socket): Unit = {
+    try {
+      val socketOutput = socket.getOutputStream()
+      val dataOutput = new DataOutputStream(socketOutput)
+
+      //write the file path
+      dataOutput.writeLong(track.path.length())
+      dataOutput.flush()
+      socketOutput.write(track.path.getBytes())
+
+    } catch {
+      case e: IOException => e.printStackTrace();
+    }
+  }
+
+
+  def readTrack(socket: Socket): Unit = {
+
+    val socketInput = socket.getInputStream()
+    val dataInput = new DataInputStream(socketInput)
+
+    val trackPathSize = dataInput.readLong().toInt
+    val trackPathBuffer = new Array[Byte](trackPathSize)
+    socketInput.read(trackPathBuffer)
+    val path = new String(trackPathBuffer, 0, trackPathSize)
+
+    mainActorRef ! MainActor.SetRemoteTrack(Track(path, "", "", ""))
 
   }
 

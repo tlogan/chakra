@@ -15,22 +15,26 @@ object Client {
 class Client extends Actor {
 
   import Client._
-  import context.system
 
   def receive = {
 
     case ConnectAddress(remoteAddress) =>
       Log.d("chakra", "Connecting: " + remoteAddress)
-      IO(Tcp) ! Tcp.Connect(remoteAddress)
+      val socket = new Socket()
+      try {
+        socket.bind(null);
+        socket.connect(remoteAddress, 5000);
+        context.parent ! Network.AddMessenger(remoteAddress, socket)
 
-    case  Tcp.CommandFailed(x: Tcp.Connect) => 
-      Log.d("chakra", "Command Failed: " + x)
-      context.stop(self)
-
-    case  c @ Tcp.Connected(remote, local) =>
-      Log.d("chakra", "client connected to: " + remote)
-      val connectionRef = sender
-      context.parent ! Network.AddMessenger(remote, connectionRef)
+      } catch  {
+        case e: IOException =>
+          e.printStackTrace()
+          try {
+            socket.close()
+          } catch {
+            case e: IOException => e.printStackTrace()
+          }
+      }
 
   }
 

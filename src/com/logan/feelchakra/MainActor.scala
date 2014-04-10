@@ -68,6 +68,17 @@ class MainActor extends Actor {
   
   private var _localAddressOp: Option[InetSocketAddress] = None
 
+  private val playlistSubject = ReplaySubject[Track]()
+
+  //update _playlist when subject changes
+  playlistSubject.subscribe(track => {
+    setPlaylist(_playlist.:+(track))
+    if (_trackIndex < 0) {
+      changeTrackByIndex(0)
+    }
+  })
+
+  networkRef ! Network.SetSubject(playlistSubject)
 
   def receive = {
 
@@ -125,10 +136,7 @@ class MainActor extends Actor {
 
 
     case AddTrackToPlaylist(track) =>
-      setPlaylist(forkTrack(track))
-      if (_trackIndex < 0) {
-        changeTrackByIndex(0)
-      }
+      playlistSubject.onNext(track)
 
     case AddStation(station) =>
       setStagedStationMap(_stagedStationMap.+(station.device.deviceAddress -> station))
@@ -232,11 +240,6 @@ class MainActor extends Actor {
 
   private def setRemoteTrack(track: Track): Unit = {
     notifyHandlers(OnRemoteTrackChanged(track))
-  }
-
-  private def forkTrack(track: Track): List[Track] = {
-    networkRef.!(Network.OnNextTrack(track))
-    _playlist.:+(track)
   }
 
   private def setDiscovering(discovering: Boolean): Unit = {

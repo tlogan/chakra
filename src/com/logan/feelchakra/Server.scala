@@ -8,41 +8,51 @@ object Server {
     Props[Server]
   }
 
-
   case class BindAddress(localAddress: InetSocketAddress)
-  case class ChangeAcceptance(accept: Boolean)
-  case class OnNextTrack(track: Track)
-  case object Stop
 
 }
 
 class Server extends Actor {
 
-  import Tcp._
   import Server._
-  import context.system
-
-  var _messengerRefs: HashMap[InetSocketAddress, ActorRef] = HashMap[InetSocketAddress, ActorRef]()
 
   def receive = { 
 
-    case Stop => 
-      Log.d("chakra", "Stopping server")
-      context.stop(self)
-
     case BindAddress(localAddress) =>
-      Log.d("chakra", "Binding Address:  " + localAddress)
-      IO(Tcp) ! Bind(self, localAddress)
-    case b @ Bound(localAddress) => 
-      Log.d("chakra", "Bound: " + localAddress)
-      mainActorRef ! MainActor.SetLocalAddress(localAddress)
-    case CommandFailed(x: Bind) => 
-      Log.d("chakra", "Binding Failed: " + x)
-      context.stop(self)
-    case c @ Connected(remote, local) =>
-      Log.d("chakra", "server connected to: " + remote)
-      val connectionRef = sender
-      context.parent ! Network.AddMessenger(remote, connectionRef)
+      try {
+        val port = localAddress.getPort()
+        val serverSocket = new ServerSocket(port);
+
+        val newLocalAddress = {
+          new InetSocketAddress(localAddress.getHostName(), serverSocket.getLocalPort())
+        }
+
+        mainActorRef ! MainActor.SetLocalAddress(newLocalAddress)
+
+        while (true){
+          try {
+            val socket = serverSocket.accept();
+            val remote = {
+              new InetSocketAddress(localAddress.getAddress(), socket.getPort())
+            }
+            context.parent ! Network.AddMessenger(remote, socket)
+          } catch {
+            case e: IOException => 
+              try {
+                if (serverSocket != null && !serverSocket.isClosed()) {
+                  serverSocket.close();
+                }
+                e.printStackTrace();
+              } catch {
+                case e: IOException => {}
+              }
+          }
+        }
+
+      } catch {
+        case e: IOException => e.printStackTrace()
+      }
+
 
   }
 

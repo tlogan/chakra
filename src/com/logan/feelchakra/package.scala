@@ -1,8 +1,21 @@
 package com.logan {
   package object feelchakra {
 
+    type FileOutputStream = java.io.FileOutputStream
+    type DataOutputStream = java.io.DataOutputStream
+    type DataInputStream = java.io.DataInputStream
+    type File = java.io.File
+    type FileInputStream = java.io.FileInputStream
+    type InputStream = java.io.InputStream
+    type OutputStream = java.io.OutputStream
+
+    type InetAddress = java.net.InetAddress
+    type ServerSocket = java.net.ServerSocket
+    type Socket = java.net.Socket
+
     type InetSocketAddress = java.net.InetSocketAddress 
 
+    val Future = scala.concurrent.Future
     type Future[+T] = scala.concurrent.Future[T]
     val Promise = scala.concurrent.Promise
     type Promise[T] = scala.concurrent.Promise[T]
@@ -47,8 +60,6 @@ package com.logan {
     type List[A] = scala.collection.immutable.List[A]
 
     type IOException = java.io.IOException
-    type ServerSocket = java.net.ServerSocket
-    type Socket = java.net.Socket
 
     val Success = scala.util.Success
     type Success[+T] = scala.util.Success[T]
@@ -131,6 +142,7 @@ package com.logan {
     val ByteString = akka.util.ByteString
     type ByteString = akka.util.ByteString
 
+    val ReplaySubject = rx.lang.scala.subjects.ReplaySubject
     type ReplaySubject[T] = rx.lang.scala.subjects.ReplaySubject[T]
     type Observer[-T] = rx.lang.scala.Observer[T]
 
