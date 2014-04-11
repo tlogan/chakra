@@ -24,6 +24,7 @@ object MainActor {
   case object AcceptRemotes 
   case class ConnectRemote(remoteHost: String)
   case class SetRemoteTrack(track: Track)
+  case class SetRemoteAudio(audioBuffer: Array[Byte], len: Int)
 
   case class SetLocalAddress(localAddress: InetSocketAddress)
 
@@ -62,24 +63,13 @@ class MainActor extends Actor {
   private val serviceName: String = "_chakra" 
   private val serviceType: String = "_syncstream._tcp" 
   private def trackOption: Option[Track] = _playlist.lift(_trackIndex)
+  private def nextTrackOption: Option[Track] = _playlist.lift(_trackIndex + 1)
   
   private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
   private val networkRef: ActorRef = context.actorOf(Network.props(), "Network")
   
   private var _localAddressOp: Option[InetSocketAddress] = None
-
-  private val playlistSubject = ReplaySubject[Track]()
-
-  //update _playlist when subject changes
-  playlistSubject.subscribe(track => {
-    setPlaylist(_playlist.:+(track))
-    if (_trackIndex < 0) {
-      changeTrackByIndex(0)
-    }
-  })
-
-  networkRef ! Network.SetPlaylistSubject(playlistSubject)
 
   def receive = {
 
@@ -107,7 +97,12 @@ class MainActor extends Actor {
 
 
     case AddTrackToPlaylist(track) =>
-      playlistSubject.onNext(track)
+      setPlaylist(_playlist.:+(track))
+      if (_trackIndex < 0) {
+        changeTrackByIndex(0)
+      } else if (_trackIndex == _playlist.size - 2) {
+        networkRef ! Network.WriteNextTrackOp(nextTrackOption)
+      }
 
     case AddStation(station) =>
       setStagedStationMap(_stagedStationMap.+(station.device.deviceAddress -> station))
@@ -142,6 +137,9 @@ class MainActor extends Actor {
 
     case SetRemoteTrack(track) =>
       setRemoteTrack(track)
+
+    case SetRemoteAudio(audioBuffer, len) =>
+      setRemoteAudio(audioBuffer, len)
 
   }
 
@@ -196,7 +194,12 @@ class MainActor extends Actor {
   private def changeTrackByIndex(trackIndex: Int): Unit = {
     setTrackIndex(trackIndex)
     notifyHandlers(OnTrackOptionChanged(trackOption))
+
+    //notify the network
+    networkRef ! Network.WriteBothTracks(trackOption, nextTrackOption)
+
   }
+
   private def setTrackList(trackList: List[Track]): Unit = {
     _trackList = trackList
     notifyHandlers(OnTrackListChanged(_trackList))
@@ -240,6 +243,10 @@ class MainActor extends Actor {
 
   private def setRemoteTrack(track: Track): Unit = {
     notifyHandlers(OnRemoteTrackChanged(track))
+  }
+
+  private def setRemoteAudio(audioBuffer: Array[Byte], len: Int): Unit = {
+    Log.d("chakra", "audioBuffer " + audioBuffer + len)
   }
 
   private def setDiscovering(discovering: Boolean): Unit = {

@@ -142,9 +142,10 @@ package com.logan {
     val ByteString = akka.util.ByteString
     type ByteString = akka.util.ByteString
 
+    type Observable[+T] = rx.lang.scala.Observable[T]
+    type Observer[-T] = rx.lang.scala.Observer[T]
     val ReplaySubject = rx.lang.scala.subjects.ReplaySubject
     type ReplaySubject[T] = rx.lang.scala.subjects.ReplaySubject[T]
-    type Observer[-T] = rx.lang.scala.Observer[T]
 
     val mainActorRef = ActorSystem("actorSystem").actorOf(MainActor.props(), "mainActor")
 
