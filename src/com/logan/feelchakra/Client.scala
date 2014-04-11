@@ -8,7 +8,7 @@ object Client {
     Props[Client]
   }
 
-  case class Connect(remoteAddress: InetSocketAddress)
+  case class Connect(remoteAddress: InetSocketAddress, networkRef: ActorRef)
 
 }
 
@@ -17,25 +17,25 @@ class Client extends Actor {
   import Client._
 
   def receive = {
+    case Connect(remoteAddress, networkRef) => connect(remoteAddress, networkRef)
+  }
 
-    case Connect(remoteAddress) =>
-      Log.d("chakra", "Connecting: " + remoteAddress)
-      val socket = new Socket()
-      try {
-        socket.bind(null);
-        socket.connect(remoteAddress, 5000);
-        context.parent ! Network.AddMessenger(remoteAddress, socket)
+  def connect(remoteAddress: InetSocketAddress, networkRef: ActorRef): Unit = {
+    val socket = new Socket()
+    try {
+      socket.bind(null);
+      socket.connect(remoteAddress, 5000);
+      networkRef ! Network.AddMessenger(remoteAddress, socket)
 
-      } catch  {
-        case e: IOException =>
-          e.printStackTrace()
-          try {
-            socket.close()
-          } catch {
-            case e: IOException => e.printStackTrace()
-          }
-      }
-
+    } catch  {
+      case e: IOException =>
+        e.printStackTrace()
+        try {
+          socket.close()
+        } catch {
+          case e: IOException => e.printStackTrace()
+        }
+    }
   }
 
 }

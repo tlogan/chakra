@@ -41,8 +41,8 @@ class MainActor extends Actor {
   private var _uis: HashMap[String, Handler] = HashMap()
   private def notifyHandlers(response: OnChange): Unit = {
     _uis.foreach(pair => {
-      val handler = pair._2
-      handler.obtainMessage(0, response).sendToTarget()
+      val ui = pair._2
+      ui.obtainMessage(0, response).sendToTarget()
     })
   }
 
@@ -63,6 +63,8 @@ class MainActor extends Actor {
   private val serviceType: String = "_syncstream._tcp" 
   private def trackOption: Option[Track] = _playlist.lift(_trackIndex)
   
+  private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
+  private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
   private val networkRef: ActorRef = context.actorOf(Network.props(), "Network")
   
   private var _localAddressOp: Option[InetSocketAddress] = None
@@ -77,7 +79,7 @@ class MainActor extends Actor {
     }
   })
 
-  networkRef ! Network.SetSubject(playlistSubject)
+  networkRef ! Network.SetPlaylistSubject(playlistSubject)
 
   def receive = {
 
@@ -128,18 +130,14 @@ class MainActor extends Actor {
       setLocalAddress(localAddress)
 
     case AcceptRemotes =>
-      Log.d("chakra", "accepting remotes")
-      networkRef.!(Network.AcceptRemotes)
+      serverRef.!(Server.Accept(networkRef))
     case ConnectRemote(remoteHost) =>
-       Log.d("chakra", "Main Actor connecting remote: " + remoteHost)
       _stationOption match {
         case Some(station) =>
-          Log.d("chakra", "Main Actor connecting to station using remoteHost: " + remoteHost)
           val remoteAddress = 
             new InetSocketAddress(remoteHost, station.record.get("port").toInt)
-          networkRef.!(Network.ConnectRemote(remoteAddress))
-        case None => 
-          Log.d("chakra", "Can't connect when station Op is NONE")
+          clientRef.!(Client.Connect(remoteAddress, networkRef))
+        case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
 
     case SetRemoteTrack(track) =>
@@ -255,9 +253,5 @@ class MainActor extends Actor {
     _advertising = advertising
     notifyHandlers(OnAdvertisingChanged(_advertising))
   }
-
-
-
-
 
 }

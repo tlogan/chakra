@@ -10,7 +10,7 @@ object Messenger {
   }
 
   case class SetSocket(socket: Socket)
-  case class OnNextTrack(track: Track)
+  case class WriteTrack(track: Track)
 
 }
 
@@ -18,37 +18,20 @@ class Messenger extends Actor {
 
   import Messenger._
 
-  def receive = receiveSocket
+  def receive = receiveSocket()
 
-  def receiveSocket: Receive = {
+  def receiveSocket(): Receive = {
     case SetSocket(socket) =>
-      Log.d("chakra", "setting socket " + socket)
-      Future {
-        while (true){
-          try {
-            readTrack(socket);
-          } catch {
-            case e: IOException => 
-              e.printStackTrace();
-              try {
-                socket.close();
-              } catch {
-                case e: IOException => e.printStackTrace();
-              }
-          }
-        }
-      }
-      context.become(receiveMessages(socket))
+      readTracks(socket)
+      context.become(receiveWrites(socket))
 
   }
 
-  def receiveMessages(socket: Socket): Receive = {
-
-    case OnNextTrack(track) => 
-      Log.d("chakra", "sending through serverMessenger: " + track.path)
+  def receiveWrites(socket: Socket): Receive = {
+    case WriteTrack(track) => 
       writeTrack(track, socket)
-
   }
+
 
   def writeTrack(track: Track, socket: Socket): Unit = {
     try {
@@ -65,9 +48,27 @@ class Messenger extends Actor {
     }
   }
 
+  def readTracks(socket: Socket): Unit = {
+    Log.d("chakra", "readings tracks from socket " + socket)
+    Future({
+      while (true) {
+        try {
+          readTrack(socket)
+        } catch {
+          case e: IOException => 
+            e.printStackTrace();
+            try {
+              socket.close();
+            } catch {
+              case e: IOException => e.printStackTrace();
+            }
+        }
+      }
+    })
+  }
+
 
   def readTrack(socket: Socket): Unit = {
-
     val socketInput = socket.getInputStream()
     val dataInput = new DataInputStream(socketInput)
 
@@ -75,6 +76,7 @@ class Messenger extends Actor {
     val trackPathBuffer = new Array[Byte](trackPathSize)
     socketInput.read(trackPathBuffer)
     val path = new String(trackPathBuffer, 0, trackPathSize)
+    Log.d("chakra", "got the path " + path)
 
     mainActorRef ! MainActor.SetRemoteTrack(Track(path, "", "", ""))
 

@@ -9,14 +9,8 @@ object Network {
     Props[Network]
   }
 
-  case class SetSubject(subject: ReplaySubject[Track])
-  case object AcceptRemotes
-  case class ConnectRemote(remoteAddress: InetSocketAddress)
-
+  case class SetPlaylistSubject(playlistSubject: ReplaySubject[Track])
   case class AddMessenger(remote: InetSocketAddress, socket: Socket)
-
-  case class OnNextTrack(track: Track)
-  case class WaitFrom(remoteAddress: InetSocketAddress)
 
 }
 
@@ -24,36 +18,30 @@ class Network extends Actor {
 
   import Network._
 
-  private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
-
-  private var clientRef: ActorRef = context.actorOf(Client.props(), "Client")
-
-  private var _playlistSubject: ReplaySubject[Track] = _
-
   private var _messengerRefs: HashMap[InetSocketAddress, ActorRef] = HashMap[InetSocketAddress, ActorRef]()
 
-  def receive = {
+  def receive = receiveSubject() 
+    
+  def receiveSubject(): Receive = {
 
-    case SetSubject(subject) =>
-      _playlistSubject = subject
+    case SetPlaylistSubject(playlistSubject) => 
+      context.become(receiveRemotes(playlistSubject))
 
-    case AcceptRemotes =>
-      serverRef.!(Server.Accept)
+  }
 
-    case ConnectRemote(remoteAddress) =>
-      Log.d("chakra", "Network connecting remotes: " + remoteAddress)
-      clientRef.!(Client.Connect(remoteAddress))
+  def receiveRemotes(playlistSubject: ReplaySubject[Track]): Receive = {
+    case AddMessenger(remote, socket) => startMessenger(remote, socket, playlistSubject)
+  }
 
-    case AddMessenger(remote, socket) =>
-      Log.d("chakra", "adding new messenger: " + remote)
-      val messengerRef = context.actorOf(Messenger.props())
-      messengerRef ! Messenger.SetSocket(socket)
-      _messengerRefs = _messengerRefs.+((remote, messengerRef))
-      _playlistSubject.subscribe(track => {
-        Log.d("chakra", "sending through network: " + track.path)
-        messengerRef.!(Messenger.OnNextTrack(track: Track))
-      })
+  def startMessenger(remote: InetSocketAddress, 
+    socket: Socket, playlistSubject: ReplaySubject[Track]): Unit = {
 
+    val messengerRef = context.actorOf(Messenger.props())
+    messengerRef ! Messenger.SetSocket(socket)
+    _messengerRefs = _messengerRefs.+((remote, messengerRef))
+    playlistSubject.subscribe(track => {
+      messengerRef.!(Messenger.WriteTrack(track: Track))
+    })
   }
 
 }

@@ -1,6 +1,7 @@
 package com.logan.feelchakra
 
 import android.util.Log
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object Server {
 
@@ -8,7 +9,7 @@ object Server {
     Props[Server]
   }
 
-  case object Accept 
+  case class Accept(networkRef: ActorRef)
 
 }
 
@@ -17,8 +18,12 @@ class Server extends Actor {
   import Server._
 
   def receive = { 
+    case Accept(networkRef) => accept(networkRef)
+  }
 
-    case Accept =>
+
+  def accept(networkRef: ActorRef): Unit = {
+    Future {
       try {
         val serverSocket = new ServerSocket(0);
         val newLocalAddress = {
@@ -26,13 +31,13 @@ class Server extends Actor {
         }
         mainActorRef ! MainActor.SetLocalAddress(newLocalAddress)
 
-        while (true){
+        while (true) {
           try {
             val socket = serverSocket.accept();
             val remote = {
               new InetSocketAddress(socket.getInetAddress(), socket.getPort())
             }
-            context.parent ! Network.AddMessenger(remote, socket)
+            networkRef ! Network.AddMessenger(remote, socket)
           } catch {
             case e: IOException => 
               try {
@@ -49,8 +54,7 @@ class Server extends Actor {
       } catch {
         case e: IOException => e.printStackTrace()
       }
-
-
+    }
   }
 
 }
