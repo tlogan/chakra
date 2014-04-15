@@ -9,9 +9,11 @@ object MainActor {
   }
 
   //Requests
-  case class Subscribe(key: String, handler: Handler) 
+  case class NotifyHandlers(onChange: UI.OnChange)
+  case class Subscribe(key: String, ui: Handler) 
   case class Unsubscribe(key: String) 
-  case class SetMainActivityDatabase(database: Database) 
+  case class SetDatabase(database: Database) 
+  case class SetTrackList(trackList: List[Track]) 
   case class SetSelection(selection: Selection) 
 
   case class ChangeTrackByIndex(trackIndex: Int)
@@ -39,95 +41,173 @@ class MainActor extends Actor {
   import UI._
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  private var _uis: HashMap[String, Handler] = HashMap()
-  private def notifyHandlers(response: OnChange): Unit = {
-    _uis.foreach(pair => {
-      val ui = pair._2
-      ui.obtainMessage(0, response).sendToTarget()
-    })
-  }
-
-  private var _mainActivityDatabase: Database = _ 
-  private var _selection: Selection = TrackSelection 
-  private var _trackIndex: Int = -1 
-  private var _playlist: List[Track] = List()
-  private var _playerOpen: Boolean = false 
-  private var _stationMap: Map[String, Station] = HashMap[String, Station]()
-  private var _stagedStationMap: Map[String, Station] = HashMap[String, Station]()
-  private var _trackSelectionFHO: Option[Handler] = None 
-  private var _trackList: List[Track] = List()
-  private val selectionList = List(TrackSelection, StationSelection)
-  private var _discovering: Boolean = false 
-  private var _advertising: Boolean = false 
-  private var _stationOption: Option[Station] = None 
-  private val serviceName: String = "_chakra" 
-  private val serviceType: String = "_syncstream._tcp" 
-  private def trackOption: Option[Track] = _playlist.lift(_trackIndex)
-  private def nextTrackOption: Option[Track] = _playlist.lift(_trackIndex + 1)
-  
   private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
   private val networkRef: ActorRef = context.actorOf(Network.props(), "Network")
-  
-  private var _localAddressOp: Option[InetSocketAddress] = None
 
-  def receive = {
 
-    case Subscribe(key, handler) =>
-      subscribe(key, handler)
+  def receive = receiveAll(
+    null, new HashMap[String, Handler](),
+    new SelectionManager, new TrackManager,
+    new StationManager, new NetworkProfile
+  )
+
+  def receiveAll(
+    database: Database,
+    uis: Map[String, Handler],
+    selectionManager: SelectionManager,
+    trackManager: TrackManager,
+    stationManager: StationManager,
+    networkProfile: NetworkProfile
+  ): Receive = {
+
+    case NotifyHandlers(onChange) =>
+      notifyHandlers(uis, onChange)
+
+    case Subscribe(key, ui) =>
+      networkProfile.localAddressOp match {
+        case Some(localAddress) => 
+          val response = OnProfileChanged(networkProfile)
+          ui.obtainMessage(0, response).sendToTarget()
+        case None => {}
+      }
+
+      List(
+        OnSelectionListChanged(selectionManager.list),
+        OnPlayerOpenChanged(trackManager.playerOpen),
+        OnSelectionChanged(selectionManager.current),
+        OnStationOptionChanged(stationManager.currentOp),
+        OnDiscoveringChanged(stationManager.discovering),
+        OnAdvertisingChanged(stationManager.advertising),
+        OnStationListChanged(stationManager.map.values.toList),
+        OnTrackIndexChanged(trackManager.currentIndex),
+        OnPlaylistChanged(trackManager.playlist),
+        OnTrackListChanged(trackManager.list),
+        OnTrackOptionChanged(trackManager.currentOp),
+        OnPlayStateChanged(true),
+        OnPositionChanged(0)
+      ).foreach(response => {
+        ui.obtainMessage(0, response).sendToTarget()
+      })
+
+      val u = uis.+((key, ui))
+      context.become(receiveAll(
+        database, u, selectionManager,
+        trackManager, stationManager, networkProfile
+      ))
 
     case Unsubscribe(key) =>
-      _uis = _uis.-(key)
+      context.become(receiveAll(
+        database, uis.-(key), 
+        selectionManager, trackManager,
+        stationManager, networkProfile
+      ))
 
-    case SetMainActivityDatabase(database) =>
-      setDatabase(database)
+    case SetDatabase(database) =>
+      val trackListFuture = TrackList(database)
+      trackListFuture.onComplete({ 
+        case Success(trackList) => self ! SetTrackList(trackList)
+        case Failure(t) => Log.d("chakra", "trakListFuture failed: " + t.getMessage)
+      })
+      context.become(receiveAll(
+        database, uis, selectionManager,
+        trackManager, stationManager, networkProfile 
+      ))
+
+    case SetTrackList(trackList) =>
+      context.become(receiveAll(
+        database, uis, selectionManager,
+        trackManager.setList(trackList),
+        stationManager, networkProfile 
+      ))
+
 
     case SetSelection(selection) => 
-      setSelection(selection)
+      context.become(receiveAll(
+        database, uis, selectionManager.setCurrent(selection),
+        trackManager, stationManager, networkProfile
+      ))
 
     case Discover => 
-      setDiscovering(true)
-      
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager, 
+        stationManager.setDiscovering(true), networkProfile
+      ))
 
     case FlipPlayer =>
-      setPlayerOpen(!_playerOpen)
+      context.become(receiveAll(
+        database, uis, selectionManager,
+        trackManager.flipPlayer(),
+        stationManager, networkProfile
+      ))
 
     case ChangeTrackByIndex(trackIndex) => 
-      changeTrackByIndex(trackIndex)
+      val current = trackManager.optionByIndex(trackIndex)
+      val next = trackManager.optionByIndex(trackIndex + 1)
+      networkRef ! Network.WriteBothTracks(current, next)
+      context.become(receiveAll(
+        database, uis, selectionManager,
+        trackManager.setCurrentIndex(trackIndex),
+        stationManager, networkProfile
+      ))
 
 
     case AddTrackToPlaylist(track) =>
-      setPlaylist(_playlist.:+(track))
-      if (_trackIndex < 0) {
-        changeTrackByIndex(0)
-      } else if (_trackIndex == _playlist.size - 2) {
-        networkRef ! Network.WriteNextTrackOp(nextTrackOption)
+      val newTrackManager = if (trackManager.playlist.size == 0) {
+        networkRef ! Network.WriteBothTracks(Some(track), None)
+        trackManager.addPlaylistTrack(track)
+          .setCurrentIndex(0)
+      } else {
+        if (trackManager.currentIsLast) {
+          networkRef ! Network.WriteNextTrackOp(Some(track))
+        }
+        trackManager.addPlaylistTrack(track)
       }
+
+      context.become(receiveAll(
+        database, uis, selectionManager, newTrackManager,
+        stationManager, networkProfile
+      ))
 
     case AddStation(station) =>
-      setStagedStationMap(_stagedStationMap.+(station.device.deviceAddress -> station))
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager,
+        stationManager.stageStation(station), networkProfile
+      ))
 
     case CommitStation(device) =>
-      if (_stagedStationMap.isDefinedAt(device.deviceAddress)) {
-        val station = _stagedStationMap(device.deviceAddress)
-        setStationMap(_stationMap.+((device.deviceAddress, station)))
-      }
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager,
+        stationManager.commitStation(device), networkProfile
+      ))
      
     case RequestStation(station) =>
-      setDiscovering(false)
-      setStationOption(Some(station))
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager,
+        stationManager.setDiscovering(false)
+          .setCurrentOp(Some(station)),
+        networkProfile
+      ))
 
     case BecomeTheStation =>
-      setStationOption(None)
-      setDiscovering(_selection == StationSelection)
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager,
+        stationManager.setCurrentOp(None)
+          .setDiscovering(selectionManager.current == StationSelection),
+        networkProfile
+      ))
 
     case SetLocalAddress(localAddress) =>
-      setLocalAddress(localAddress)
+      context.become(receiveAll(
+        database, uis, selectionManager, 
+        trackManager, stationManager,
+        networkProfile.setLocalAddress(localAddress)
+      ))
 
     case AcceptRemotes =>
       serverRef.!(Server.Accept(networkRef))
     case ConnectRemote(remoteHost) =>
-      _stationOption match {
+      stationManager.currentOp match {
         case Some(station) =>
           val remoteAddress = 
             new InetSocketAddress(remoteHost, station.record.get("port").toInt)
@@ -136,129 +216,18 @@ class MainActor extends Actor {
       }
 
     case SetRemoteTrack(track) =>
-      setRemoteTrack(track)
+      notifyHandlers(uis, OnRemoteTrackChanged(track))
 
     case SetRemoteAudio(audioBuffer, len) =>
-      setRemoteAudio(audioBuffer, len)
+      Log.d("chakra", "audioBuffer " + audioBuffer + len)
 
   }
 
-
-  private def subscribe(key: String, ui: Handler): Unit = {
-
-    _localAddressOp match {
-      case Some(localAddress) => 
-        val response = OnProfileChanged(localAddress, serviceName, serviceType)
-        ui.obtainMessage(0, response).sendToTarget()
-      case None =>
-    }
-
-    List(
-      OnSelectionListChanged(selectionList),
-      OnPlayerOpenChanged(_playerOpen),
-      OnSelectionChanged(_selection),
-      OnStationOptionChanged(_stationOption),
-      OnDiscoveringChanged(_discovering),
-      OnAdvertisingChanged(_advertising),
-      OnStationListChanged(_stationMap.values.toList),
-      OnTrackIndexChanged(_trackIndex),
-      OnPlaylistChanged(_playlist),
-      OnPlayerOpenChanged(_playerOpen),
-      OnSelectionChanged(_selection),
-      OnTrackListChanged(_trackList),
-      OnTrackOptionChanged(trackOption),
-      OnPlayStateChanged(true),
-      OnPositionChanged(0)
-    ).foreach(response => {
+  private def notifyHandlers(uis: Map[String, Handler], response: OnChange): Unit = {
+    uis.foreach(pair => {
+      val ui = pair._2
       ui.obtainMessage(0, response).sendToTarget()
     })
-    _uis = _uis.+((key, ui))
-
-  }
-
-  private def setLocalAddress(localAddress: InetSocketAddress): Unit = {
-    _localAddressOp = Some(localAddress)
-    notifyHandlers(OnProfileChanged(localAddress, serviceName, serviceType))
-  }
-
-
-  private def setDatabase(database: Database): Unit = {
-    _mainActivityDatabase = database 
-    val trackListFuture = TrackList(database)
-    trackListFuture.onComplete({ 
-      case Success(trackList) => setTrackList(trackList)
-      case Failure(t) => Log.d("chakra", "trakListFuture failed: " + t.getMessage)
-    })
-  }
-
-  private def changeTrackByIndex(trackIndex: Int): Unit = {
-    setTrackIndex(trackIndex)
-    notifyHandlers(OnTrackOptionChanged(trackOption))
-
-    //notify the network
-    networkRef ! Network.WriteBothTracks(trackOption, nextTrackOption)
-
-  }
-
-  private def setTrackList(trackList: List[Track]): Unit = {
-    _trackList = trackList
-    notifyHandlers(OnTrackListChanged(_trackList))
-  }
-
-
-  private def setSelection(selection: Selection): Unit = {
-    _selection = selection
-    notifyHandlers(OnSelectionChanged(_selection))
-  }
-
-  private def setPlayerOpen(playerOpen: Boolean): Unit = {
-    _playerOpen = playerOpen
-    notifyHandlers(OnPlayerOpenChanged(_playerOpen))
-  }
-
-  private def setPlaylist(playlist: List[Track]): Unit = {
-    _playlist = playlist 
-    notifyHandlers(OnPlaylistChanged(_playlist))
-  }
-
-  private def setTrackIndex(trackIndex: Int): Unit = {
-    _trackIndex = trackIndex 
-    notifyHandlers(OnTrackIndexChanged(_trackIndex))
-  }
-
-  private def setStagedStationMap(map: Map[String, Station]): Unit = {
-    _stagedStationMap = map 
-  }
-
-  private def setStationMap(map: Map[String, Station]): Unit = {
-    _stationMap = map
-    notifyHandlers(OnStationListChanged(_stationMap.values.toList))
-  }
-
-  private def setStationOption(stationOption: Option[Station]): Unit = {
-    _stationOption = stationOption
-    notifyHandlers(OnStationOptionChanged(_stationOption))
-  }
-
-
-  private def setRemoteTrack(track: Track): Unit = {
-    notifyHandlers(OnRemoteTrackChanged(track))
-  }
-
-  private def setRemoteAudio(audioBuffer: Array[Byte], len: Int): Unit = {
-    Log.d("chakra", "audioBuffer " + audioBuffer + len)
-  }
-
-  private def setDiscovering(discovering: Boolean): Unit = {
-    Log.d("chakra", "discovering " + discovering)
-    _discovering = discovering
-    notifyHandlers(OnDiscoveringChanged(_discovering))
-  }
-
-  private def setAdvertising(advertising: Boolean): Unit = {
-    Log.d("chakra", "advertising " + advertising)
-    _advertising = advertising
-    notifyHandlers(OnAdvertisingChanged(_advertising))
   }
 
 }

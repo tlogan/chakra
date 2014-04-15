@@ -114,9 +114,8 @@ class MainActivity extends Activity {
     val playerServiceIntent = new Intent(this, classOf[PlayerService])
     startService(playerServiceIntent);
 
-    mainActorRef ! MainActor.SetMainActivityDatabase(new Database(this))
-
     mainActorRef ! MainActor.Subscribe(this.toString, handler)
+    mainActorRef ! MainActor.SetDatabase(new Database(this))
 
   }
 

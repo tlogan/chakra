@@ -15,7 +15,7 @@ object UI {
   case class OnTrackOptionChanged(trackOption: Option[Track]) extends OnChange
   case class OnPlayStateChanged(playOncePrepared: Boolean) extends OnChange
   case class OnPositionChanged(positionOncePrepared: Int) extends OnChange
-  case class OnProfileChanged(localAddress: InetSocketAddress, serviceName: String, serviceType: String) extends OnChange
+  case class OnProfileChanged(networkProfile: NetworkProfile) extends OnChange
   case class OnRemoteTrackChanged(track: Track) extends OnChange
 
   case class OnDiscoveringChanged(discovering: Boolean) extends OnChange

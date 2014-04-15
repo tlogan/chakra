@@ -35,8 +35,8 @@ class PlayerService extends Service {
           that.setPlayOncePrepared(playOncePrepared); true
         case OnPositionChanged(positionOncePrepared) =>
           that.setPositionOncePrepared(positionOncePrepared); true
-        case OnProfileChanged(localAddress, serviceName, serviceType) =>
-          that.setServiceInfo(localAddress, serviceName, serviceType); true
+        case OnProfileChanged(networkProfile) =>
+          that.setServiceInfo(networkProfile); true
         case OnStationOptionChanged(stationOption) =>
           that.changeStation(stationOption); true
         case OnRemoteTrackChanged(track) =>
@@ -123,7 +123,6 @@ class PlayerService extends Service {
     registerReceiver(_broadcastReceiver, intentFilter)
 
     mainActorRef ! MainActor.Subscribe(this.toString, handler)
-
     mainActorRef ! MainActor.AcceptRemotes 
 
   }
@@ -204,26 +203,33 @@ class PlayerService extends Service {
 
   }
 
-  private def setServiceInfo(localAddress: InetSocketAddress, serviceName: String, serviceType: String): Unit = {
+  private def setServiceInfo(networkProfile: NetworkProfile): Unit = {
 
-    val record = new java.util.HashMap[String, String]()
-    record.put("port", localAddress.getPort().toString)
+    networkProfile.localAddressOp match {
+      case Some(localAddress) =>
+        val serviceName = networkProfile.serviceName
+        val serviceType = networkProfile.serviceType
+        val record = new java.util.HashMap[String, String]()
+        record.put("port", localAddress.getPort().toString)
 
-    val serviceInfo = newServiceInfo(serviceName, serviceType, record)
-    Toast.makeText(that, "isStation: " + _isStation, Toast.LENGTH_SHORT).show()
-    if (_isStation) { 
-      _serviceInfoOp match {
-        case None =>
-          //if this device should be the station but the service info wasn't available before
-          //then become the station now that it is available
-          becomeTheStation(serviceInfo)
-        case Some(oldServiceInfo) =>
-          //if there is an old serviceInfo then this device already became the station
-          //so just readvertise with the new serviceInfo 
-          readvertise(oldServiceInfo, serviceInfo)
-      }
+        val serviceInfo = newServiceInfo(serviceName, serviceType, record)
+        Toast.makeText(that, "isStation: " + _isStation, Toast.LENGTH_SHORT).show()
+        if (_isStation) { 
+          _serviceInfoOp match {
+            case None =>
+              //if this device should be the station but the service info wasn't available before
+              //then become the station now that it is available
+              becomeTheStation(serviceInfo)
+            case Some(oldServiceInfo) =>
+              //if there is an old serviceInfo then this device already became the station
+              //so just readvertise with the new serviceInfo 
+              readvertise(oldServiceInfo, serviceInfo)
+          }
+        }
+        _serviceInfoOp = Some(serviceInfo)
+      case None =>
     }
-    _serviceInfoOp = Some(serviceInfo)
+
 
   }
 
