@@ -10,6 +10,7 @@ object Network {
   }
 
   case class AddMessenger(remote: InetSocketAddress, socket: Socket)
+  case class SetClientMessenger(remote: InetSocketAddress, socket: Socket)
   case class WriteNextTrackOp(next: Option[Track]) 
   case object Shift
   case class WriteBothTracks(current: Option[Track], next: Option[Track]) 
@@ -22,6 +23,7 @@ class Network extends Actor {
   import Network._
 
   def receive = receiveRemotes(
+    None,
     HashMap[InetSocketAddress, ActorRef](),
     None,
     None,
@@ -29,44 +31,65 @@ class Network extends Actor {
   ) 
 
   def receiveRemotes(
+    messengerRefOp: Option[ActorRef],
     messengerRefs: HashMap[InetSocketAddress, ActorRef],
     current: Option[Track],
     next: Option[Track],
     playState: PlayState
   ): Receive = {
 
+    case SetClientMessenger(remote, socket) => 
+      val messengerRef = context.actorOf(Messenger.props())
+      messengerRef ! Messenger.SetSocket(socket)
+      context.become(
+        receiveRemotes(
+          Some(messengerRef),
+          messengerRefs, current, next, playState
+        ) 
+      )
+
     case AddMessenger(remote, socket) => 
       val messengerRef = context.actorOf(Messenger.props())
       messengerRef ! Messenger.SetSocket(socket)
       messengerRef ! Messenger.WriteBothTracks(current, next)
       context.become(
-        receiveRemotes(messengerRefs.+(remote -> messengerRef), 
+        receiveRemotes(
+          messengerRefOp,
+          messengerRefs.+(remote -> messengerRef), 
           current, next, playState) 
       )
 
 
     case WriteNextTrackOp(next) => 
-      disperse(messengerRefs, Messenger.WriteTrackOp(next))
+      disperse(messengerRefs, Messenger.WriteNextTrackOp(next))
       context.become(
-        receiveRemotes(messengerRefs, current, next, playState) 
+        receiveRemotes(
+          messengerRefOp,
+          messengerRefs, current, next, playState) 
       )
 
     case Shift => 
       disperse(messengerRefs, Messenger.Shift)
       context.become(
-        receiveRemotes(messengerRefs, next, None, playState) 
+        receiveRemotes(
+          messengerRefOp,
+          messengerRefs, next, None, playState) 
       )
 
     case WriteBothTracks(current, next) => 
       disperse(messengerRefs, Messenger.WriteBothTracks(current, next))
       context.become(
-        receiveRemotes(messengerRefs, current, next, playState) 
+        receiveRemotes(
+          messengerRefOp,
+          messengerRefs, current, next, playState) 
       )
 
     case WritePlayState(playState) => 
       disperse(messengerRefs, Messenger.WritePlayState(playState))
       context.become(
-        receiveRemotes(messengerRefs, current, next, playState) 
+        receiveRemotes(
+          messengerRefOp,
+          messengerRefs, current, next, playState) 
       )
 
   }

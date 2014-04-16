@@ -25,7 +25,7 @@ class Client extends Actor {
     try {
       socket.bind(null);
       socket.connect(remoteAddress, 5000);
-      networkRef ! Network.AddMessenger(remoteAddress, socket)
+      networkRef ! Network.SetClientMessenger(remoteAddress, socket)
 
     } catch  {
       case e: IOException =>

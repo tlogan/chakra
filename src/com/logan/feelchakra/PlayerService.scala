@@ -40,8 +40,12 @@ class PlayerService extends Service {
         case OnStationOptionChanged(stationOption) =>
           that.changeStation(stationOption); true
         case OnRemoteTrackChanged(track) =>
-          Log.d("chakra", "remote track received: " + track)
+          Log.d("chakra", "PLAYER SERVICE remote track received: " + track)
           Toast.makeText(that, "remote track received: " + track.path, Toast.LENGTH_SHORT).show()
+          true
+        case OnRemoteAudioAdded(audioBuffer) =>
+          //Log.d("chakra", "remote audio added: " + len + audioBuffer)
+          //Toast.makeText(that, "remote audio added: " + len + audioBuffer, Toast.LENGTH_SHORT).show()
           true
         case _ => false
       }

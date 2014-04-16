@@ -25,8 +25,11 @@ object MainActor {
   case object BecomeTheStation
   case object AcceptRemotes 
   case class ConnectRemote(remoteHost: String)
-  case class SetRemoteTrack(track: Track)
-  case class SetRemoteAudio(audioBuffer: Array[Byte], len: Int)
+
+  case class SetCurrentRemoteTrack(track: Track)
+  case class SetCurrentRemoteAudio(audioBuffer: Array[Byte])
+  case class SetNextRemoteTrack(track: Track)
+  case class SetNextRemoteAudio(audioBuffer: Array[Byte])
 
   case class SetLocalAddress(localAddress: InetSocketAddress)
 
@@ -121,7 +124,6 @@ class MainActor extends Actor {
         stationManager, networkProfile 
       ))
 
-
     case SetSelection(selection) => 
       context.become(receiveAll(
         database, uis, selectionManager.setCurrent(selection),
@@ -144,21 +146,24 @@ class MainActor extends Actor {
     case ChangeTrackByIndex(trackIndex) => 
       val current = trackManager.optionByIndex(trackIndex)
       val next = trackManager.optionByIndex(trackIndex + 1)
-      networkRef ! Network.WriteBothTracks(current, next)
+      if (stationManager.currentOp == None) {
+        networkRef ! Network.WriteBothTracks(current, next)
+      }
       context.become(receiveAll(
         database, uis, selectionManager,
         trackManager.setCurrentIndex(trackIndex),
         stationManager, networkProfile
       ))
 
-
     case AddTrackToPlaylist(track) =>
       val newTrackManager = if (trackManager.playlist.size == 0) {
-        networkRef ! Network.WriteBothTracks(Some(track), None)
+        if (stationManager.currentOp == None) {
+          networkRef ! Network.WriteBothTracks(Some(track), None)
+        }
         trackManager.addPlaylistTrack(track)
           .setCurrentIndex(0)
       } else {
-        if (trackManager.currentIsLast) {
+        if (trackManager.currentIsLast && stationManager.currentOp == None) {
           networkRef ! Network.WriteNextTrackOp(Some(track))
         }
         trackManager.addPlaylistTrack(track)
@@ -215,11 +220,34 @@ class MainActor extends Actor {
         case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
 
-    case SetRemoteTrack(track) =>
-      notifyHandlers(uis, OnRemoteTrackChanged(track))
+    case SetCurrentRemoteTrack(track) =>
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager, 
+        stationManager.setCurrentRemoteTrack(track), 
+        networkProfile
+      ))
 
-    case SetRemoteAudio(audioBuffer, len) =>
-      Log.d("chakra", "audioBuffer " + audioBuffer + len)
+    case SetCurrentRemoteAudio(audioBuffer) =>
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager, 
+        stationManager.setCurrentRemoteAudio(audioBuffer), 
+        networkProfile
+      ))
+
+    case SetNextRemoteTrack(track) =>
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager, 
+        stationManager.setNextRemoteTrack(track), 
+        networkProfile
+      ))
+
+
+    case SetNextRemoteAudio(audioBuffer) =>
+      context.become(receiveAll(
+        database, uis, selectionManager, trackManager, 
+        stationManager.setNextRemoteAudio(audioBuffer), 
+        networkProfile
+      ))
 
   }
 
