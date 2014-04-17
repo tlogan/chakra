@@ -133,21 +133,23 @@ class Messenger extends Actor {
     val track = Track(path, "", "", "")
     pos match {
       case 1 => 
-        mainActorRef ! MainActor.SetCurrentRemoteTrack(track)
+        mainActorRef ! MainActor.SetCurrentTrack(track)
       case 2 =>
-        mainActorRef ! MainActor.SetNextRemoteTrack(track)
+        mainActorRef ! MainActor.SetNextTrack(track)
       case _ => 
         Log.d("chakra", "remote track error: pos is " + pos)
     }
 
     //read the track audio data 
+    val audioSize = dataInput.readLong().toInt
+
     val setRemoteAudio: (Array[Byte]) => Unit = pos match {
       case 1 => 
         (audioBuffer) => 
-          mainActorRef ! MainActor.SetCurrentRemoteAudio(audioBuffer)
+          mainActorRef ! MainActor.SetCurrentAudio(audioBuffer)
       case 2 =>
         (audioBuffer) => 
-          mainActorRef ! MainActor.SetNextRemoteAudio(audioBuffer)
+          mainActorRef ! MainActor.SetNextAudio(audioBuffer)
       case _ => 
         (audioBuffer) => 
           Log.d("chakra", "remote audio error: pos is " + pos)
@@ -155,7 +157,7 @@ class Messenger extends Actor {
 
     val bufferSize = 512 
     val audioBuffer = new Array[Byte](bufferSize)
-    var remainingLen = dataInput.readLong()
+    var remainingLen = audioSize 
 
     var streamAlive = true 
     while (remainingLen > 0 && streamAlive) {
@@ -167,6 +169,15 @@ class Messenger extends Actor {
       } else {
         streamAlive = false
       }
+    }
+
+    pos match {
+      case 1 => 
+        mainActorRef ! MainActor.SetCurrentAudioDone
+      case 2 =>
+        mainActorRef ! MainActor.SetNextAudioDone
+      case _ => 
+        Log.d("chakra", "remote track error: pos is " + pos)
     }
 
   }

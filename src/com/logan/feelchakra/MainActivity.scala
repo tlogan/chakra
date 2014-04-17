@@ -116,6 +116,7 @@ class MainActivity extends Activity {
 
     mainActorRef ! MainActor.Subscribe(this.toString, handler)
     mainActorRef ! MainActor.SetDatabase(new Database(this))
+    mainActorRef ! MainActor.SetCacheDir(getCacheDir())
 
   }
 

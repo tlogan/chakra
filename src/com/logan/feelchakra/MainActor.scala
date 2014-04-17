@@ -13,6 +13,8 @@ object MainActor {
   case class Subscribe(key: String, ui: Handler) 
   case class Unsubscribe(key: String) 
   case class SetDatabase(database: Database) 
+  case class SetCacheDir(cacheDir: File) 
+
   case class SetTrackList(trackList: List[Track]) 
   case class SetSelection(selection: Selection) 
 
@@ -26,10 +28,13 @@ object MainActor {
   case object AcceptRemotes 
   case class ConnectRemote(remoteHost: String)
 
-  case class SetCurrentRemoteTrack(track: Track)
-  case class SetCurrentRemoteAudio(audioBuffer: Array[Byte])
-  case class SetNextRemoteTrack(track: Track)
-  case class SetNextRemoteAudio(audioBuffer: Array[Byte])
+  case class SetCurrentTrack(track: Track)
+  case class SetCurrentAudio(audioBuffer: Array[Byte])
+  case object SetCurrentAudioDone
+
+  case class SetNextTrack(track: Track)
+  case class SetNextAudio(audioBuffer: Array[Byte])
+  case object SetNextAudioDone
 
   case class SetLocalAddress(localAddress: InetSocketAddress)
 
@@ -49,11 +54,14 @@ class MainActor extends Actor {
   private val networkRef: ActorRef = context.actorOf(Network.props(), "Network")
 
   private var database: Database = null
+  private var cacheDir: File = null
   private var uis: Map[String, Handler] = new HashMap[String, Handler]()
   private var selectionManager: SelectionManager = new SelectionManager
   private var trackManager: TrackManager = new TrackManager
   private var stationManager: StationManager = new StationManager
   private var networkProfile: NetworkProfile = new NetworkProfile
+
+  private var trackAudioPair: (Option[TrackAudio], Option[TrackAudio]) = (None, None)
 
 
 
@@ -100,6 +108,9 @@ class MainActor extends Actor {
         case Failure(t) => Log.d("chakra", "trakListFuture failed: " + t.getMessage)
       })
       this.database = database
+
+    case SetCacheDir(cacheDir) => 
+      this.cacheDir = cacheDir
 
     case SetTrackList(trackList) =>
       trackManager = trackManager.setList(trackList)
@@ -160,6 +171,7 @@ class MainActor extends Actor {
 
     case AcceptRemotes =>
       serverRef.!(Server.Accept(networkRef))
+
     case ConnectRemote(remoteHost) =>
       stationManager.currentOp match {
         case Some(station) =>
@@ -169,18 +181,47 @@ class MainActor extends Actor {
         case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
 
-    case SetCurrentRemoteTrack(track) =>
-      stationManager = stationManager.setCurrentRemoteTrack(track)
+    case SetCurrentTrack(track) =>
+      mainActorRef ! NotifyHandlers(OnCurrentTrackChanged(track))
+      val currentFile = java.io.File.createTempFile("chakra_current", ".pcm", cacheDir)
+      trackAudioPair = Some(new TrackAudio(track, currentFile)) -> None
 
-    case SetCurrentRemoteAudio(audioBuffer) =>
-      stationManager = stationManager.setCurrentRemoteAudio(audioBuffer)
+    case SetCurrentAudio(audioBuffer) =>
+      trackAudioPair._1 match {
+        case Some(trackAudio) =>
+          mainActorRef ! NotifyHandlers(OnCurrentAudioAdded(audioBuffer))
+          trackAudio.addAudio(audioBuffer)
+        case None => 
+          Log.d("chakra", "trying to write to a non existent track")
+      }
 
-    case SetNextRemoteTrack(track) =>
-      stationManager = stationManager.setNextRemoteTrack(track)
+    case SetCurrentAudioDone =>
+      trackAudioPair._1 match {
+        case Some(trackAudio) =>
+          trackAudio.close()
+        case None => 
+          Log.d("chakra", "trying to write to a non existent track")
+      }
 
-    case SetNextRemoteAudio(audioBuffer) =>
-      stationManager = stationManager.setNextRemoteAudio(audioBuffer)
+    case SetNextTrack(track) =>
+      val nextFile = java.io.File.createTempFile("chakra_next", ".pcm", cacheDir)
+      trackAudioPair = trackAudioPair._1 -> Some(new TrackAudio(track, nextFile))
 
+    case SetNextAudio(audioBuffer) =>
+      trackAudioPair._2 match {
+        case Some(trackAudio) =>
+          trackAudio.addAudio(audioBuffer)
+        case None => 
+          Log.d("chakra", "trying to write to a non existent track")
+      }
+
+    case SetCurrentAudioDone =>
+      trackAudioPair._2 match {
+        case Some(trackAudio) =>
+          trackAudio.close()
+        case None => 
+          Log.d("chakra", "trying to write to a non existent track")
+      }
   }
 
   private def notifyHandlers(uis: Map[String, Handler], response: OnChange): Unit = {

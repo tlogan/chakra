@@ -17,8 +17,8 @@ object UI {
   case class OnPositionChanged(positionOncePrepared: Int) extends OnChange
   case class OnProfileChanged(networkProfile: NetworkProfile) extends OnChange
 
-  case class OnRemoteTrackChanged(track: Track) extends OnChange
-  case class OnRemoteAudioAdded(audioBuffer: Array[Byte]) extends OnChange
+  case class OnCurrentTrackChanged(track: Track) extends OnChange
+  case class OnCurrentAudioAdded(audioBuffer: Array[Byte]) extends OnChange
 
   case class OnDiscoveringChanged(discovering: Boolean) extends OnChange
   case class OnAdvertisingChanged(advertising: Boolean) extends OnChange
