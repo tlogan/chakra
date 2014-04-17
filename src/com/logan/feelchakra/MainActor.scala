@@ -48,21 +48,16 @@ class MainActor extends Actor {
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
   private val networkRef: ActorRef = context.actorOf(Network.props(), "Network")
 
+  private var database: Database = null
+  private var uis: Map[String, Handler] = new HashMap[String, Handler]()
+  private var selectionManager: SelectionManager = new SelectionManager
+  private var trackManager: TrackManager = new TrackManager
+  private var stationManager: StationManager = new StationManager
+  private var networkProfile: NetworkProfile = new NetworkProfile
 
-  def receive = receiveAll(
-    null, new HashMap[String, Handler](),
-    new SelectionManager, new TrackManager,
-    new StationManager, new NetworkProfile
-  )
 
-  def receiveAll(
-    database: Database,
-    uis: Map[String, Handler],
-    selectionManager: SelectionManager,
-    trackManager: TrackManager,
-    stationManager: StationManager,
-    networkProfile: NetworkProfile
-  ): Receive = {
+
+  def receive = {
 
     case NotifyHandlers(onChange) =>
       notifyHandlers(uis, onChange)
@@ -93,18 +88,10 @@ class MainActor extends Actor {
         ui.obtainMessage(0, response).sendToTarget()
       })
 
-      val u = uis.+((key, ui))
-      context.become(receiveAll(
-        database, u, selectionManager,
-        trackManager, stationManager, networkProfile
-      ))
+      uis = uis.+((key, ui))
 
     case Unsubscribe(key) =>
-      context.become(receiveAll(
-        database, uis.-(key), 
-        selectionManager, trackManager,
-        stationManager, networkProfile
-      ))
+      uis = uis.-(key)
 
     case SetDatabase(database) =>
       val trackListFuture = TrackList(database)
@@ -112,36 +99,19 @@ class MainActor extends Actor {
         case Success(trackList) => self ! SetTrackList(trackList)
         case Failure(t) => Log.d("chakra", "trakListFuture failed: " + t.getMessage)
       })
-      context.become(receiveAll(
-        database, uis, selectionManager,
-        trackManager, stationManager, networkProfile 
-      ))
+      this.database = database
 
     case SetTrackList(trackList) =>
-      context.become(receiveAll(
-        database, uis, selectionManager,
-        trackManager.setList(trackList),
-        stationManager, networkProfile 
-      ))
+      trackManager = trackManager.setList(trackList)
 
     case SetSelection(selection) => 
-      context.become(receiveAll(
-        database, uis, selectionManager.setCurrent(selection),
-        trackManager, stationManager, networkProfile
-      ))
+      selectionManager = selectionManager.setCurrent(selection)
 
     case Discover => 
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager, 
-        stationManager.setDiscovering(true), networkProfile
-      ))
+      stationManager = stationManager.setDiscovering(true)
 
     case FlipPlayer =>
-      context.become(receiveAll(
-        database, uis, selectionManager,
-        trackManager.flipPlayer(),
-        stationManager, networkProfile
-      ))
+      trackManager = trackManager.flipPlayer()
 
     case ChangeTrackByIndex(trackIndex) => 
       val current = trackManager.optionByIndex(trackIndex)
@@ -149,14 +119,10 @@ class MainActor extends Actor {
       if (stationManager.currentOp == None) {
         networkRef ! Network.WriteBothTracks(current, next)
       }
-      context.become(receiveAll(
-        database, uis, selectionManager,
-        trackManager.setCurrentIndex(trackIndex),
-        stationManager, networkProfile
-      ))
+      trackManager = trackManager.setCurrentIndex(trackIndex)
 
     case AddTrackToPlaylist(track) =>
-      val newTrackManager = if (trackManager.playlist.size == 0) {
+      trackManager = if (trackManager.playlist.size == 0) {
         if (stationManager.currentOp == None) {
           networkRef ! Network.WriteBothTracks(Some(track), None)
         }
@@ -169,45 +135,28 @@ class MainActor extends Actor {
         trackManager.addPlaylistTrack(track)
       }
 
-      context.become(receiveAll(
-        database, uis, selectionManager, newTrackManager,
-        stationManager, networkProfile
-      ))
-
     case AddStation(station) =>
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager,
-        stationManager.stageStation(station), networkProfile
-      ))
+      stationManager = stationManager.stageStation(station)
 
     case CommitStation(device) =>
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager,
-        stationManager.commitStation(device), networkProfile
-      ))
+      stationManager = stationManager.commitStation(device)
      
     case RequestStation(station) =>
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager,
-        stationManager.setDiscovering(false)
-          .setCurrentOp(Some(station)),
-        networkProfile
-      ))
+      stationManager = {
+        stationManager
+          .setDiscovering(false)
+          .setCurrentOp(Some(station))
+      }
 
     case BecomeTheStation =>
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager,
-        stationManager.setCurrentOp(None)
-          .setDiscovering(selectionManager.current == StationSelection),
-        networkProfile
-      ))
+      stationManager = {
+        stationManager
+          .setCurrentOp(None)
+          .setDiscovering(selectionManager.current == StationSelection)
+      }
 
     case SetLocalAddress(localAddress) =>
-      context.become(receiveAll(
-        database, uis, selectionManager, 
-        trackManager, stationManager,
-        networkProfile.setLocalAddress(localAddress)
-      ))
+      networkProfile = networkProfile.setLocalAddress(localAddress)
 
     case AcceptRemotes =>
       serverRef.!(Server.Accept(networkRef))
@@ -221,33 +170,16 @@ class MainActor extends Actor {
       }
 
     case SetCurrentRemoteTrack(track) =>
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager, 
-        stationManager.setCurrentRemoteTrack(track), 
-        networkProfile
-      ))
+      stationManager = stationManager.setCurrentRemoteTrack(track)
 
     case SetCurrentRemoteAudio(audioBuffer) =>
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager, 
-        stationManager.setCurrentRemoteAudio(audioBuffer), 
-        networkProfile
-      ))
+      stationManager = stationManager.setCurrentRemoteAudio(audioBuffer)
 
     case SetNextRemoteTrack(track) =>
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager, 
-        stationManager.setNextRemoteTrack(track), 
-        networkProfile
-      ))
-
+      stationManager = stationManager.setNextRemoteTrack(track)
 
     case SetNextRemoteAudio(audioBuffer) =>
-      context.become(receiveAll(
-        database, uis, selectionManager, trackManager, 
-        stationManager.setNextRemoteAudio(audioBuffer), 
-        networkProfile
-      ))
+      stationManager = stationManager.setNextRemoteAudio(audioBuffer)
 
   }
 
