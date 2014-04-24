@@ -28,13 +28,10 @@ object MainActor {
   case object AcceptRemotes 
   case class ConnectRemote(remoteHost: String)
 
-  case class SetCurrentTrack(track: Track)
-  case class SetCurrentAudio(audioBuffer: Array[Byte])
-  case object SetCurrentAudioDone
-
-  case class SetNextTrack(track: Track)
-  case class SetNextAudio(audioBuffer: Array[Byte])
-  case object SetNextAudioDone
+  case class SetCurrentRemoteTrack(track: Track)
+  case class SetNextRemoteTrack(track: Track)
+  case class SetRemoteAudio(audioBuffer: Array[Byte])
+  case object SetRemoteAudioDone
 
   case class SetLocalAddress(localAddress: InetSocketAddress)
 
@@ -57,13 +54,13 @@ class MainActor extends Actor {
   private var cacheDir: File = null
   private var uis: Map[String, Handler] = new HashMap[String, Handler]()
   private var selectionManager: SelectionManager = new SelectionManager
-  private var trackManager: TrackManager = new TrackManager
+  private var localManager: LocalManager = new LocalManager 
   private var stationManager: StationManager = new StationManager
   private var networkProfile: NetworkProfile = new NetworkProfile
 
-  private var trackAudioPair: (Option[TrackAudio], Option[TrackAudio]) = (None, None)
+  private var remoteManager: RemoteManager = _ 
 
-
+  private var playState: PlayState = new PlayState 
 
   def receive = {
 
@@ -80,18 +77,18 @@ class MainActor extends Actor {
 
       List(
         OnSelectionListChanged(selectionManager.list),
-        OnPlayerOpenChanged(trackManager.playerOpen),
+        OnPlayerOpenChanged(localManager.playerOpen),
         OnSelectionChanged(selectionManager.current),
         OnStationOptionChanged(stationManager.currentOp),
         OnDiscoveringChanged(stationManager.discovering),
         OnAdvertisingChanged(stationManager.advertising),
         OnStationListChanged(stationManager.map.values.toList),
-        OnTrackIndexChanged(trackManager.currentIndex),
-        OnPlaylistChanged(trackManager.playlist),
-        OnTrackListChanged(trackManager.list),
-        OnTrackOptionChanged(trackManager.currentOp),
-        OnPlayStateChanged(true),
-        OnPositionChanged(0)
+        OnTrackIndexChanged(localManager.currentIndex),
+        OnPlaylistChanged(localManager.playlist),
+        OnTrackListChanged(localManager.list),
+        OnTrackOptionChanged(localManager.currentOp),
+        OnPlayingChanged(playState.playing),
+        OnStartPosChanged(playState.startPos)
       ).foreach(response => {
         ui.obtainMessage(0, response).sendToTarget()
       })
@@ -111,9 +108,10 @@ class MainActor extends Actor {
 
     case SetCacheDir(cacheDir) => 
       this.cacheDir = cacheDir
+      remoteManager = new RemoteManager(cacheDir)
 
     case SetTrackList(trackList) =>
-      trackManager = trackManager.setList(trackList)
+      localManager = localManager.setList(trackList)
 
     case SetSelection(selection) => 
       selectionManager = selectionManager.setCurrent(selection)
@@ -122,28 +120,35 @@ class MainActor extends Actor {
       stationManager = stationManager.setDiscovering(true)
 
     case FlipPlayer =>
-      trackManager = trackManager.flipPlayer()
+      localManager = localManager.flipPlayer()
 
     case ChangeTrackByIndex(trackIndex) => 
-      val current = trackManager.optionByIndex(trackIndex)
-      val next = trackManager.optionByIndex(trackIndex + 1)
+      val current = localManager.optionByIndex(trackIndex)
+      val next = localManager.optionByIndex(trackIndex + 1)
       if (stationManager.currentOp == None) {
         networkRef ! Network.WriteBothTracks(current, next)
       }
-      trackManager = trackManager.setCurrentIndex(trackIndex)
+      localManager = localManager.setCurrentIndex(trackIndex)
+      playState = playState.setStartPos(0).setPlaying(true)
+      networkRef ! Network.WritePlayState(playState)
 
     case AddTrackToPlaylist(track) =>
-      trackManager = if (trackManager.playlist.size == 0) {
+      if (localManager.playlist.size == 0) {
         if (stationManager.currentOp == None) {
           networkRef ! Network.WriteBothTracks(Some(track), None)
         }
-        trackManager.addPlaylistTrack(track)
+        localManager = localManager.addPlaylistTrack(track)
           .setCurrentIndex(0)
+
+        playState = playState.setStartPos(0)
+        playState = playState.setPlaying(true)
+        networkRef ! Network.WritePlayState(playState)
+
       } else {
-        if (trackManager.currentIsLast && stationManager.currentOp == None) {
+        if (localManager.currentIsLast && stationManager.currentOp == None) {
           networkRef ! Network.WriteNextTrackOp(Some(track))
         }
-        trackManager.addPlaylistTrack(track)
+        localManager = localManager.addPlaylistTrack(track)
       }
 
     case AddStation(station) =>
@@ -173,6 +178,7 @@ class MainActor extends Actor {
       serverRef.!(Server.Accept(networkRef))
 
     case ConnectRemote(remoteHost) =>
+      playState = playState.setPlaying(false)
       stationManager.currentOp match {
         case Some(station) =>
           val remoteAddress = 
@@ -181,47 +187,17 @@ class MainActor extends Actor {
         case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
 
-    case SetCurrentTrack(track) =>
-      mainActorRef ! NotifyHandlers(OnCurrentTrackChanged(track))
-      val currentFile = java.io.File.createTempFile("chakra_current", ".pcm", cacheDir)
-      trackAudioPair = Some(new TrackAudio(track, currentFile)) -> None
+    case SetCurrentRemoteTrack(track) =>
+      remoteManager = remoteManager.setCurrentTrackOp(track)
 
-    case SetCurrentAudio(audioBuffer) =>
-      trackAudioPair._1 match {
-        case Some(trackAudio) =>
-          mainActorRef ! NotifyHandlers(OnCurrentAudioAdded(audioBuffer))
-          trackAudio.addAudio(audioBuffer)
-        case None => 
-          Log.d("chakra", "trying to write to a non existent track")
-      }
+    case SetNextRemoteTrack(track) =>
 
-    case SetCurrentAudioDone =>
-      trackAudioPair._1 match {
-        case Some(trackAudio) =>
-          trackAudio.close()
-        case None => 
-          Log.d("chakra", "trying to write to a non existent track")
-      }
+    case SetRemoteAudio(audioBuffer) =>
+      remoteManager.addAudio(audioBuffer)
 
-    case SetNextTrack(track) =>
-      val nextFile = java.io.File.createTempFile("chakra_next", ".pcm", cacheDir)
-      trackAudioPair = trackAudioPair._1 -> Some(new TrackAudio(track, nextFile))
+    case SetRemoteAudioDone =>
+      remoteManager.close()
 
-    case SetNextAudio(audioBuffer) =>
-      trackAudioPair._2 match {
-        case Some(trackAudio) =>
-          trackAudio.addAudio(audioBuffer)
-        case None => 
-          Log.d("chakra", "trying to write to a non existent track")
-      }
-
-    case SetCurrentAudioDone =>
-      trackAudioPair._2 match {
-        case Some(trackAudio) =>
-          trackAudio.close()
-        case None => 
-          Log.d("chakra", "trying to write to a non existent track")
-      }
   }
 
   private def notifyHandlers(uis: Map[String, Handler], response: OnChange): Unit = {
@@ -230,5 +206,6 @@ class MainActor extends Actor {
       ui.obtainMessage(0, response).sendToTarget()
     })
   }
+
 
 }

@@ -15,6 +15,8 @@ package com.logan {
 
     type InetSocketAddress = java.net.InetSocketAddress 
 
+    val Platform = scala.compat.Platform
+
     val Future = scala.concurrent.Future
     type Future[+T] = scala.concurrent.Future[T]
     val Promise = scala.concurrent.Promise
@@ -142,6 +144,9 @@ package com.logan {
     val ByteString = akka.util.ByteString
     type ByteString = akka.util.ByteString
 
+    val Subscription = rx.lang.scala.Subscription
+    type Subscription = rx.lang.scala.Subscription
+    val Observable = rx.lang.scala.Observable
     type Observable[+T] = rx.lang.scala.Observable[T]
     type Observer[-T] = rx.lang.scala.Observer[T]
     val ReplaySubject = rx.lang.scala.subjects.ReplaySubject

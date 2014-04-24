@@ -2,7 +2,7 @@ package com.logan.feelchakra
 
 import android.util.Log
 
-class TrackManager(
+class LocalManager(
   val currentIndex: Int, 
   val playlist: List[Track], 
   val list: List[Track],
@@ -18,29 +18,29 @@ class TrackManager(
   def currentOp: Option[Track] = playlist.lift(currentIndex)
   def nextOp: Option[Track] = playlist.lift(currentIndex + 1)
 
-  def setCurrentIndex(index: Int): TrackManager = {
+  def setCurrentIndex(index: Int): LocalManager = {
     mainActorRef ! NotifyHandlers(OnTrackIndexChanged(index))
     mainActorRef ! NotifyHandlers(OnTrackOptionChanged(optionByIndex(index)))
-    new TrackManager(index, playlist, list, playerOpen)
+    new LocalManager(index, playlist, list, playerOpen)
   }
 
-  def addPlaylistTrack(track: Track): TrackManager = {
+  def addPlaylistTrack(track: Track): LocalManager = {
     val newPlaylist = playlist.:+(track)
     mainActorRef ! NotifyHandlers(OnPlaylistChanged(newPlaylist))
-    new TrackManager(currentIndex, newPlaylist, list, playerOpen)
+    new LocalManager(currentIndex, newPlaylist, list, playerOpen)
   }
 
-  def setList(list: List[Track]): TrackManager = {
+  def setList(list: List[Track]): LocalManager = {
     mainActorRef ! NotifyHandlers(OnTrackListChanged(list))
-    new TrackManager(currentIndex, playlist, list, playerOpen)
+    new LocalManager(currentIndex, playlist, list, playerOpen)
   }
 
-  def setPlayerOpen(playerOpen: Boolean): TrackManager = {
+  def setPlayerOpen(playerOpen: Boolean): LocalManager = {
     mainActorRef ! NotifyHandlers(OnPlayerOpenChanged(playerOpen))
-    new TrackManager(currentIndex, playlist, list, playerOpen)
+    new LocalManager(currentIndex, playlist, list, playerOpen)
   }
 
-  def flipPlayer(): TrackManager = {
+  def flipPlayer(): LocalManager = {
     setPlayerOpen(!playerOpen)
   }
 

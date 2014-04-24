@@ -1,5 +1,33 @@
 package com.logan.feelchakra
 
-sealed trait PlayState
-case class Playing(startPos: Int, startTime: Long) extends PlayState
-case object NotPlaying extends PlayState
+import android.util.Log
+
+import MainActor._
+import UI._
+
+class PlayState(
+  val playing: Boolean,
+  val startPos: Int,
+  val startTimeOp: Option[Long]
+) { 
+
+
+  def this() = this(false, 0, None)
+
+  def setPlaying(playing: Boolean): PlayState = {
+    mainActorRef ! NotifyHandlers(OnPlayingChanged(playing))
+    new PlayState(playing, startPos, getStartTimeOp)
+  }
+
+  def setStartPos(startPos: Int): PlayState = {
+    mainActorRef ! NotifyHandlers(OnStartPosChanged(startPos))
+    new PlayState(playing, startPos, getStartTimeOp)
+  }
+
+  private def getStartTimeOp: Option[Long] = {
+    if (playing) {
+      Some(Platform.currentTime)
+    } else None
+  }
+
+}

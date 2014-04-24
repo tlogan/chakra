@@ -9,8 +9,8 @@ class PlayerService extends Service {
   private val that = this
   private val mediaPlayer = new MediaPlayer()
 
-  private var _playOncePrepared: Boolean = false
-  private var _positionOncePrepared: Int = 0
+  private var _playing: Boolean = false 
+  private var _startPos: Int = 0
   private var _prepared: Boolean = false
 
   private var _manager: WifiP2pManager = _
@@ -31,22 +31,17 @@ class PlayerService extends Service {
           if (discovering) discoverServices() else stopDiscovering(); true
         case OnTrackOptionChanged(trackOption) => 
           that.prepareTrack(trackOption); true
-        case OnPlayStateChanged(playOncePrepared) =>
-          that.setPlayOncePrepared(playOncePrepared); true
-        case OnPositionChanged(positionOncePrepared) =>
-          that.setPositionOncePrepared(positionOncePrepared); true
+        case OnPlayingChanged(playing) =>
+          that.setPlaying(playing); true
+        case OnStartPosChanged(startPos) =>
+          that.setStartPos(startPos); true
         case OnProfileChanged(networkProfile) =>
           that.setServiceInfo(networkProfile); true
         case OnStationOptionChanged(stationOption) =>
           that.changeStation(stationOption); true
 
-        case OnCurrentTrackChanged(track) =>
-          Log.d("chakra", "PLAYER SERVICE remote track received: " + track)
-          Toast.makeText(that, "remote track received: " + track.path, Toast.LENGTH_SHORT).show()
-          true
-        case OnCurrentAudioAdded(audioBuffer) =>
-          //Log.d("chakra", "remote audio added: " + len + audioBuffer)
-          true
+        case OnRemoteTrackOptionChanged(trackOption) =>
+          that.prepareTrack(trackOption); true
 
         case _ => false
       }
@@ -60,9 +55,9 @@ class PlayerService extends Service {
   override def onCreate(): Unit = {
 
     mediaPlayer.setOnPrepared(mp => {
-      mp.seekTo(_positionOncePrepared)
-      if (_playOncePrepared) mp.start()
       _prepared = true
+      mp.seekTo(_startPos)
+      if (_playing) mp.start()
 
     })
     mediaPlayer.setOnCompletion(mp => {/*notify main actor*/})
@@ -139,6 +134,9 @@ class PlayerService extends Service {
     stopDiscovering()
     removeLegacyConnection()
     unregisterReceiver(_broadcastReceiver)
+
+    mediaPlayer.release()
+
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
 
@@ -350,17 +348,24 @@ class PlayerService extends Service {
 
   }
 
-  def setPlayOncePrepared(playOncePrepared: Boolean): Unit = {
+  def setPlaying(playing: Boolean): Unit = {
 
-    _playOncePrepared = playOncePrepared
-    if (_prepared) mediaPlayer.start() 
+    _playing = playing 
+    if (_prepared) { 
+      if (_playing) {
+        mediaPlayer.start()
+      } else mediaPlayer.pause() 
+    }
 
   }
 
-  def setPositionOncePrepared(positionOncePrepared: Int): Unit = {
+  def setStartPos(startPos: Int): Unit = {
 
-    _positionOncePrepared = positionOncePrepared 
-    if (_prepared) mediaPlayer.seekTo(_positionOncePrepared) 
+    _startPos = startPos 
+
+    if (_prepared) { 
+      mediaPlayer.seekTo(startPos) 
+    }
 
   }
 

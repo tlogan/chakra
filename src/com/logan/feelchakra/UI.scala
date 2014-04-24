@@ -13,12 +13,12 @@ object UI {
   case class OnPlaylistChanged(playlist: List[Track]) extends OnChange
 
   case class OnTrackOptionChanged(trackOption: Option[Track]) extends OnChange
-  case class OnPlayStateChanged(playOncePrepared: Boolean) extends OnChange
-  case class OnPositionChanged(positionOncePrepared: Int) extends OnChange
-  case class OnProfileChanged(networkProfile: NetworkProfile) extends OnChange
+  case class OnRemoteTrackOptionChanged(trackOption: Option[Track]) extends OnChange
 
-  case class OnCurrentTrackChanged(track: Track) extends OnChange
-  case class OnCurrentAudioAdded(audioBuffer: Array[Byte]) extends OnChange
+  case class OnPlayingChanged(playing: Boolean) extends OnChange
+  case class OnStartPosChanged(startPos: Int) extends OnChange
+
+  case class OnProfileChanged(networkProfile: NetworkProfile) extends OnChange
 
   case class OnDiscoveringChanged(discovering: Boolean) extends OnChange
   case class OnAdvertisingChanged(advertising: Boolean) extends OnChange

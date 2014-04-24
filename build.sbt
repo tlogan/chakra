@@ -19,6 +19,7 @@ libraryDependencies ++= Seq(
   "org.scala-lang" %% "scala-pickling" % "0.8.0-SNAPSHOT"
 )
 
+
 useProguard in Android := true 
 
 proguardOptions in Android ++= Seq(

@@ -14,7 +14,7 @@ object Network {
   case class WriteNextTrackOp(next: Option[Track]) 
   case object Shift
   case class WriteBothTracks(current: Option[Track], next: Option[Track]) 
-  case class WritePlayState(play: PlayState)
+  case class WritePlayState(playState: PlayState)
 
 }
 
@@ -27,7 +27,7 @@ class Network extends Actor {
     HashMap[InetSocketAddress, ActorRef](),
     None,
     None,
-    NotPlaying
+    new PlayState 
   ) 
 
   def receiveRemotes(
@@ -52,6 +52,7 @@ class Network extends Actor {
       val messengerRef = context.actorOf(Messenger.props())
       messengerRef ! Messenger.SetSocket(socket)
       messengerRef ! Messenger.WriteBothTracks(current, next)
+      messengerRef ! Messenger.WritePlayState(playState)
       context.become(
         receiveRemotes(
           messengerRefOp,
