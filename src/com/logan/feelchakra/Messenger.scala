@@ -15,11 +15,11 @@ object Messenger {
   case class WriteBothTracks(current: Option[Track], next: Option[Track]) 
   case class WritePlayState(playState: PlayState)
 
-  val currentPos = 1 
-  val nextPos = 2 
+  val CurrentPos = 1 
+  val NextPos = 2 
 
-  val trackMessage = 10
-  val playStateMessage = 20
+  val TrackMessage = 10
+  val PlayStateMessage = 20
 
 }
 
@@ -42,20 +42,30 @@ class Messenger extends Actor {
 
   def receiveWrites(socketOutput: OutputStream, dataOutput: DataOutputStream): Receive = {
     case WriteNextTrackOp(trackOp) => 
-      writeTrack(nextPos, trackOp, socketOutput, dataOutput)
+      writeTrack(NextPos, trackOp, socketOutput, dataOutput)
 
     case Shift =>
       shift()
 
     case WriteBothTracks(current, next) =>
-      writeTrack(currentPos, current, socketOutput, dataOutput)
-      writeTrack(nextPos, next, socketOutput, dataOutput)
+      writeTrack(CurrentPos, current, socketOutput, dataOutput)
+      writeTrack(NextPos, next, socketOutput, dataOutput)
 
     case WritePlayState(playState) => 
-      Log.d("chakra", "writing play state")
       //write messageType 
-      dataOutput.writeLong(playStateMessage)
-
+      dataOutput.writeInt(PlayStateMessage)
+      dataOutput.flush()
+      Log.d("chakra", "writing play state")
+      dataOutput.writeBoolean(playState.playing)
+      dataOutput.flush()
+      dataOutput.writeInt(playState.startPos)
+      dataOutput.flush()
+      val startTime = playState.startTimeOp match {
+        case Some(time) => time
+        case None => 0
+      }
+      dataOutput.writeLong(startTime)
+      dataOutput.flush()
   }
 
   def shift(): Unit = {
@@ -72,13 +82,13 @@ class Messenger extends Actor {
         try {
 
           //write messageType 
-          dataOutput.writeLong(trackMessage)
+          dataOutput.writeInt(TrackMessage)
           dataOutput.flush()
           //write position 
-          dataOutput.writeLong(pos)
+          dataOutput.writeInt(pos)
 
           //write the file path
-          dataOutput.writeLong(track.path.length())
+          dataOutput.writeInt(track.path.length())
           dataOutput.flush()
           socketOutput.write(track.path.getBytes())
 
@@ -109,13 +119,14 @@ class Messenger extends Actor {
   }
 
   def read(socketInput: InputStream, dataInput: DataInputStream): Unit = {
-    Log.d("chakra", "readings tracks from socketInput " + socketInput)
+    Log.d("chakra", "readings from socketInput " + socketInput)
     val f = Future {
-      val messageType = dataInput.readLong().toInt
+      val messageType = dataInput.readInt()
+      Log.d("chakra", "messageType: " + messageType)
       messageType match {
-        case trackMessage =>
+        case TrackMessage =>
           readTrack(socketInput, dataInput)
-        case playStateMessage =>
+        case PlayStateMessage =>
           readPlayState(socketInput, dataInput)
         case i: Int =>
           Log.d("chakra", "not a valid message type: " + i)
@@ -137,32 +148,47 @@ class Messenger extends Actor {
   @throws(classOf[IOException])
   def readPlayState(socketInput: InputStream, dataInput: DataInputStream): Unit = {
     Log.d("chakra", "reading playState ")
+    val playing = dataInput.readBoolean()
+    val rawStartPos = dataInput.readInt()
+    val startPos = dataInput.readLong() match {
+      case 0 => rawStartPos 
+      case startTime: Long if startTime > 0 => 
+        rawStartPos + (Platform.currentTime - startTime).toInt
+      case _ => 
+        Log.d("chakra", "not a valid startTime")
+        rawStartPos
+    }
+
+
+    mainActorRef ! MainActor.SetPlaying(playing)
+    mainActorRef ! MainActor.SetStartPos(startPos)
+
   }
 
   @throws(classOf[IOException])
   def readTrack(socketInput: InputStream, dataInput: DataInputStream): Unit = {
     Log.d("chakra", "reading track ")
 
-    val pos = dataInput.readLong().toInt
+    val pos = dataInput.readInt()
 
     //read the track path
-    val trackPathSize = dataInput.readLong().toInt
+    val trackPathSize = dataInput.readInt()
     val trackPathBuffer = new Array[Byte](trackPathSize)
     socketInput.read(trackPathBuffer)
     val path = new String(trackPathBuffer, 0, trackPathSize)
     val track = Track(path, "", "", "")
 
     pos match {
-      case currentPos =>
+      case CurrentPos =>
         mainActorRef ! MainActor.SetCurrentRemoteTrack(track)
-      case nextPos =>
+      case NextPos =>
         mainActorRef ! MainActor.SetNextRemoteTrack(track)
       case _ =>
         Log.d("chakra", "remotePos is not valid: " + pos)
     }
 
     //read the track audio data 
-    val audioSize = dataInput.readLong().toInt
+    val audioSize = dataInput.readLong()
 
 
     val bufferSize = 512 

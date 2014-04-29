@@ -18,6 +18,7 @@ object MainActor {
   case class SetTrackList(trackList: List[Track]) 
   case class SetSelection(selection: Selection) 
 
+
   case class ChangeTrackByIndex(trackIndex: Int)
   case class AddTrackToPlaylist(track: Track) 
   case object FlipPlayer
@@ -30,6 +31,7 @@ object MainActor {
 
   case class SetCurrentRemoteTrack(track: Track)
   case class SetNextRemoteTrack(track: Track)
+
   case class SetRemoteAudio(audioBuffer: Array[Byte])
   case object SetRemoteAudioDone
 
@@ -37,6 +39,9 @@ object MainActor {
 
   case object Advertise
   case object Discover 
+
+  case class SetPlaying(playing: Boolean) 
+  case class SetStartPos(startPos: Int) 
 
 }
 
@@ -191,12 +196,19 @@ class MainActor extends Actor {
       remoteManager = remoteManager.setCurrentTrackOp(track)
 
     case SetNextRemoteTrack(track) =>
+      remoteManager = remoteManager.setNextTrackOp(track)
 
     case SetRemoteAudio(audioBuffer) =>
       remoteManager.addAudio(audioBuffer)
 
     case SetRemoteAudioDone =>
-      remoteManager.close()
+      remoteManager = remoteManager.close()
+
+    case SetPlaying(playing) =>
+      playState = playState.setPlaying(playing)      
+
+    case SetStartPos(startPos) => 
+      playState = playState.setStartPos(startPos)      
 
   }
 

@@ -7,27 +7,25 @@ import UI._
 
 class PlayState(
   val playing: Boolean,
-  val startPos: Int,
-  val startTimeOp: Option[Long]
+  val startPos: Int
 ) { 
 
+  def this() = this(false, 0)
 
-  def this() = this(false, 0, None)
+  val startTimeOp: Option[Long] = {
+    if (playing) {
+      Some(Platform.currentTime)
+    } else None
+  }
 
   def setPlaying(playing: Boolean): PlayState = {
     mainActorRef ! NotifyHandlers(OnPlayingChanged(playing))
-    new PlayState(playing, startPos, getStartTimeOp)
+    new PlayState(playing, startPos)
   }
 
   def setStartPos(startPos: Int): PlayState = {
     mainActorRef ! NotifyHandlers(OnStartPosChanged(startPos))
-    new PlayState(playing, startPos, getStartTimeOp)
-  }
-
-  private def getStartTimeOp: Option[Long] = {
-    if (playing) {
-      Some(Platform.currentTime)
-    } else None
+    new PlayState(playing, startPos)
   }
 
 }

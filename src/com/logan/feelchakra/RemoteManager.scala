@@ -30,6 +30,13 @@ class RemoteManager(
 
   }
 
+  def setNextTrackOp(track: Track): RemoteManager = {
+    val newTrackFile = createTempFile(track.path)
+    val newTrack = track.copy(path = newTrackFile.getAbsolutePath())
+
+    new RemoteManager(currentTrackOp, Some(newTrack), cacheDir, Some(newTrackFile))
+  }
+
   val fileOutputOp = trackFileOp match {
     case None => None
     case Some(trackFile) =>
