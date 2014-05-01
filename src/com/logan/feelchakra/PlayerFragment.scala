@@ -56,7 +56,7 @@ class PlayerFragment extends Fragment {
           that.setPlaylistCurrentTrack(trackIndex); true
         case OnPlaylistChanged(playlist) => 
           that.populatePlaylistView(playlist); true
-        case OnTrackOptionChanged(trackOption) => 
+        case OnLocalTrackOptionChanged(trackOption) => 
           that.setTrackOption(trackOption); true
         case OnPlayerOpenChanged(playerOpen) => 
           that.resizePlaylistView(playerOpen); true

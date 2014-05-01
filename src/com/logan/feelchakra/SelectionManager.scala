@@ -2,7 +2,7 @@ package com.logan.feelchakra
 
 import android.util.Log
 
-class SelectionManager(val list: List[Selection], val current: Selection) {
+case class SelectionManager(list: List[Selection], current: Selection) {
 
   def this() = this(
     List(TrackSelection, StationSelection), 
@@ -14,7 +14,7 @@ class SelectionManager(val list: List[Selection], val current: Selection) {
 
   def setCurrent(current: Selection): SelectionManager = {
     mainActorRef ! NotifyHandlers(OnSelectionChanged(current))
-    new SelectionManager(list, current)
+    this.copy(current = current)
   }
 
 }

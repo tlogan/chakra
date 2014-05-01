@@ -2,10 +2,10 @@ package com.logan.feelchakra
 
 import android.util.Log
 
-class NetworkProfile(
-  val serviceName: String,
-  val serviceType: String,
-  val localAddressOp: Option[InetSocketAddress]
+case class NetworkProfile(
+  serviceName: String,
+  serviceType: String,
+  localAddressOp: Option[InetSocketAddress]
 ) { 
 
   def this() = this(
@@ -18,7 +18,7 @@ class NetworkProfile(
   import UI._
 
   def setLocalAddress(localAddress: InetSocketAddress) : NetworkProfile = {
-    val newProfile = new NetworkProfile(serviceName, serviceType, Some(localAddress))
+    val newProfile = this.copy(localAddressOp = Some(localAddress))
     mainActorRef ! NotifyHandlers(OnProfileChanged(newProfile))
     newProfile
   }

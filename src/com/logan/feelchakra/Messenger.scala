@@ -10,16 +10,13 @@ object Messenger {
   }
 
   case class SetSocket(socket: Socket)
-  case class WriteNextTrackOp(trackOp: Option[Track]) 
-  case object Shift
-  case class WriteBothTracks(current: Option[Track], next: Option[Track]) 
-  case class WritePlayState(playState: PlayState)
-
-  val CurrentPos = 1 
-  val NextPos = 2 
+  case class WriteTrackOp(trackOp: Option[Track]) 
+  case class WriteAudioBuffer(audioBuffer: Array[Byte]) 
+  case class WritePlayState(playState: PlayState) 
 
   val TrackMessage = 10
   val PlayStateMessage = 20
+  val AudioBufferMessage = 30 
 
 }
 
@@ -41,41 +38,21 @@ class Messenger extends Actor {
   }
 
   def receiveWrites(socketOutput: OutputStream, dataOutput: DataOutputStream): Receive = {
-    case WriteNextTrackOp(trackOp) => 
-      writeTrack(NextPos, trackOp, socketOutput, dataOutput)
 
-    case Shift =>
-      shift()
+    case WriteTrackOp(trackOp) =>
+      writeTrack(trackOp, socketOutput, dataOutput)
 
-    case WriteBothTracks(current, next) =>
-      writeTrack(CurrentPos, current, socketOutput, dataOutput)
-      writeTrack(NextPos, next, socketOutput, dataOutput)
+    case WriteAudioBuffer(audioBuffer) =>
+      writeAudioBuffer(audioBuffer, socketOutput, dataOutput)
 
-    case WritePlayState(playState) => 
-      //write messageType 
-      dataOutput.writeInt(PlayStateMessage)
-      dataOutput.flush()
-      Log.d("chakra", "writing play state")
-      dataOutput.writeBoolean(playState.playing)
-      dataOutput.flush()
-      dataOutput.writeInt(playState.startPos)
-      dataOutput.flush()
-      val startTime = playState.startTimeOp match {
-        case Some(time) => time
-        case None => 0
-      }
-      dataOutput.writeLong(startTime)
-      dataOutput.flush()
+    case WritePlayState(playState) =>
+      writePlayState(playState, socketOutput, dataOutput)
+
   }
 
-  def shift(): Unit = {
-  }
-
-
-  def writeTrack(pos: Int, trackOp: Option[Track], 
-    socketOutput: OutputStream, dataOutput: DataOutputStream
+  def writeTrack(trackOp: Option[Track], socketOutput: OutputStream, dataOutput: DataOutputStream
   ): Unit = {
-    Log.d("chakra", "write track pos " + pos)
+    Log.d("chakra", "write track")
     trackOp match {
       case None => //dont write anything 
       case Some(track) =>
@@ -84,31 +61,11 @@ class Messenger extends Actor {
           //write messageType 
           dataOutput.writeInt(TrackMessage)
           dataOutput.flush()
-          //write position 
-          dataOutput.writeInt(pos)
 
           //write the file path
           dataOutput.writeInt(track.path.length())
           dataOutput.flush()
           socketOutput.write(track.path.getBytes())
-
-          //write the audio data 
-          val file = new File(track.path)
-          val fileInput = new FileInputStream(file);
-          dataOutput.writeLong(file.length())
-          dataOutput.flush()
-          val buffer = new Array[Byte](512)
-
-          var streamAlive = true
-          while (streamAlive) {
-            val len = fileInput.read(buffer)
-            if (len != -1) {
-              socketOutput.write(buffer, 0, len);
-            } else {
-              streamAlive = false
-            }
-          }
-          fileInput.close();
 
         } catch {
           case e: IOException => 
@@ -117,6 +74,51 @@ class Messenger extends Actor {
     }
 
   }
+
+  def writeAudioBuffer(audioBuffer: Array[Byte], socketOutput: OutputStream, dataOutput: DataOutputStream
+  ): Unit = {
+    Log.d("chakra", "write audio buffer")
+
+    try {
+
+      //write messageType 
+      dataOutput.writeInt(AudioBufferMessage)
+      dataOutput.flush()
+
+      dataOutput.writeInt(audioBuffer.length)
+      dataOutput.flush()
+      socketOutput.write(audioBuffer)
+
+    } catch {
+      case e: IOException => 
+        Log.d("chakra", "error writing audioBuffer")
+    }
+  }
+
+  def writePlayState(playState: PlayState, socketOutput: OutputStream, dataOutput: DataOutputStream
+  ): Unit = {
+    Log.d("chakra", "write play state")
+
+    try {
+
+      //write messageType 
+      dataOutput.writeInt(PlayStateMessage)
+      dataOutput.flush()
+
+      //write data
+      val startTime = playState match {
+        case Playing(startTime) => startTime
+        case NotPlaying => 0
+      }
+      dataOutput.writeLong(startTime)
+      dataOutput.flush()
+
+    } catch {
+      case e: IOException => 
+        Log.d("chakra", "error writing audioPlayState")
+    }
+  }
+
 
   def read(socketInput: InputStream, dataInput: DataInputStream): Unit = {
     Log.d("chakra", "readings from socketInput " + socketInput)
@@ -128,6 +130,8 @@ class Messenger extends Actor {
           readTrack(socketInput, dataInput)
         case PlayStateMessage =>
           readPlayState(socketInput, dataInput)
+        case AudioBufferMessage =>
+          readAudioBuffer(socketInput, dataInput)
         case i: Int =>
           Log.d("chakra", "not a valid message type: " + i)
       }
@@ -146,30 +150,8 @@ class Messenger extends Actor {
   }
 
   @throws(classOf[IOException])
-  def readPlayState(socketInput: InputStream, dataInput: DataInputStream): Unit = {
-    Log.d("chakra", "reading playState ")
-    val playing = dataInput.readBoolean()
-    val rawStartPos = dataInput.readInt()
-    val startPos = dataInput.readLong() match {
-      case 0 => rawStartPos 
-      case startTime: Long if startTime > 0 => 
-        rawStartPos + (Platform.currentTime - startTime).toInt
-      case _ => 
-        Log.d("chakra", "not a valid startTime")
-        rawStartPos
-    }
-
-
-    mainActorRef ! MainActor.SetPlaying(playing)
-    mainActorRef ! MainActor.SetStartPos(startPos)
-
-  }
-
-  @throws(classOf[IOException])
   def readTrack(socketInput: InputStream, dataInput: DataInputStream): Unit = {
     Log.d("chakra", "reading track ")
-
-    val pos = dataInput.readInt()
 
     //read the track path
     val trackPathSize = dataInput.readInt()
@@ -178,37 +160,25 @@ class Messenger extends Actor {
     val path = new String(trackPathBuffer, 0, trackPathSize)
     val track = Track(path, "", "", "")
 
-    pos match {
-      case CurrentPos =>
-        mainActorRef ! MainActor.SetCurrentRemoteTrack(track)
-      case NextPos =>
-        mainActorRef ! MainActor.SetNextRemoteTrack(track)
-      case _ =>
-        Log.d("chakra", "remotePos is not valid: " + pos)
-    }
+  }
 
-    //read the track audio data 
-    val audioSize = dataInput.readLong()
+  @throws(classOf[IOException])
+  def readAudioBuffer(socketInput: InputStream, dataInput: DataInputStream): Unit = {
+    Log.d("chakra", "reading audio buffer")
 
-
-    val bufferSize = 512 
+    //read the track path
+    val bufferSize = dataInput.readInt()
     val audioBuffer = new Array[Byte](bufferSize)
-    var remainingLen = audioSize 
-
-    var streamAlive = true 
-    while (remainingLen > 0 && streamAlive) {
-      val maxLen = Math.min(bufferSize, remainingLen).toInt
-      val len = socketInput.read(audioBuffer, 0, maxLen)
-      if (len != -1) {
-        mainActorRef ! MainActor.SetRemoteAudio(audioBuffer.slice(0, len))
-        remainingLen = remainingLen - len;
-      } else {
-        streamAlive = false
-      }
-    }
-
-    mainActorRef ! MainActor.SetRemoteAudioDone
+    socketInput.read(audioBuffer)
 
   }
+
+  @throws(classOf[IOException])
+  def readPlayState(socketInput: InputStream, dataInput: DataInputStream): Unit = {
+    Log.d("chakra", "reading playState ")
+    val startTime = dataInput.readLong()
+
+  }
+
 
 }

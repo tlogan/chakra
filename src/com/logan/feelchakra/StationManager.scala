@@ -2,12 +2,12 @@ package com.logan.feelchakra
 
 import android.util.Log
 
-class StationManager(
-  val map: Map[String, Station],
-  val stagedMap: Map[String, Station],
-  val currentOp: Option[Station],
-  val discovering: Boolean,
-  val advertising: Boolean
+case class StationManager(
+  map: Map[String, Station],
+  stagedMap: Map[String, Station],
+  currentOp: Option[Station],
+  discovering: Boolean,
+  advertising: Boolean
 ) { 
 
   def this() = this(
@@ -23,7 +23,7 @@ class StationManager(
 
   def stageStation(station: Station): StationManager = {
     val newStagedMap = stagedMap.+(station.device.deviceAddress -> station)
-    new StationManager(map, newStagedMap, currentOp, discovering, advertising)
+    this.copy(stagedMap = newStagedMap)
   }
 
   def commitStation(device: WifiP2pDevice): StationManager = {
@@ -32,7 +32,7 @@ class StationManager(
       val station = stagedMap(device.deviceAddress)
       val newMap = map.+(device.deviceAddress -> station)
       mainActorRef ! NotifyHandlers(OnStationListChanged(newMap.values.toList))
-      new StationManager(newMap, stagedMap, currentOp, discovering, advertising)
+      this.copy(map = newMap)
     } else {
       this
     }
@@ -41,17 +41,17 @@ class StationManager(
 
   def setCurrentOp(stationOp: Option[Station]): StationManager = {
     mainActorRef ! NotifyHandlers(OnStationOptionChanged(stationOp))
-    new StationManager(map, stagedMap, stationOp, discovering, advertising)
+    this.copy(currentOp = stationOp)
   }
 
   def setDiscovering(discovering: Boolean): StationManager = {
     mainActorRef ! NotifyHandlers(OnDiscoveringChanged(discovering))
-    new StationManager(map, stagedMap, currentOp, discovering, advertising)
+    this.copy(discovering = discovering)
   }
 
   def setAdvertising(advertising: Boolean): StationManager = {
     mainActorRef ! NotifyHandlers(OnAdvertisingChanged(advertising))
-    new StationManager(map, stagedMap, currentOp, discovering, advertising)
+    this.copy(advertising = advertising)
   }
 
 }

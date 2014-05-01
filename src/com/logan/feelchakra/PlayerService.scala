@@ -1,13 +1,11 @@
 package com.logan.feelchakra
 
-import RichMediaPlayer.mediaPlayer2RichMediaPlayer
 import android.widget.Toast
 import android.util.Log
 
 class PlayerService extends Service {
 
   private val that = this
-  private val mediaPlayer = new MediaPlayer()
 
   private var _playing: Boolean = false 
   private var _startPos: Int = 0
@@ -28,20 +26,23 @@ class PlayerService extends Service {
       import UI._
       msg.obj match {
         case OnDiscoveringChanged(discovering: Boolean) => 
-          if (discovering) discoverServices() else stopDiscovering(); true
-        case OnTrackOptionChanged(trackOption) => 
-          that.prepareTrack(trackOption); true
-        case OnPlayingChanged(playing) =>
-          that.setPlaying(playing); true
-        case OnStartPosChanged(startPos) =>
-          that.setStartPos(startPos); true
+          if (discovering) discoverServices() else stopDiscovering()
+          true
         case OnProfileChanged(networkProfile) =>
-          that.setServiceInfo(networkProfile); true
+          that.setServiceInfo(networkProfile)
+          true
         case OnStationOptionChanged(stationOption) =>
-          that.changeStation(stationOption); true
+          that.changeStation(stationOption)
+          true
 
-        case OnRemoteTrackOptionChanged(trackOption) =>
-          that.prepareTrack(trackOption); true
+        case OnLocalTrackOptionChanged(trackOption) => 
+          true
+        case OnLocalPlayingChanged(playing) =>
+          true
+        case OnLocalStartPosChanged(startPos) =>
+          true
+        case OnLocalAudioBufferAdded(audioBuffer) => 
+          true
 
         case _ => false
       }
@@ -53,15 +54,6 @@ class PlayerService extends Service {
   }
 
   override def onCreate(): Unit = {
-
-    mediaPlayer.setOnPrepared(mp => {
-      _prepared = true
-      mp.seekTo(_startPos)
-      if (_playing) mp.start()
-
-    })
-    mediaPlayer.setOnCompletion(mp => {/*notify main actor*/})
-
 
     _manager = that.getSystemService(WIFI_P2P_SERVICE) match {
       case m: WifiP2pManager => m
@@ -134,8 +126,6 @@ class PlayerService extends Service {
     stopDiscovering()
     removeLegacyConnection()
     unregisterReceiver(_broadcastReceiver)
-
-    mediaPlayer.release()
 
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
@@ -327,48 +317,6 @@ class PlayerService extends Service {
     })
 
   }
-
-
-  def prepareTrack(trackOption: Option[Track]): Unit = {
-
-    try {
-      mediaPlayer.reset()
-      _prepared = false
-
-      trackOption match {
-        case Some(track) => {
-          mediaPlayer.setDataSource(track.path)
-          mediaPlayer.prepareAsync()
-        }
-        case None => {}
-      }
-    } catch {
-      case e: IOException => e.printStackTrace()
-    }
-
-  }
-
-  def setPlaying(playing: Boolean): Unit = {
-
-    _playing = playing 
-    if (_prepared) { 
-      if (_playing) {
-        mediaPlayer.start()
-      } else mediaPlayer.pause() 
-    }
-
-  }
-
-  def setStartPos(startPos: Int): Unit = {
-
-    _startPos = startPos 
-
-    if (_prepared) { 
-      mediaPlayer.seekTo(startPos) 
-    }
-
-  }
-
 
 }
 

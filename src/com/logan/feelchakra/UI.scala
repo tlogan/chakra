@@ -9,14 +9,15 @@ object UI {
   case class OnTrackListChanged(trackList: List[Track]) extends OnChange
   case class OnStationOptionChanged(stationOption: Option[Station]) extends OnChange
   case class OnStationListChanged(stationList: List[Station]) extends OnChange
-  case class OnTrackIndexChanged(trackIndex: Int) extends OnChange
+
   case class OnPlaylistChanged(playlist: List[Track]) extends OnChange
+  case class OnTrackIndexChanged(trackIndex: Int) extends OnChange
 
-  case class OnTrackOptionChanged(trackOption: Option[Track]) extends OnChange
-  case class OnRemoteTrackOptionChanged(trackOption: Option[Track]) extends OnChange
+  case class OnLocalTrackOptionChanged(trackOption: Option[Track]) extends OnChange
+  case class OnLocalPlayingChanged(playing: Boolean) extends OnChange
+  case class OnLocalStartPosChanged(startPos: Int) extends OnChange
 
-  case class OnPlayingChanged(playing: Boolean) extends OnChange
-  case class OnStartPosChanged(startPos: Int) extends OnChange
+  case class OnLocalAudioBufferAdded(audioBuffer: Array[Byte]) extends OnChange
 
   case class OnProfileChanged(networkProfile: NetworkProfile) extends OnChange
 

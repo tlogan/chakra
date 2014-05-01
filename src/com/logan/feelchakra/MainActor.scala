@@ -18,8 +18,9 @@ object MainActor {
   case class SetTrackList(trackList: List[Track]) 
   case class SetSelection(selection: Selection) 
 
-
   case class ChangeTrackByIndex(trackIndex: Int)
+  case class AddLocalAudioBuffer(audioBuffer: Array[Byte])
+
   case class AddTrackToPlaylist(track: Track) 
   case object FlipPlayer
   case class AddStation(station: Station)
@@ -29,19 +30,10 @@ object MainActor {
   case object AcceptRemotes 
   case class ConnectRemote(remoteHost: String)
 
-  case class SetCurrentRemoteTrack(track: Track)
-  case class SetNextRemoteTrack(track: Track)
-
-  case class SetRemoteAudio(audioBuffer: Array[Byte])
-  case object SetRemoteAudioDone
-
   case class SetLocalAddress(localAddress: InetSocketAddress)
 
   case object Advertise
   case object Discover 
-
-  case class SetPlaying(playing: Boolean) 
-  case class SetStartPos(startPos: Int) 
 
 }
 
@@ -63,10 +55,6 @@ class MainActor extends Actor {
   private var stationManager: StationManager = new StationManager
   private var networkProfile: NetworkProfile = new NetworkProfile
 
-  private var remoteManager: RemoteManager = _ 
-
-  private var playState: PlayState = new PlayState 
-
   def receive = {
 
     case NotifyHandlers(onChange) =>
@@ -84,16 +72,20 @@ class MainActor extends Actor {
         OnSelectionListChanged(selectionManager.list),
         OnPlayerOpenChanged(localManager.playerOpen),
         OnSelectionChanged(selectionManager.current),
+
         OnStationOptionChanged(stationManager.currentOp),
         OnDiscoveringChanged(stationManager.discovering),
         OnAdvertisingChanged(stationManager.advertising),
         OnStationListChanged(stationManager.map.values.toList),
+
         OnTrackIndexChanged(localManager.currentIndex),
         OnPlaylistChanged(localManager.playlist),
         OnTrackListChanged(localManager.list),
-        OnTrackOptionChanged(localManager.currentOp),
-        OnPlayingChanged(playState.playing),
-        OnStartPosChanged(playState.startPos)
+
+        OnLocalTrackOptionChanged(localManager.currentOp),
+        OnLocalStartPosChanged(localManager.startPos),
+        OnLocalPlayingChanged(localManager.playing)
+
       ).foreach(response => {
         ui.obtainMessage(0, response).sendToTarget()
       })
@@ -113,7 +105,6 @@ class MainActor extends Actor {
 
     case SetCacheDir(cacheDir) => 
       this.cacheDir = cacheDir
-      remoteManager = new RemoteManager(cacheDir)
 
     case SetTrackList(trackList) =>
       localManager = localManager.setList(trackList)
@@ -131,28 +122,29 @@ class MainActor extends Actor {
       val current = localManager.optionByIndex(trackIndex)
       val next = localManager.optionByIndex(trackIndex + 1)
       if (stationManager.currentOp == None) {
-        networkRef ! Network.WriteBothTracks(current, next)
+        networkRef ! Network.NotifyMessengers(Messenger.WriteTrackOp(current))
       }
       localManager = localManager.setCurrentIndex(trackIndex)
-      playState = playState.setStartPos(0).setPlaying(true)
-      networkRef ! Network.WritePlayState(playState)
+      localManager = localManager.setStartPos(0).setPlaying(true)
+      networkRef ! Network.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
+
+    case AddLocalAudioBuffer(audioBuffer) =>
+      mainActorRef ! NotifyHandlers(OnLocalAudioBufferAdded(audioBuffer))
+      networkRef ! Network.NotifyMessengers(Messenger.WriteAudioBuffer(audioBuffer))
 
     case AddTrackToPlaylist(track) =>
       if (localManager.playlist.size == 0) {
         if (stationManager.currentOp == None) {
-          networkRef ! Network.WriteBothTracks(Some(track), None)
+          networkRef ! Network.NotifyMessengers(Messenger.WriteTrackOp(Some(track)))
         }
         localManager = localManager.addPlaylistTrack(track)
           .setCurrentIndex(0)
 
-        playState = playState.setStartPos(0)
-        playState = playState.setPlaying(true)
-        networkRef ! Network.WritePlayState(playState)
+        localManager = localManager.setStartPos(0)
+        localManager = localManager.setPlaying(true)
+        networkRef ! Network.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
 
       } else {
-        if (localManager.currentIsLast && stationManager.currentOp == None) {
-          networkRef ! Network.WriteNextTrackOp(Some(track))
-        }
         localManager = localManager.addPlaylistTrack(track)
       }
 
@@ -183,7 +175,7 @@ class MainActor extends Actor {
       serverRef.!(Server.Accept(networkRef))
 
     case ConnectRemote(remoteHost) =>
-      playState = playState.setPlaying(false)
+      localManager = localManager.setPlaying(false)
       stationManager.currentOp match {
         case Some(station) =>
           val remoteAddress = 
@@ -192,23 +184,6 @@ class MainActor extends Actor {
         case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
 
-    case SetCurrentRemoteTrack(track) =>
-      remoteManager = remoteManager.setCurrentTrackOp(track)
-
-    case SetNextRemoteTrack(track) =>
-      remoteManager = remoteManager.setNextTrackOp(track)
-
-    case SetRemoteAudio(audioBuffer) =>
-      remoteManager.addAudio(audioBuffer)
-
-    case SetRemoteAudioDone =>
-      remoteManager = remoteManager.close()
-
-    case SetPlaying(playing) =>
-      playState = playState.setPlaying(playing)      
-
-    case SetStartPos(startPos) => 
-      playState = playState.setStartPos(startPos)      
 
   }
 
@@ -218,6 +193,5 @@ class MainActor extends Actor {
       ui.obtainMessage(0, response).sendToTarget()
     })
   }
-
 
 }

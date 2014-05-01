@@ -146,6 +146,10 @@ package com.logan {
 
     val Subscription = rx.lang.scala.Subscription
     type Subscription = rx.lang.scala.Subscription
+
+    val TrampolineScheduler = rx.lang.scala.schedulers.TrampolineScheduler
+    val NewThreadScheduler = rx.lang.scala.schedulers.NewThreadScheduler
+
     val Observable = rx.lang.scala.Observable
     type Observable[+T] = rx.lang.scala.Observable[T]
     type Observer[-T] = rx.lang.scala.Observer[T]

@@ -2,14 +2,16 @@ package com.logan.feelchakra
 
 import android.util.Log
 
-class LocalManager(
-  val currentIndex: Int, 
-  val playlist: List[Track], 
-  val list: List[Track],
-  val playerOpen: Boolean
+case class LocalManager(
+  currentIndex: Int, 
+  playlist: List[Track], 
+  list: List[Track],
+  playerOpen: Boolean,
+  playing: Boolean, 
+  startPos: Int
 ) {
 
-  def this() = this(-1, List(), List(), false)
+  def this() = this(-1, List(), List(), false, false, 0)
 
   import MainActor._
   import UI._
@@ -20,24 +22,44 @@ class LocalManager(
 
   def setCurrentIndex(index: Int): LocalManager = {
     mainActorRef ! NotifyHandlers(OnTrackIndexChanged(index))
-    mainActorRef ! NotifyHandlers(OnTrackOptionChanged(optionByIndex(index)))
-    new LocalManager(index, playlist, list, playerOpen)
-  }
 
+    val trackOption = optionByIndex(index)
+    mainActorRef ! NotifyHandlers(OnLocalTrackOptionChanged(trackOption))
+    trackOption match {
+      case None => {} 
+      case Some(track) =>
+        AudioReader(track.path).subscribe(audioBuffer => {
+          mainActorRef ! AddLocalAudioBuffer(audioBuffer)
+        })
+    }
+
+    copy(currentIndex = index)
+  }
+   
   def addPlaylistTrack(track: Track): LocalManager = {
     val newPlaylist = playlist.:+(track)
     mainActorRef ! NotifyHandlers(OnPlaylistChanged(newPlaylist))
-    new LocalManager(currentIndex, newPlaylist, list, playerOpen)
+    copy(playlist = newPlaylist)
   }
 
   def setList(list: List[Track]): LocalManager = {
     mainActorRef ! NotifyHandlers(OnTrackListChanged(list))
-    new LocalManager(currentIndex, playlist, list, playerOpen)
+    copy(list = list)
   }
 
   def setPlayerOpen(playerOpen: Boolean): LocalManager = {
     mainActorRef ! NotifyHandlers(OnPlayerOpenChanged(playerOpen))
-    new LocalManager(currentIndex, playlist, list, playerOpen)
+    copy(playerOpen = playerOpen)
+  }
+
+  def setPlaying(playing: Boolean): LocalManager = {
+    mainActorRef ! NotifyHandlers(OnLocalPlayingChanged(playing))
+    copy(playing = playing)
+  }
+
+  def setStartPos(startPos: Int): LocalManager = {
+    mainActorRef ! NotifyHandlers(OnLocalStartPosChanged(startPos))
+    copy(startPos = startPos)
   }
 
   def flipPlayer(): LocalManager = {
@@ -48,6 +70,5 @@ class LocalManager(
   def currentIsLast: Boolean = {
     currentIndex == playlist.size - 1
   }
-
 
 }
