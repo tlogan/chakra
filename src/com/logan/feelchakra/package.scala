@@ -6,6 +6,8 @@ package com.logan {
     type DataInputStream = java.io.DataInputStream
     type File = java.io.File
     type FileInputStream = java.io.FileInputStream
+    type BufferedInputStream = java.io.BufferedInputStream
+
     type InputStream = java.io.InputStream
     type OutputStream = java.io.OutputStream
 
@@ -31,6 +33,8 @@ package com.logan {
 
     val RichMediaPlayer = guava.scalaandroid.RichMediaPlayer
     type RichMediaPlayer = guava.scalaandroid.RichMediaPlayer
+
+
 
     type LayoutInflater = android.view.LayoutInflater
     type Menu = android.view.Menu
@@ -84,6 +88,25 @@ package com.logan {
 
     type ViewGroup = android.view.ViewGroup 
     type MediaPlayer = android.media.MediaPlayer
+    type AudioTrack = android.media.AudioTrack
+    val MODE_STREAM = android.media.AudioTrack.MODE_STREAM
+    val MODE_STATIC = android.media.AudioTrack.MODE_STATIC
+    val PLAYSTATE_PAUSED = android.media.AudioTrack.PLAYSTATE_PAUSED
+    val PLAYSTATE_PLAYING = android.media.AudioTrack.PLAYSTATE_PLAYING
+    val PLAYSTATE_STOPPED = android.media.AudioTrack.PLAYSTATE_STOPPED
+    val STATE_INITIALIZED = android.media.AudioTrack.STATE_INITIALIZED
+    val STATE_UNINITIALIZED = android.media.AudioTrack.STATE_UNINITIALIZED
+    val STATE_NO_STATIC_DATA = android.media.AudioTrack.STATE_NO_STATIC_DATA
+    val SUCCESS = android.media.AudioTrack.SUCCESS
+
+    type AudioManager = android.media.AudioManager
+    val STREAM_MUSIC = android.media.AudioManager.STREAM_MUSIC
+
+    type AudioFormat = android.media.AudioFormat
+    val CHANNEL_OUT_STEREO = android.media.AudioFormat.CHANNEL_OUT_STEREO
+    val ENCODING_PCM_16BIT = android.media.AudioFormat.ENCODING_PCM_16BIT
+
+
     type IBinder = android.os.IBinder
     type BroadcastReceiver = android.content.BroadcastReceiver
     type Context = android.content.Context

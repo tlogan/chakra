@@ -129,7 +129,6 @@ class MainActor extends Actor {
       networkRef ! Network.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
 
     case AddLocalAudioBuffer(audioBuffer) =>
-      mainActorRef ! NotifyHandlers(OnLocalAudioBufferAdded(audioBuffer))
       networkRef ! Network.NotifyMessengers(Messenger.WriteAudioBuffer(audioBuffer))
 
     case AddTrackToPlaylist(track) =>

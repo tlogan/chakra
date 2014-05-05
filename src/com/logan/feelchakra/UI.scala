@@ -17,8 +17,6 @@ object UI {
   case class OnLocalPlayingChanged(playing: Boolean) extends OnChange
   case class OnLocalStartPosChanged(startPos: Int) extends OnChange
 
-  case class OnLocalAudioBufferAdded(audioBuffer: Array[Byte]) extends OnChange
-
   case class OnProfileChanged(networkProfile: NetworkProfile) extends OnChange
 
   case class OnDiscoveringChanged(discovering: Boolean) extends OnChange

@@ -15,8 +15,7 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.2",
-  "com.netflix.rxjava" % "rxjava-scala" % "0.18.1",
-  "org.scala-lang" %% "scala-pickling" % "0.8.0-SNAPSHOT"
+  "com.netflix.rxjava" % "rxjava-scala" % "0.18.1"
 )
 
 

@@ -2,10 +2,13 @@ package com.logan.feelchakra
 
 import android.widget.Toast
 import android.util.Log
+import RichMediaPlayer.mediaPlayer2RichMediaPlayer 
 
 class PlayerService extends Service {
 
   private val that = this
+
+  private var _mediaPlayer: MediaPlayer = _ 
 
   private var _playing: Boolean = false 
   private var _startPos: Int = 0
@@ -36,13 +39,32 @@ class PlayerService extends Service {
           true
 
         case OnLocalTrackOptionChanged(trackOption) => 
+          Log.d("chakra", "OnLocalTrackChanged")
+          _mediaPlayer.reset();
+          trackOption match {
+            case Some(track) =>
+              _mediaPlayer.setDataSource(track.path)
+              _mediaPlayer.prepareAsync()
+            case None => {}
+          }
           true
         case OnLocalPlayingChanged(playing) =>
+          Log.d("chakra", "OnLocalPlayingChanged: " + playing)
+          _playing = playing
+          if (_prepared) {
+            if (_playing) { 
+              _mediaPlayer.start() 
+            } else _mediaPlayer.pause()
+          }
           true
         case OnLocalStartPosChanged(startPos) =>
+          Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
+          _startPos = startPos 
+          if (_prepared) {
+            _mediaPlayer.seekTo(startPos) 
+          }
           true
-        case OnLocalAudioBufferAdded(audioBuffer) => 
-          true
+
 
         case _ => false
       }
@@ -54,6 +76,15 @@ class PlayerService extends Service {
   }
 
   override def onCreate(): Unit = {
+
+    _mediaPlayer = new MediaPlayer()
+    _mediaPlayer.setOnPrepared(mp => {
+      _prepared = true
+      if (_playing) {
+        mp.seekTo(_startPos)
+        mp.start()
+      }
+    })
 
     _manager = that.getSystemService(WIFI_P2P_SERVICE) match {
       case m: WifiP2pManager => m
@@ -123,6 +154,7 @@ class PlayerService extends Service {
 
   override def onDestroy(): Unit =  {
     super.onDestroy()
+    _mediaPlayer.release()
     stopDiscovering()
     removeLegacyConnection()
     unregisterReceiver(_broadcastReceiver)
