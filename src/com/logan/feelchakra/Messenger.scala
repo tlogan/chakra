@@ -12,11 +12,13 @@ object Messenger {
   case class SetSocket(socket: Socket)
   case class WriteTrackOp(trackOp: Option[Track]) 
   case class WriteAudioBuffer(audioBuffer: Array[Byte]) 
+  case object WriteAudioDone 
   case class WritePlayState(playState: PlayState) 
 
   val TrackMessage = 10
   val PlayStateMessage = 20
   val AudioBufferMessage = 30 
+  val AudioDoneMessage = 40 
 
 }
 
@@ -44,6 +46,9 @@ class Messenger extends Actor {
 
     case WriteAudioBuffer(audioBuffer) =>
       writeAudioBuffer(audioBuffer, socketOutput, dataOutput)
+
+    case WriteAudioDone =>
+      writeAudioDone(socketOutput, dataOutput)
 
     case WritePlayState(playState) =>
       writePlayState(playState, socketOutput, dataOutput)
@@ -95,6 +100,22 @@ class Messenger extends Actor {
     }
   }
 
+  def writeAudioDone(socketOutput: OutputStream, dataOutput: DataOutputStream
+  ): Unit = {
+    Log.d("chakra", "write audio done")
+
+    try {
+
+      //write messageType 
+      dataOutput.writeInt(AudioDoneMessage)
+      dataOutput.flush()
+
+    } catch {
+      case e: IOException => 
+        Log.d("chakra", "error writing audio done")
+    }
+  }
+
   def writePlayState(playState: PlayState, socketOutput: OutputStream, dataOutput: DataOutputStream
   ): Unit = {
     Log.d("chakra", "write play state")
@@ -132,6 +153,8 @@ class Messenger extends Actor {
           readPlayState(socketInput, dataInput)
         case AudioBufferMessage =>
           readAudioBuffer(socketInput, dataInput)
+        case AudioDoneMessage =>
+          mainActorRef ! MainActor.EndStationAudioBuffer
         case i: Int =>
           Log.d("chakra", "not a valid message type: " + i)
       }
@@ -160,6 +183,8 @@ class Messenger extends Actor {
     val path = new String(trackPathBuffer, 0, trackPathSize)
     val track = Track(path, "", "", "")
 
+    mainActorRef ! MainActor.SetStationTrack(track)
+
   }
 
   @throws(classOf[IOException])
@@ -171,12 +196,21 @@ class Messenger extends Actor {
     val audioBuffer = new Array[Byte](bufferSize)
     socketInput.read(audioBuffer)
 
+    mainActorRef ! MainActor.AddStationAudioBuffer(audioBuffer)
+
   }
 
   @throws(classOf[IOException])
   def readPlayState(socketInput: InputStream, dataInput: DataInputStream): Unit = {
     Log.d("chakra", "reading playState ")
     val startTime = dataInput.readLong()
+    val playState = if (startTime > 0) {
+      Playing(startTime)
+    } else {
+      NotPlaying
+    }
+
+    mainActorRef ! MainActor.SetStationPlayState(playState)
 
   }
 

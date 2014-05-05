@@ -20,6 +20,7 @@ object MainActor {
 
   case class ChangeTrackByIndex(trackIndex: Int)
   case class AddLocalAudioBuffer(audioBuffer: Array[Byte])
+  case object EndLocalAudioBuffer
 
   case class AddTrackToPlaylist(track: Track) 
   case object FlipPlayer
@@ -34,6 +35,11 @@ object MainActor {
 
   case object Advertise
   case object Discover 
+
+  case class SetStationTrack(track: Track)
+  case class AddStationAudioBuffer(audioBuffer: Array[Byte])
+  case object EndStationAudioBuffer
+  case class SetStationPlayState(playState: PlayState)
 
 }
 
@@ -54,6 +60,8 @@ class MainActor extends Actor {
   private var localManager: LocalManager = new LocalManager 
   private var stationManager: StationManager = new StationManager
   private var networkProfile: NetworkProfile = new NetworkProfile
+
+  private var fileOutputOp: Option[BufferedOutputStream] = None 
 
   def receive = {
 
@@ -131,6 +139,10 @@ class MainActor extends Actor {
     case AddLocalAudioBuffer(audioBuffer) =>
       networkRef ! Network.NotifyMessengers(Messenger.WriteAudioBuffer(audioBuffer))
 
+    case EndLocalAudioBuffer =>
+      networkRef ! Network.NotifyMessengers(Messenger.WriteAudioDone)
+      Log.d("chakra", "Audio Done")
+
     case AddTrackToPlaylist(track) =>
       if (localManager.playlist.size == 0) {
         if (stationManager.currentOp == None) {
@@ -182,6 +194,42 @@ class MainActor extends Actor {
           clientRef.!(Client.Connect(remoteAddress, networkRef))
         case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
+
+    case SetStationTrack(track) =>
+      Log.d("chakra", "SetStationTrack: " + track)
+
+      fileOutputOp match {
+        case None =>
+        case Some(fileOutput) => fileOutput.close()
+      }
+
+      val name = "chakra" + Platform.currentTime 
+      val file = java.io.File.createTempFile(name, null, cacheDir)
+      val remoteTrack = track.copy(path = file.getAbsolutePath())
+      val fileOutput = new BufferedOutputStream(new FileOutputStream(file))
+      fileOutputOp = Some(fileOutput)
+      stationManager = stationManager.setTrackOp(Some(remoteTrack))
+
+    case AddStationAudioBuffer(audioBuffer) =>
+      Log.d("chakra", "add station buffer" + audioBuffer.size)
+      fileOutputOp match {
+        case None =>
+        case Some(fileOutput) => fileOutput.write(audioBuffer)
+      }
+
+    case EndStationAudioBuffer =>
+      Log.d("chakra", "end station")
+      fileOutputOp match {
+        case None =>
+        case Some(fileOutput) => 
+          fileOutput.close()
+          mainActorRef ! NotifyHandlers(OnStationAudioBufferDone(stationManager.trackOp))
+      }
+      fileOutputOp = None
+
+    case SetStationPlayState(playState) =>
+      Log.d("chakra", "set station playstate: " + playState)
+      stationManager = stationManager.setPlayState(playState)
 
 
   }

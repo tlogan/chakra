@@ -24,6 +24,8 @@ class PlayerService extends Service {
   private var _isStation: Boolean = false 
   private var _groupFormed: Boolean = false 
 
+  private var _playState: PlayState = NotPlaying
+
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
@@ -65,6 +67,32 @@ class PlayerService extends Service {
           }
           true
 
+        case OnStationTrackOpChanged(trackOp) =>
+          _mediaPlayer.reset()
+          _prepared = false
+          true
+        case OnStationAudioBufferDone(trackOp) =>
+          Log.d("chakra", "OnStationAudioBufferDone")
+          trackOp match {
+            case Some(track) =>
+              _mediaPlayer.setDataSource(track.path)
+              _mediaPlayer.prepareAsync()
+            case None => {}
+          }
+          true
+        case OnStationPlayStateChanged(playState) =>
+          Log.d("chakra", "OnStationPlayState: " + playState)
+          _playState = playState
+          if (_prepared) {
+            _playState match {
+              case NotPlaying => _mediaPlayer.pause()
+              case Playing(startTime) => 
+                _mediaPlayer.seekTo(_startPos + (Platform.currentTime - startTime).toInt)
+                _mediaPlayer.start() 
+            }
+          }
+          true
+
 
         case _ => false
       }
@@ -78,14 +106,6 @@ class PlayerService extends Service {
   override def onCreate(): Unit = {
 
     _mediaPlayer = new MediaPlayer()
-    _mediaPlayer.setOnPrepared(mp => {
-      _prepared = true
-      if (_playing) {
-        mp.seekTo(_startPos)
-        mp.start()
-      }
-    })
-
     _manager = that.getSystemService(WIFI_P2P_SERVICE) match {
       case m: WifiP2pManager => m
     }
@@ -316,6 +336,14 @@ class PlayerService extends Service {
 
   private def becomeTheStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
 
+    _mediaPlayer.setOnPrepared(mp => {
+      _prepared = true
+      if (_playing) {
+        mp.seekTo(_startPos)
+        mp.start()
+      }
+    })
+
     _manager.addLocalService(_channel, serviceInfo, new WifiActionListener() {
       override def onSuccess(): Unit = { 
         Toast.makeText(that, "advertising", Toast.LENGTH_SHORT).show()
@@ -330,6 +358,16 @@ class PlayerService extends Service {
 
 
   private def tuneIntoStation(station: Station): Unit = {
+    _mediaPlayer.setOnPrepared(mp => {
+      _prepared = true
+      _playState match {
+        case NotPlaying => _mediaPlayer.pause()
+        case Playing(startTime) => 
+          _mediaPlayer.seekTo(_startPos + (Platform.currentTime - startTime).toInt)
+          _mediaPlayer.start() 
+      }
+    })
+
 
     val config: WifiP2pConfig = { 
       val c = new WifiP2pConfig() 

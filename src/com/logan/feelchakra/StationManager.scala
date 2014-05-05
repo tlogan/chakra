@@ -6,6 +6,8 @@ case class StationManager(
   map: Map[String, Station],
   stagedMap: Map[String, Station],
   currentOp: Option[Station],
+  trackOp: Option[Track],
+  playState: PlayState,
   discovering: Boolean,
   advertising: Boolean
 ) { 
@@ -14,6 +16,8 @@ case class StationManager(
     HashMap[String, Station](),
     HashMap[String, Station](),
     None,
+    None,
+    NotPlaying,
     false, 
     false
   )
@@ -43,6 +47,17 @@ case class StationManager(
     mainActorRef ! NotifyHandlers(OnStationOptionChanged(stationOp))
     this.copy(currentOp = stationOp)
   }
+
+  def setTrackOp(trackOp: Option[Track]): StationManager = {
+    mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(trackOp))
+    this.copy(trackOp = trackOp)
+  }
+
+  def setPlayState(playState: PlayState): StationManager = {
+    mainActorRef ! NotifyHandlers(OnStationPlayStateChanged(playState))
+    this.copy(playState = playState)
+  }
+
 
   def setDiscovering(discovering: Boolean): StationManager = {
     mainActorRef ! NotifyHandlers(OnDiscoveringChanged(discovering))

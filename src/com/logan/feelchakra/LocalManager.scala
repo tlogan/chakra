@@ -28,9 +28,11 @@ case class LocalManager(
     trackOption match {
       case None => {} 
       case Some(track) =>
-        AudioReader(track.path).subscribe(audioBuffer => {
-          mainActorRef ! AddLocalAudioBuffer(audioBuffer)
-        })
+        AudioReader(track.path).subscribe(
+          audioBuffer => { mainActorRef ! AddLocalAudioBuffer(audioBuffer) },
+          t => {  },
+          () => { mainActorRef ! EndLocalAudioBuffer }
+        )
     }
 
     copy(currentIndex = index)

@@ -5,8 +5,10 @@ package com.logan {
     type DataOutputStream = java.io.DataOutputStream
     type DataInputStream = java.io.DataInputStream
     type File = java.io.File
+
     type FileInputStream = java.io.FileInputStream
     type BufferedInputStream = java.io.BufferedInputStream
+    type BufferedOutputStream = java.io.BufferedOutputStream
 
     type InputStream = java.io.InputStream
     type OutputStream = java.io.OutputStream
