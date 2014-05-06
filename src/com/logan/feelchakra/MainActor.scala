@@ -211,7 +211,6 @@ class MainActor extends Actor {
       stationManager = stationManager.setTrackOp(Some(remoteTrack))
 
     case AddStationAudioBuffer(audioBuffer) =>
-      Log.d("chakra", "add station buffer" + audioBuffer.size)
       fileOutputOp match {
         case None =>
         case Some(fileOutput) => fileOutput.write(audioBuffer)

@@ -72,7 +72,6 @@ class PlayerService extends Service {
           _prepared = false
           true
         case OnStationAudioBufferDone(trackOp) =>
-          Log.d("chakra", "OnStationAudioBufferDone")
           trackOp match {
             case Some(track) =>
               _mediaPlayer.setDataSource(track.path)
