@@ -15,6 +15,8 @@ object Messenger {
   case object WriteAudioDone 
   case class WritePlayState(playState: PlayState) 
   case object WriteSyncResult 
+  case class WriteLocalTimeDiff(timeDiff: Int) 
+  case class SetMeanTimeDiff(timeDiff: Int) 
 
   val TrackMessage = 10
   val PlayStateMessage = 20
@@ -23,9 +25,11 @@ object Messenger {
 
   val SyncRequestMessage = 50 
   val SyncResultMessage = 60 
+  val TimeDiffMessage = 70 
 
   var _syncRequestWriteTime: Long = 0
-  var _timeDifference: Int = 0
+  var localTimeDiff: Int = 0
+  var meanTimeDiff: Int = 0
 
 }
 
@@ -65,6 +69,13 @@ class Messenger extends Actor {
     case WriteSyncResult =>
       writeSyncResult(socketOutput, dataOutput)
 
+    case WriteLocalTimeDiff(timeDiff) =>
+      writeLocalTimeDiff(timeDiff, socketOutput, dataOutput)
+
+    case SetMeanTimeDiff(timeDiff) =>
+      meanTimeDiff = timeDiff
+      Log.d("chakra", "Mean Time Diff: " + meanTimeDiff)
+
   }
 
   def writeSyncRequest(socketOutput: OutputStream, dataOutput: DataOutputStream): Unit = {
@@ -94,6 +105,22 @@ class Messenger extends Actor {
     } catch {
       case e: IOException => 
         Log.d("chakra", "error writing sync result")
+    }
+  }
+
+  def writeLocalTimeDiff(timeDiff: Int, socketOutput: OutputStream, dataOutput: DataOutputStream): Unit = {
+    Log.d("chakra", "writing local time Diff")
+    try {
+      //write messageType 
+      dataOutput.writeInt(TimeDiffMessage)
+      dataOutput.flush()
+
+      //write the current time 
+      dataOutput.writeInt(timeDiff)
+      dataOutput.flush()
+    } catch {
+      case e: IOException => 
+        Log.d("chakra", "error writing time diff")
     }
   }
 
@@ -198,6 +225,8 @@ class Messenger extends Actor {
           self ! WriteSyncResult
         case SyncResultMessage =>
           readSyncResult(socketInput, dataInput)
+        case TimeDiffMessage =>
+          readTimeDiff(socketInput, dataInput)
         case i: Int =>
           //Log.d("chakra", "not a valid message type: " + i)
       }
@@ -221,8 +250,9 @@ class Messenger extends Actor {
 
     val syncResultReadTime = Platform.currentTime
     val otherTime = dataInput.readLong()
-    _timeDifference = ((syncResultReadTime + _syncRequestWriteTime)/2 - otherTime).toInt
-    Log.d("chakra", "Time Diff: " + _timeDifference)
+    localTimeDiff = ((syncResultReadTime + _syncRequestWriteTime)/2 - otherTime).toInt
+    self ! WriteLocalTimeDiff(localTimeDiff)
+    Log.d("chakra", "Time Diff: " + localTimeDiff)
   }
 
   @throws(classOf[IOException])
@@ -257,7 +287,9 @@ class Messenger extends Actor {
     Log.d("chakra", "reading playState ")
     val startTime = dataInput.readLong()
     val playState = if (startTime > 0) {
-      Playing(startTime + _timeDifference)
+
+      Log.d("chakra", "reading playState with meanTimeDiff: " + meanTimeDiff)
+      Playing(startTime + meanTimeDiff)
     } else {
       NotPlaying
     }
@@ -265,5 +297,13 @@ class Messenger extends Actor {
     mainActorRef ! MainActor.SetStationPlayState(playState)
 
   }
+
+  @throws(classOf[IOException])
+  def readTimeDiff(socketInput: InputStream, dataInput: DataInputStream): Unit = {
+    Log.d("chakra", "reading time diff")
+    val timeDiff = (localTimeDiff - dataInput.readInt())/2
+    self ! SetMeanTimeDiff(timeDiff)
+  }
+
 
 }
