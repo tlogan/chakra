@@ -14,118 +14,72 @@ object Messenger {
   case class WriteAudioBuffer(audioBuffer: Array[Byte]) 
   case object WriteAudioDone 
   case class WritePlayState(playState: PlayState) 
-  case object WriteSyncResult 
-  case class WriteLocalTimeDiff(timeDiff: Int) 
-  case class SetMeanTimeDiff(timeDiff: Int) 
+
 
   val TrackMessage = 10
   val PlayStateMessage = 20
   val AudioBufferMessage = 33 
   val AudioDoneMessage = 40 
 
-  val SyncRequestMessage = 50 
-  val SyncResultMessage = 60 
-  val TimeDiffMessage = 70 
-
-  var _syncRequestWriteTime: Long = 0
-  var localTimeDiff: Int = 0
-  var meanTimeDiff: Int = 0
 
 }
 
+import Messenger._
+
 class Messenger extends Actor {
 
-  import Messenger._
+  
+
+  var socketInput: InputStream = _
+  var dataInput: DataInputStream = _
+  var socketOutput: OutputStream = _
+  var dataOutput: DataOutputStream = _
+
+  private var synchronizer: Synchronizer = _
 
   def receive = receiveSocket()
 
   def receiveSocket(): Receive = {
     case SetSocket(socket) =>
-      val socketInput = socket.getInputStream()
-      val dataInput = new DataInputStream(socketInput)
-      read(socketInput, dataInput)
-      val socketOutput = socket.getOutputStream()
-      val dataOutput = new DataOutputStream(socketOutput)
+      socketInput = socket.getInputStream()
+      dataInput = new DataInputStream(socketInput)
+      socketOutput = socket.getOutputStream()
+      dataOutput = new DataOutputStream(socketOutput)
 
-      writeSyncRequest(socketOutput, dataOutput)
-      context.become(receiveWrites(socketOutput, dataOutput))
+      read()
+
+      synchronizer = new Synchronizer(self, socketOutput, dataOutput, socketInput, dataInput)  
+      synchronizer.writeSyncRequest()
+      context.become(receiveWrite)
+
 
   }
 
-  def receiveWrites(socketOutput: OutputStream, dataOutput: DataOutputStream): Receive = {
+  import Synchronizer._
 
-    case WriteTrackOp(trackOp) =>
-      writeTrack(trackOp, socketOutput, dataOutput)
+  def receiveWrite: Receive = {
 
-    case WriteAudioBuffer(audioBuffer) =>
-      writeAudioBuffer(audioBuffer, socketOutput, dataOutput)
-
-    case WriteAudioDone =>
-      writeAudioDone(socketOutput, dataOutput)
-
-    case WritePlayState(playState) =>
-      writePlayState(playState, socketOutput, dataOutput)
+    case WriteTimeDiff(timeDiff) =>
+      synchronizer.writeTimeDiff(timeDiff)
 
     case WriteSyncResult =>
-      writeSyncResult(socketOutput, dataOutput)
+      synchronizer.writeSyncResult()
 
-    case WriteLocalTimeDiff(timeDiff) =>
-      writeLocalTimeDiff(timeDiff, socketOutput, dataOutput)
+    case WriteTrackOp(trackOp) =>
+      writeTrack(trackOp)
 
-    case SetMeanTimeDiff(timeDiff) =>
-      meanTimeDiff = timeDiff
-      Log.d("chakra", "Mean Time Diff: " + meanTimeDiff)
+    case WriteAudioBuffer(audioBuffer) =>
+      writeAudioBuffer(audioBuffer)
+
+    case WriteAudioDone =>
+      writeAudioDone()
+
+    case WritePlayState(playState) =>
+      writePlayState(playState)
 
   }
 
-  def writeSyncRequest(socketOutput: OutputStream, dataOutput: DataOutputStream): Unit = {
-    Log.d("chakra", "writing sync request")
-    try {
-      //write messageType 
-      dataOutput.writeInt(SyncRequestMessage)
-      dataOutput.flush()
-      _syncRequestWriteTime = Platform.currentTime
-    } catch {
-      case e: IOException => 
-        Log.d("chakra", "error writing sync request")
-    }
-  }
-
-  def writeSyncResult(socketOutput: OutputStream, dataOutput: DataOutputStream): Unit = {
-
-    Log.d("chakra", "writing sync result")
-    try {
-      //write messageType 
-      dataOutput.writeInt(SyncResultMessage)
-      dataOutput.flush()
-
-      //write the current time 
-      dataOutput.writeLong(Platform.currentTime)
-      dataOutput.flush()
-    } catch {
-      case e: IOException => 
-        Log.d("chakra", "error writing sync result")
-    }
-  }
-
-  def writeLocalTimeDiff(timeDiff: Int, socketOutput: OutputStream, dataOutput: DataOutputStream): Unit = {
-    Log.d("chakra", "writing local time Diff")
-    try {
-      //write messageType 
-      dataOutput.writeInt(TimeDiffMessage)
-      dataOutput.flush()
-
-      //write the current time 
-      dataOutput.writeInt(timeDiff)
-      dataOutput.flush()
-    } catch {
-      case e: IOException => 
-        Log.d("chakra", "error writing time diff")
-    }
-  }
-
-  def writeTrack(trackOp: Option[Track], socketOutput: OutputStream, dataOutput: DataOutputStream
-  ): Unit = {
+  def writeTrack(trackOp: Option[Track]): Unit = {
     Log.d("chakra", "write track")
     trackOp match {
       case None => //dont write anything 
@@ -149,8 +103,7 @@ class Messenger extends Actor {
 
   }
 
-  def writeAudioBuffer(audioBuffer: Array[Byte], socketOutput: OutputStream, dataOutput: DataOutputStream
-  ): Unit = {
+  def writeAudioBuffer(audioBuffer: Array[Byte]): Unit = {
     try {
 
       //write messageType 
@@ -169,8 +122,7 @@ class Messenger extends Actor {
     }
   }
 
-  def writeAudioDone(socketOutput: OutputStream, dataOutput: DataOutputStream
-  ): Unit = {
+  def writeAudioDone(): Unit = {
     Log.d("chakra", "write audio done")
 
     try {
@@ -185,8 +137,7 @@ class Messenger extends Actor {
     }
   }
 
-  def writePlayState(playState: PlayState, socketOutput: OutputStream, dataOutput: DataOutputStream
-  ): Unit = {
+  def writePlayState(playState: PlayState): Unit = {
     Log.d("chakra", "write play state")
 
     try {
@@ -209,30 +160,23 @@ class Messenger extends Actor {
     }
   }
 
-  def read(socketInput: InputStream, dataInput: DataInputStream): Unit = {
+  def read(): Unit = {
+    import Synchronizer._
     val f = Future {
       val messageType = dataInput.readInt()
       messageType match {
-        case TrackMessage =>
-          readTrack(socketInput, dataInput)
-        case PlayStateMessage =>
-          readPlayState(socketInput, dataInput)
-        case AudioBufferMessage =>
-          readAudioBuffer(socketInput, dataInput)
-        case AudioDoneMessage =>
-          mainActorRef ! MainActor.EndStationAudioBuffer
+        case SyncResultMessage =>
+          synchronizer.readSyncResult()
+
         case SyncRequestMessage =>
           self ! WriteSyncResult
-        case SyncResultMessage =>
-          readSyncResult(socketInput, dataInput)
-        case TimeDiffMessage =>
-          readTimeDiff(socketInput, dataInput)
+
         case i: Int =>
           //Log.d("chakra", "not a valid message type: " + i)
       }
 
     } onComplete {
-      case Success(_) => read(socketInput, dataInput)
+      case Success(_) => read()
       case Failure(e) => 
         try {
           socketInput.close()
@@ -243,67 +187,5 @@ class Messenger extends Actor {
     }
 
   }
-
-  @throws(classOf[IOException])
-  def readSyncResult(socketInput: InputStream, dataInput: DataInputStream): Unit = {
-    Log.d("chakra", "reading sync result")
-
-    val syncResultReadTime = Platform.currentTime
-    val otherTime = dataInput.readLong()
-    localTimeDiff = ((syncResultReadTime + _syncRequestWriteTime)/2 - otherTime).toInt
-    self ! WriteLocalTimeDiff(localTimeDiff)
-    Log.d("chakra", "Time Diff: " + localTimeDiff)
-  }
-
-  @throws(classOf[IOException])
-  def readTrack(socketInput: InputStream, dataInput: DataInputStream): Unit = {
-    Log.d("chakra", "reading track ")
-
-    //read the track path
-    val trackPathSize = dataInput.readInt()
-    val trackPathBuffer = new Array[Byte](trackPathSize)
-    socketInput.read(trackPathBuffer)
-    val path = new String(trackPathBuffer, 0, trackPathSize)
-    val track = Track(path, "", "", "")
-
-    mainActorRef ! MainActor.SetStationTrack(track)
-
-  }
-
-  @throws(classOf[IOException])
-  def readAudioBuffer(socketInput: InputStream, dataInput: DataInputStream): Unit = {
-
-    //read the track path
-    val bufferSize = dataInput.readInt()
-    val audioBuffer = new Array[Byte](bufferSize)
-    socketInput.read(audioBuffer)
-
-    mainActorRef ! MainActor.AddStationAudioBuffer(audioBuffer)
-
-  }
-
-  @throws(classOf[IOException])
-  def readPlayState(socketInput: InputStream, dataInput: DataInputStream): Unit = {
-    Log.d("chakra", "reading playState ")
-    val startTime = dataInput.readLong()
-    val playState = if (startTime > 0) {
-
-      Log.d("chakra", "reading playState with meanTimeDiff: " + meanTimeDiff)
-      Playing(startTime + meanTimeDiff)
-    } else {
-      NotPlaying
-    }
-
-    mainActorRef ! MainActor.SetStationPlayState(playState)
-
-  }
-
-  @throws(classOf[IOException])
-  def readTimeDiff(socketInput: InputStream, dataInput: DataInputStream): Unit = {
-    Log.d("chakra", "reading time diff")
-    val timeDiff = (localTimeDiff - dataInput.readInt())/2
-    self ! SetMeanTimeDiff(timeDiff)
-  }
-
 
 }

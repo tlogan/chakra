@@ -136,7 +136,7 @@ class PlayerService extends Service {
                       Toast.makeText(that, "Connected as Client", Toast.LENGTH_SHORT).show()
                       Log.d("chakra", "Connected as Client")
                       val remoteHost = info.groupOwnerAddress.getHostAddress()
-                      mainActorRef ! MainActor.ConnectRemote(remoteHost)
+                      mainActorRef ! MainActor.ConnectStation(remoteHost)
                     }
                   } else {
                     _groupFormed = false 
@@ -165,7 +165,7 @@ class PlayerService extends Service {
     registerReceiver(_broadcastReceiver, intentFilter)
 
     mainActorRef ! MainActor.Subscribe(this.toString, handler)
-    mainActorRef ! MainActor.AcceptRemotes 
+    mainActorRef ! MainActor.AcceptListeners 
 
   }
 

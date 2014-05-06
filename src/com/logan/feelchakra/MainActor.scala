@@ -28,8 +28,8 @@ object MainActor {
   case class CommitStation(device: WifiP2pDevice)
   case class RequestStation(station: Station)
   case object BecomeTheStation
-  case object AcceptRemotes 
-  case class ConnectRemote(remoteHost: String)
+  case object AcceptListeners 
+  case class ConnectStation(remoteHost: String)
 
   case class SetLocalAddress(localAddress: InetSocketAddress)
 
@@ -51,7 +51,9 @@ class MainActor extends Actor {
 
   private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
-  private val networkRef: ActorRef = context.actorOf(Network.props(), "Network")
+
+  private val listenerNetworkRef: ActorRef = context.actorOf(ListenerNetwork.props(), "ListenerNetwork")
+  private val stationMessengerRef: ActorRef = context.actorOf(StationMessenger.props(), "StationMessenger")
 
   private var database: Database = null
   private var cacheDir: File = null
@@ -129,31 +131,28 @@ class MainActor extends Actor {
     case ChangeTrackByIndex(trackIndex) => 
       val current = localManager.optionByIndex(trackIndex)
       val next = localManager.optionByIndex(trackIndex + 1)
-      if (stationManager.currentOp == None) {
-        networkRef ! Network.NotifyMessengers(Messenger.WriteTrackOp(current))
-      }
       localManager = localManager.setCurrentIndex(trackIndex)
       localManager = localManager.setStartPos(0).setPlaying(true)
-      networkRef ! Network.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
+      if (stationManager.currentOp == None) {
+        listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WriteTrackOp(current))
+        listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
+      }
 
     case AddLocalAudioBuffer(audioBuffer) =>
-      networkRef ! Network.NotifyMessengers(Messenger.WriteAudioBuffer(audioBuffer))
+      listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WriteAudioBuffer(audioBuffer))
 
     case EndLocalAudioBuffer =>
-      networkRef ! Network.NotifyMessengers(Messenger.WriteAudioDone)
+      listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WriteAudioDone)
       Log.d("chakra", "Audio Done")
 
     case AddTrackToPlaylist(track) =>
       if (localManager.playlist.size == 0) {
         if (stationManager.currentOp == None) {
-          networkRef ! Network.NotifyMessengers(Messenger.WriteTrackOp(Some(track)))
+          listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WriteTrackOp(Some(track)))
+          listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
         }
-        localManager = localManager.addPlaylistTrack(track)
-          .setCurrentIndex(0)
-
-        localManager = localManager.setStartPos(0)
-        localManager = localManager.setPlaying(true)
-        networkRef ! Network.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
+        localManager = localManager.addPlaylistTrack(track).setCurrentIndex(0)
+        localManager = localManager.setStartPos(0).setPlaying(true)
 
       } else {
         localManager = localManager.addPlaylistTrack(track)
@@ -182,16 +181,16 @@ class MainActor extends Actor {
     case SetLocalAddress(localAddress) =>
       networkProfile = networkProfile.setLocalAddress(localAddress)
 
-    case AcceptRemotes =>
-      serverRef.!(Server.Accept(networkRef))
+    case AcceptListeners =>
+      serverRef.!(Server.Accept(listenerNetworkRef))
 
-    case ConnectRemote(remoteHost) =>
+    case ConnectStation(remoteHost) =>
       localManager = localManager.setPlaying(false)
       stationManager.currentOp match {
         case Some(station) =>
           val remoteAddress = 
             new InetSocketAddress(remoteHost, station.record.get("port").toInt)
-          clientRef.!(Client.Connect(remoteAddress, networkRef))
+          clientRef.!(Client.Connect(remoteAddress, stationMessengerRef))
         case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
 

@@ -8,34 +8,32 @@ object Client {
     Props[Client]
   }
 
-  case class Connect(remoteAddress: InetSocketAddress, networkRef: ActorRef)
+  case class Connect(remoteAddress: InetSocketAddress, stationMessengerRef: ActorRef)
 
 }
 
+import Client._
+
 class Client extends Actor {
 
-  import Client._
 
   def receive = {
-    case Connect(remoteAddress, networkRef) => connect(remoteAddress, networkRef)
-  }
+    case Connect(remoteAddress, stationMessengerRef) => 
+      val socket = new Socket()
+      try {
+        socket.bind(null);
+        socket.connect(remoteAddress, 5000);
+        stationMessengerRef ! StationMessenger.SetSocket(socket)
 
-  def connect(remoteAddress: InetSocketAddress, networkRef: ActorRef): Unit = {
-    val socket = new Socket()
-    try {
-      socket.bind(null);
-      socket.connect(remoteAddress, 5000);
-      networkRef ! Network.SetClientMessenger(remoteAddress, socket)
-
-    } catch  {
-      case e: IOException =>
-        e.printStackTrace()
-        try {
-          socket.close()
-        } catch {
-          case e: IOException => e.printStackTrace()
-        }
-    }
+      } catch  {
+        case e: IOException =>
+          e.printStackTrace()
+          try {
+            socket.close()
+          } catch {
+            case e: IOException => e.printStackTrace()
+          }
+      }
   }
 
 }
