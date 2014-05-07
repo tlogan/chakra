@@ -19,53 +19,27 @@ object StationMessenger {
 }
 
 import StationMessenger._
+import Messenger._
 
-class StationMessenger extends Actor {
-
-  var socket: Socket = _
-
-  var socketInput: InputStream = _
-  var dataInput: DataInputStream = _
-  var socketOutput: OutputStream = _
-  var dataOutput: DataOutputStream = _
-
-  var synchronizer: Synchronizer = _
-  var meanTimeDiff: Int = 0
-
+class StationMessenger extends Actor with Messenger {
 
   def receive = {
 
     case SetSocket(socket) => 
-      socketInput = socket.getInputStream()
-      dataInput = new DataInputStream(socketInput)
-      socketOutput = socket.getOutputStream()
-      dataOutput = new DataOutputStream(socketOutput)
+      setSocket(socket)
 
       read()
 
-      synchronizer = new Synchronizer(self, socketOutput, dataOutput, socketInput, dataInput)  
-      synchronizer.writeSyncRequest()
+      writeSyncRequest()
 
       context.become(receiveWriteSync)
-  }
-
-  import Synchronizer._
-
-  def receiveWriteSync: Receive = {
-
-    case WriteSyncResult =>
-      synchronizer.writeSyncResult()
-
-    case SetMeanTimeDiff(timeDiff) =>
-      meanTimeDiff = timeDiff
-      Log.d("chakra", "Mean Time Diff: " + meanTimeDiff)
 
   }
+
 
   def read(): Unit = {
     val f = Future {
 
-      import Synchronizer._
       val messageType = dataInput.readInt()
       messageType match {
 
@@ -79,13 +53,13 @@ class StationMessenger extends Actor {
           mainActorRef ! MainActor.EndStationAudioBuffer
 
         case SyncResultMessage =>
-          synchronizer.readSyncResult()
+          readSyncResult()
 
         case SyncRequestMessage =>
           self ! WriteSyncResult
 
         case TimeDiffMessage =>
-          synchronizer.readTimeDiff()
+          readTimeDiff()
 
         case i: Int =>
           //Log.d("chakra", "not a valid message type: " + i)

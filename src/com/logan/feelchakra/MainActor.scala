@@ -134,22 +134,22 @@ class MainActor extends Actor {
       localManager = localManager.setCurrentIndex(trackIndex)
       localManager = localManager.setStartPos(0).setPlaying(true)
       if (stationManager.currentOp == None) {
-        listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WriteTrackOp(current))
-        listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
+        listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WriteTrackOp(current))
+        listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WritePlayState(Playing(Platform.currentTime)))
       }
 
     case AddLocalAudioBuffer(audioBuffer) =>
-      listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WriteAudioBuffer(audioBuffer))
+      listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WriteAudioBuffer(audioBuffer))
 
     case EndLocalAudioBuffer =>
-      listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WriteAudioDone)
+      listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WriteAudioDone)
       Log.d("chakra", "Audio Done")
 
     case AddTrackToPlaylist(track) =>
       if (localManager.playlist.size == 0) {
         if (stationManager.currentOp == None) {
-          listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WriteTrackOp(Some(track)))
-          listenerNetworkRef ! ListenerNetwork.NotifyMessengers(Messenger.WritePlayState(Playing(Platform.currentTime)))
+          listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WriteTrackOp(Some(track)))
+          listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WritePlayState(Playing(Platform.currentTime)))
         }
         localManager = localManager.addPlaylistTrack(track).setCurrentIndex(0)
         localManager = localManager.setStartPos(0).setPlaying(true)

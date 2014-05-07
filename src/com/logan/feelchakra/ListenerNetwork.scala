@@ -24,9 +24,9 @@ class ListenerNetwork extends Actor {
   def receive = { 
 
     case AddMessenger(remote, socket) => 
-      val messengerRef = context.actorOf(Messenger.props())
-      messengerRef ! Messenger.SetSocket(socket)
-      messengerRef ! Messenger.WriteTrackOp(currentTrack)
+      val messengerRef = context.actorOf(ListenerMessenger.props())
+      messengerRef ! ListenerMessenger.SetSocket(socket)
+      messengerRef ! ListenerMessenger.WriteTrackOp(currentTrack)
       messengerRefs = messengerRefs.+(remote -> messengerRef)
       context.become(receiveNotify)
 

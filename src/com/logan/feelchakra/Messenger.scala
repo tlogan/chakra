@@ -5,187 +5,121 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object Messenger {
 
-  def props(): Props = {
-    Props[Messenger]
-  }
+  case object WriteSyncResult 
+  case class WriteTimeDiff(timeDiff: Int) 
 
-  case class SetSocket(socket: Socket)
-  case class WriteTrackOp(trackOp: Option[Track]) 
-  case class WriteAudioBuffer(audioBuffer: Array[Byte]) 
-  case object WriteAudioDone 
-  case class WritePlayState(playState: PlayState) 
-
-
-  val TrackMessage = 10
-  val PlayStateMessage = 20
-  val AudioBufferMessage = 33 
-  val AudioDoneMessage = 40 
+  val SyncRequestMessage = 50 
+  val SyncResultMessage = 60 
+  val TimeDiffMessage = 70 
 
 
 }
 
 import Messenger._
 
-class Messenger extends Actor {
+trait Messenger {
+  this: Actor =>
 
-  
+  var socket: Socket = _
 
   var socketInput: InputStream = _
   var dataInput: DataInputStream = _
   var socketOutput: OutputStream = _
   var dataOutput: DataOutputStream = _
 
-  private var synchronizer: Synchronizer = _
 
-  def receive = receiveSocket()
-
-  def receiveSocket(): Receive = {
-    case SetSocket(socket) =>
-      socketInput = socket.getInputStream()
-      dataInput = new DataInputStream(socketInput)
-      socketOutput = socket.getOutputStream()
-      dataOutput = new DataOutputStream(socketOutput)
-
-      read()
-
-      synchronizer = new Synchronizer(self, socketOutput, dataOutput, socketInput, dataInput)  
-      synchronizer.writeSyncRequest()
-      context.become(receiveWrite)
+  var _syncRequestWriteTime: Long = 0
+  var localTimeDiff: Int = 0
+  var foreignTimeDiff: Int = 0
 
 
-  }
+  def meanTimeDiff = (localTimeDiff - foreignTimeDiff)/2
 
-  import Synchronizer._
-
-  def receiveWrite: Receive = {
-
-    case WriteTimeDiff(timeDiff) =>
-      synchronizer.writeTimeDiff(timeDiff)
+  val receiveWriteSync: Receive = {
 
     case WriteSyncResult =>
-      synchronizer.writeSyncResult()
+      writeSyncResult()
 
-    case WriteTrackOp(trackOp) =>
-      writeTrack(trackOp)
-
-    case WriteAudioBuffer(audioBuffer) =>
-      writeAudioBuffer(audioBuffer)
-
-    case WriteAudioDone =>
-      writeAudioDone()
-
-    case WritePlayState(playState) =>
-      writePlayState(playState)
+    case WriteTimeDiff(timeDiff) =>
+      writeTimeDiff(timeDiff)
 
   }
 
-  def writeTrack(trackOp: Option[Track]): Unit = {
-    Log.d("chakra", "write track")
-    trackOp match {
-      case None => //dont write anything 
-      case Some(track) =>
-        try {
 
-          //write messageType 
-          dataOutput.writeInt(TrackMessage)
-          dataOutput.flush()
-
-          //write the file path
-          dataOutput.writeInt(track.path.length())
-          dataOutput.flush()
-          socketOutput.write(track.path.getBytes())
-
-        } catch {
-          case e: IOException => 
-            Log.d("chakra", "error writing exception")
-        }
-    }
-
+  def setSocket(socket: Socket): Unit = {
+    this.socket = socket
+    socketInput = socket.getInputStream()
+    dataInput = new DataInputStream(socketInput)
+    socketOutput = socket.getOutputStream()
+    dataOutput = new DataOutputStream(socketOutput)
   }
 
-  def writeAudioBuffer(audioBuffer: Array[Byte]): Unit = {
+  def writeSyncRequest(): Unit = {
+    Log.d("chakra", "writing sync request")
     try {
-
       //write messageType 
-      dataOutput.writeInt(AudioBufferMessage)
+      dataOutput.writeInt(SyncRequestMessage)
       dataOutput.flush()
-
-      //write buffer 
-      dataOutput.writeInt(audioBuffer.length)
-      dataOutput.flush()
-      socketOutput.write(audioBuffer)
-
+      _syncRequestWriteTime = Platform.currentTime
     } catch {
       case e: IOException => 
-        Log.d("chakra", "error writing audioBuffer")
-        e.printStackTrace()
+        Log.d("chakra", "error writing sync request")
     }
   }
 
-  def writeAudioDone(): Unit = {
-    Log.d("chakra", "write audio done")
+  @throws(classOf[IOException])
+  def readSyncResult(): Unit = {
+    Log.d("chakra", "reading sync result")
 
+    val syncResultReadTime = Platform.currentTime
+    val otherTime = dataInput.readLong()
+    localTimeDiff = ((syncResultReadTime + _syncRequestWriteTime)/2 - otherTime).toInt
+    self ! WriteTimeDiff(localTimeDiff)
+    Log.d("chakra", "Time Diff: " + localTimeDiff)
+  }
+
+
+  def writeSyncResult(): Unit = {
+
+    Log.d("chakra", "writing sync result")
     try {
-
       //write messageType 
-      dataOutput.writeInt(AudioDoneMessage)
+      dataOutput.writeInt(SyncResultMessage)
       dataOutput.flush()
 
+      //write the current time 
+      dataOutput.writeLong(Platform.currentTime)
+      dataOutput.flush()
     } catch {
       case e: IOException => 
-        Log.d("chakra", "error writing audio done")
+        Log.d("chakra", "error writing sync result")
     }
   }
 
-  def writePlayState(playState: PlayState): Unit = {
-    Log.d("chakra", "write play state")
-
+  def writeTimeDiff(timeDiff: Int): Unit = {
+    Log.d("chakra", "writing local time Diff")
     try {
-
       //write messageType 
-      dataOutput.writeInt(PlayStateMessage)
+      dataOutput.writeInt(TimeDiffMessage)
       dataOutput.flush()
 
-      //write data
-      val startTime = playState match {
-        case Playing(startTime) => startTime
-        case NotPlaying => 0
-      }
-      dataOutput.writeLong(startTime)
+      //write the current time 
+      dataOutput.writeInt(timeDiff)
       dataOutput.flush()
-
     } catch {
       case e: IOException => 
-        Log.d("chakra", "error writing audioPlayState")
+        Log.d("chakra", "error writing time diff")
     }
   }
 
-  def read(): Unit = {
-    import Synchronizer._
-    val f = Future {
-      val messageType = dataInput.readInt()
-      messageType match {
-        case SyncResultMessage =>
-          synchronizer.readSyncResult()
-
-        case SyncRequestMessage =>
-          self ! WriteSyncResult
-
-        case i: Int =>
-          //Log.d("chakra", "not a valid message type: " + i)
-      }
-
-    } onComplete {
-      case Success(_) => read()
-      case Failure(e) => 
-        try {
-          socketInput.close()
-        } catch {
-          case e: IOException => e.printStackTrace();
-            Log.d("chakra", "error closing socket")
-        }
-    }
-
+  @throws(classOf[IOException])
+  def readTimeDiff(): Unit = {
+    Log.d("chakra", "reading time diff")
+    foreignTimeDiff = dataInput.readInt()
+    Log.d("chakra", "foreign time diff: " + foreignTimeDiff)
   }
+
+  
+
 
 }
