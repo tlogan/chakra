@@ -8,11 +8,6 @@ object Messenger {
   case object WriteSyncResult 
   case class WriteTimeDiff(timeDiff: Int) 
 
-  val SyncRequestMessage = 50 
-  val SyncResultMessage = 60 
-  val TimeDiffMessage = 70 
-
-
 }
 
 import Messenger._
@@ -22,18 +17,10 @@ trait Messenger {
 
   var socket: Socket = _
 
-  var socketInput: InputStream = _
-  var dataInput: DataInputStream = _
   var socketOutput: OutputStream = _
   var dataOutput: DataOutputStream = _
 
-
   var _syncRequestWriteTime: Long = 0
-  var localTimeDiff: Int = 0
-  var foreignTimeDiff: Int = 0
-
-
-  def meanTimeDiff = (localTimeDiff - foreignTimeDiff)/2
 
   val receiveWriteSync: Receive = {
 
@@ -45,11 +32,8 @@ trait Messenger {
 
   }
 
-
   def setSocket(socket: Socket): Unit = {
     this.socket = socket
-    socketInput = socket.getInputStream()
-    dataInput = new DataInputStream(socketInput)
     socketOutput = socket.getOutputStream()
     dataOutput = new DataOutputStream(socketOutput)
   }
@@ -58,24 +42,14 @@ trait Messenger {
     Log.d("chakra", "writing sync request")
     try {
       //write messageType 
-      dataOutput.writeInt(SyncRequestMessage)
+      dataOutput.writeInt(SocketReader.SyncRequestMessage)
       dataOutput.flush()
       _syncRequestWriteTime = Platform.currentTime
     } catch {
       case e: IOException => 
         Log.d("chakra", "error writing sync request")
+        e.printStackTrace()
     }
-  }
-
-  @throws(classOf[IOException])
-  def readSyncResult(): Unit = {
-    Log.d("chakra", "reading sync result")
-
-    val syncResultReadTime = Platform.currentTime
-    val otherTime = dataInput.readLong()
-    localTimeDiff = ((syncResultReadTime + _syncRequestWriteTime)/2 - otherTime).toInt
-    self ! WriteTimeDiff(localTimeDiff)
-    Log.d("chakra", "Time Diff: " + localTimeDiff)
   }
 
 
@@ -84,7 +58,7 @@ trait Messenger {
     Log.d("chakra", "writing sync result")
     try {
       //write messageType 
-      dataOutput.writeInt(SyncResultMessage)
+      dataOutput.writeInt(SocketReader.SyncResultMessage)
       dataOutput.flush()
 
       //write the current time 
@@ -93,14 +67,16 @@ trait Messenger {
     } catch {
       case e: IOException => 
         Log.d("chakra", "error writing sync result")
+        e.printStackTrace()
     }
   }
+
 
   def writeTimeDiff(timeDiff: Int): Unit = {
     Log.d("chakra", "writing local time Diff")
     try {
       //write messageType 
-      dataOutput.writeInt(TimeDiffMessage)
+      dataOutput.writeInt(SocketReader.TimeDiffMessage)
       dataOutput.flush()
 
       //write the current time 
@@ -109,15 +85,11 @@ trait Messenger {
     } catch {
       case e: IOException => 
         Log.d("chakra", "error writing time diff")
+        e.printStackTrace()
     }
   }
 
-  @throws(classOf[IOException])
-  def readTimeDiff(): Unit = {
-    Log.d("chakra", "reading time diff")
-    foreignTimeDiff = dataInput.readInt()
-    Log.d("chakra", "foreign time diff: " + foreignTimeDiff)
-  }
+
 
   
 

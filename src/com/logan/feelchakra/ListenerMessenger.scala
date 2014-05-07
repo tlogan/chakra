@@ -15,13 +15,6 @@ object ListenerMessenger {
   case object WriteAudioDone 
   case class WritePlayState(playState: PlayState) 
 
-
-  val TrackMessage = 10
-  val PlayStateMessage = 20
-  val AudioBufferMessage = 33 
-  val AudioDoneMessage = 40 
-
-
 }
 
 import ListenerMessenger._
@@ -35,7 +28,8 @@ class ListenerMessenger extends Actor with Messenger {
     case SetSocket(socket) =>
       setSocket(socket)
 
-      read()
+      val listenerReader = new ListenerReader(socket, self)
+      listenerReader.read()
 
       writeSyncRequest()
       context.become(receiveWrite orElse receiveWriteSync)
@@ -66,7 +60,7 @@ class ListenerMessenger extends Actor with Messenger {
         try {
 
           //write messageType 
-          dataOutput.writeInt(TrackMessage)
+          dataOutput.writeInt(StationReader.TrackMessage)
           dataOutput.flush()
 
           //write the file path
@@ -86,7 +80,7 @@ class ListenerMessenger extends Actor with Messenger {
     try {
 
       //write messageType 
-      dataOutput.writeInt(AudioBufferMessage)
+      dataOutput.writeInt(StationReader.AudioBufferMessage)
       dataOutput.flush()
 
       //write buffer 
@@ -96,8 +90,8 @@ class ListenerMessenger extends Actor with Messenger {
 
     } catch {
       case e: IOException => 
-        Log.d("chakra", "error writing audioBuffer")
-        e.printStackTrace()
+        //Log.d("chakra", "error writing audioBuffer")
+        //e.printStackTrace()
     }
   }
 
@@ -107,12 +101,13 @@ class ListenerMessenger extends Actor with Messenger {
     try {
 
       //write messageType 
-      dataOutput.writeInt(AudioDoneMessage)
+      dataOutput.writeInt(StationReader.AudioDoneMessage)
       dataOutput.flush()
 
     } catch {
       case e: IOException => 
         Log.d("chakra", "error writing audio done")
+        e.printStackTrace()
     }
   }
 
@@ -122,7 +117,7 @@ class ListenerMessenger extends Actor with Messenger {
     try {
 
       //write messageType 
-      dataOutput.writeInt(PlayStateMessage)
+      dataOutput.writeInt(StationReader.PlayStateMessage)
       dataOutput.flush()
 
       //write data
@@ -137,33 +132,6 @@ class ListenerMessenger extends Actor with Messenger {
       case e: IOException => 
         Log.d("chakra", "error writing audioPlayState")
     }
-  }
-
-  def read(): Unit = {
-    val f = Future {
-      val messageType = dataInput.readInt()
-      messageType match {
-        case SyncResultMessage =>
-          readSyncResult()
-
-        case SyncRequestMessage =>
-          self ! WriteSyncResult
-
-        case i: Int =>
-          //Log.d("chakra", "not a valid message type: " + i)
-      }
-
-    } onComplete {
-      case Success(_) => read()
-      case Failure(e) => 
-        try {
-          socketInput.close()
-        } catch {
-          case e: IOException => e.printStackTrace();
-            Log.d("chakra", "error closing socket")
-        }
-    }
-
   }
 
 }
