@@ -32,6 +32,7 @@ object MainActor {
   case class ConnectStation(remoteHost: String)
 
   case class SetLocalAddress(localAddress: InetSocketAddress)
+  case class AddListenerWriter(remote: InetSocketAddress, socket: Socket)
 
   case object Advertise
   case object Discover 
@@ -52,8 +53,8 @@ class MainActor extends Actor {
   private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
 
-  private val listenerNetworkRef: ActorRef = context.actorOf(ListenerNetwork.props(), "ListenerNetwork")
-  private val stationMessengerRef: ActorRef = context.actorOf(StationMessenger.props(), "StationMessenger")
+  //private val listenerNetworkRef: ActorRef = context.actorOf(ListenerNetwork.props(), "ListenerNetwork")
+  private val stationWriterRef: ActorRef = context.actorOf(StationWriter.props(), "StationWriter")
 
   private var database: Database = null
   private var cacheDir: File = null
@@ -62,6 +63,14 @@ class MainActor extends Actor {
   private var localManager: LocalManager = new LocalManager 
   private var stationManager: StationManager = new StationManager
   private var networkProfile: NetworkProfile = new NetworkProfile
+
+  private var writerRefs = HashMap[InetSocketAddress, ActorRef]()
+  private def notifyWriters(message: Object): Unit = {
+    writerRefs.foreach(pair => { 
+      val ref = pair._2
+      ref.!(message)
+    })
+  }
 
   private var fileOutputOp: Option[BufferedOutputStream] = None 
 
@@ -134,22 +143,22 @@ class MainActor extends Actor {
       localManager = localManager.setCurrentIndex(trackIndex)
       localManager = localManager.setStartPos(0).setPlaying(true)
       if (stationManager.currentOp == None) {
-        listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WriteTrackOp(current))
-        listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WritePlayState(Playing(Platform.currentTime)))
+        notifyWriters(ListenerWriter.WriteTrackOp(current))
+        notifyWriters(ListenerWriter.WritePlayState(Playing(Platform.currentTime)))
       }
 
     case AddLocalAudioBuffer(audioBuffer) =>
-      listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WriteAudioBuffer(audioBuffer))
+      notifyWriters(ListenerWriter.WriteAudioBuffer(audioBuffer))
 
     case EndLocalAudioBuffer =>
-      listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WriteAudioDone)
+      notifyWriters(ListenerWriter.WriteAudioDone)
       Log.d("chakra", "Audio Done")
 
     case AddTrackToPlaylist(track) =>
       if (localManager.playlist.size == 0) {
         if (stationManager.currentOp == None) {
-          listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WriteTrackOp(Some(track)))
-          listenerNetworkRef ! ListenerNetwork.NotifyMessengers(ListenerMessenger.WritePlayState(Playing(Platform.currentTime)))
+          notifyWriters(ListenerWriter.WriteTrackOp(Some(track)))
+          notifyWriters(ListenerWriter.WritePlayState(Playing(Platform.currentTime)))
         }
         localManager = localManager.addPlaylistTrack(track).setCurrentIndex(0)
         localManager = localManager.setStartPos(0).setPlaying(true)
@@ -181,8 +190,14 @@ class MainActor extends Actor {
     case SetLocalAddress(localAddress) =>
       networkProfile = networkProfile.setLocalAddress(localAddress)
 
+    case AddListenerWriter(remote, socket) =>
+      val writerRef = context.actorOf(ListenerWriter.props())
+      writerRef ! ListenerWriter.SetSocket(socket)
+      writerRef ! ListenerWriter.WriteTrackOp(localManager.currentOp)
+      writerRefs = writerRefs.+(remote -> writerRef)
+
     case AcceptListeners =>
-      serverRef.!(Server.Accept(listenerNetworkRef))
+      serverRef.!(Server.Accept)
 
     case ConnectStation(remoteHost) =>
       localManager = localManager.setPlaying(false)
@@ -190,7 +205,7 @@ class MainActor extends Actor {
         case Some(station) =>
           val remoteAddress = 
             new InetSocketAddress(remoteHost, station.record.get("port").toInt)
-          clientRef.!(Client.Connect(remoteAddress, stationMessengerRef))
+          clientRef.!(Client.Connect(remoteAddress, stationWriterRef))
         case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
 

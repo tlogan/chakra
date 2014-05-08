@@ -60,7 +60,7 @@ abstract class SocketReader(socket: Socket, writer: ActorRef) {
       readSyncResult()
 
     case SyncRequestMessage =>
-      writer ! Messenger.WriteSyncResult
+      writer ! SocketWriter.WriteSyncResult
 
     case TimeDiffMessage =>
       readTimeDiff()
@@ -75,7 +75,7 @@ abstract class SocketReader(socket: Socket, writer: ActorRef) {
     val otherTime = dataInput.readLong()
     localTimeDiff = (syncResultReadTime - otherTime).toInt
     //old way: localTimeDiff = ((syncResultReadTime + _syncRequestWriteTime)/2 - otherTime).toInt
-    writer ! Messenger.WriteTimeDiff(localTimeDiff)
+    writer ! SocketWriter.WriteTimeDiff(localTimeDiff)
     Log.d("chakra", "Time Diff: " + localTimeDiff)
   }
 

@@ -3,16 +3,16 @@ package com.logan.feelchakra
 import android.util.Log
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Messenger {
+object SocketWriter {
 
   case object WriteSyncResult 
   case class WriteTimeDiff(timeDiff: Int) 
 
 }
 
-import Messenger._
+import SocketWriter._
 
-trait Messenger {
+trait SocketWriter {
   this: Actor =>
 
   var socket: Socket = _

@@ -9,7 +9,7 @@ object Server {
     Props[Server]
   }
 
-  case class Accept(listenerNetworkRef: ActorRef)
+  case object Accept
 
 }
 
@@ -18,11 +18,11 @@ class Server extends Actor {
   import Server._
 
   def receive = { 
-    case Accept(listenerNetworkRef) => accept(listenerNetworkRef)
+    case Accept => accept()
   }
 
 
-  def accept(listenerNetworkRef: ActorRef): Unit = {
+  def accept(): Unit = {
     Future {
       try {
         val serverSocket = new ServerSocket(0);
@@ -37,7 +37,7 @@ class Server extends Actor {
             val remote = {
               new InetSocketAddress(socket.getInetAddress(), socket.getPort())
             }
-            listenerNetworkRef ! ListenerNetwork.AddMessenger(remote, socket)
+            mainActorRef ! MainActor.AddListenerWriter(remote, socket)
           } catch {
             case e: IOException => 
               try {

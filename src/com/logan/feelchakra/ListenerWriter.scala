@@ -3,10 +3,10 @@ package com.logan.feelchakra
 import android.util.Log
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object ListenerMessenger {
+object ListenerWriter {
 
   def props(): Props = {
-    Props[ListenerMessenger]
+    Props[ListenerWriter]
   }
 
   case class SetSocket(socket: Socket)
@@ -17,10 +17,10 @@ object ListenerMessenger {
 
 }
 
-import ListenerMessenger._
-import Messenger._
+import ListenerWriter._
+import SocketWriter._
 
-class ListenerMessenger extends Actor with Messenger {
+class ListenerWriter extends Actor with SocketWriter {
 
   def receive = receiveSocket()
 
