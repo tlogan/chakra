@@ -22,9 +22,6 @@ class StationWriter extends Actor with SocketWriter {
 
     case SetSocket(socket) => 
       setSocket(socket)
-      val stationReader = new StationReader(socket, self)
-      stationReader.read()
-
       writeSyncRequest()
       context.become(receiveWriteSync)
 

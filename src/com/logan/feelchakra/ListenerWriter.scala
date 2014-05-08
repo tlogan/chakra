@@ -28,9 +28,6 @@ class ListenerWriter extends Actor with SocketWriter {
     case SetSocket(socket) =>
       setSocket(socket)
 
-      val listenerReader = new ListenerReader(socket, self)
-      listenerReader.read()
-
       writeSyncRequest()
       context.become(receiveWrite orElse receiveWriteSync)
 

@@ -8,7 +8,7 @@ object Client {
     Props[Client]
   }
 
-  case class Connect(remoteAddress: InetSocketAddress, stationWriterRef: ActorRef)
+  case class Connect(remoteAddress: InetSocketAddress)
 
 }
 
@@ -18,12 +18,12 @@ class Client extends Actor {
 
 
   def receive = {
-    case Connect(remoteAddress, stationWriterRef) => 
+    case Connect(remoteAddress) => 
       val socket = new Socket()
       try {
         socket.bind(null);
         socket.connect(remoteAddress, 5000);
-        stationWriterRef ! StationWriter.SetSocket(socket)
+        mainActorRef ! MainActor.ChangeStationMessenger(socket)
 
       } catch  {
         case e: IOException =>

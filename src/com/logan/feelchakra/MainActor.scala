@@ -30,6 +30,7 @@ object MainActor {
   case object BecomeTheStation
   case object AcceptListeners 
   case class ConnectStation(remoteHost: String)
+  case class ChangeStationMessenger(socket: Socket)
 
   case class SetLocalAddress(localAddress: InetSocketAddress)
   case class AddListenerWriter(remote: InetSocketAddress, socket: Socket)
@@ -54,7 +55,6 @@ class MainActor extends Actor {
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
 
   //private val listenerNetworkRef: ActorRef = context.actorOf(ListenerNetwork.props(), "ListenerNetwork")
-  private val stationWriterRef: ActorRef = context.actorOf(StationWriter.props(), "StationWriter")
 
   private var database: Database = null
   private var cacheDir: File = null
@@ -64,11 +64,12 @@ class MainActor extends Actor {
   private var stationManager: StationManager = new StationManager
   private var networkProfile: NetworkProfile = new NetworkProfile
 
-  private var writerRefs = HashMap[InetSocketAddress, ActorRef]()
+  private var stationMessengerOp: Option[Messenger] = None
+  private var messengers = HashMap[InetSocketAddress, Messenger]()
   private def notifyWriters(message: Object): Unit = {
-    writerRefs.foreach(pair => { 
-      val ref = pair._2
-      ref.!(message)
+    messengers.foreach(pair => { 
+      val mes = pair._2
+      mes.writerRef.!(message)
     })
   }
 
@@ -191,10 +192,16 @@ class MainActor extends Actor {
       networkProfile = networkProfile.setLocalAddress(localAddress)
 
     case AddListenerWriter(remote, socket) =>
+
       val writerRef = context.actorOf(ListenerWriter.props())
       writerRef ! ListenerWriter.SetSocket(socket)
       writerRef ! ListenerWriter.WriteTrackOp(localManager.currentOp)
-      writerRefs = writerRefs.+(remote -> writerRef)
+
+      val reader = new ListenerReader(socket, writerRef)
+      reader.read()
+
+      val messenger = Messenger(writerRef, reader)
+      messengers = messengers.+(remote -> messenger)
 
     case AcceptListeners =>
       serverRef.!(Server.Accept)
@@ -205,9 +212,16 @@ class MainActor extends Actor {
         case Some(station) =>
           val remoteAddress = 
             new InetSocketAddress(remoteHost, station.record.get("port").toInt)
-          clientRef.!(Client.Connect(remoteAddress, stationWriterRef))
+          clientRef.!(Client.Connect(remoteAddress))
         case None => Log.d("chakra", "Can't connect when station Op is NONE")
       }
+
+    case ChangeStationMessenger(socket) =>
+      val writerRef = context.actorOf(StationWriter.props(), "StationWriter")
+      writerRef ! StationWriter.SetSocket(socket)
+      val reader = new StationReader(socket, writerRef)
+      reader.read()
+      stationMessengerOp = Some(Messenger(writerRef, reader))
 
     case SetStationTrack(track) =>
       Log.d("chakra", "SetStationTrack: " + track)
