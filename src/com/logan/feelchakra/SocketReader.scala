@@ -2,6 +2,8 @@ package com.logan.feelchakra
 
 import android.util.Log
 import scala.concurrent.ExecutionContext.Implicits.global
+import akka.pattern.ask
+import akka.util.Timeout
 
 object SocketReader {
 
@@ -14,7 +16,9 @@ object SocketReader {
 
 import SocketReader._
 
-abstract class SocketReader(socket: Socket, writer: ActorRef) {
+abstract class SocketReader(socket: Socket, writerRef: ActorRef) {
+
+  implicit val timeout = Timeout(5000)
 
   var localTimeDiff: Int = 0
   var foreignTimeDiff: Int = 0
@@ -60,7 +64,7 @@ abstract class SocketReader(socket: Socket, writer: ActorRef) {
       readSyncResult()
 
     case SyncRequestMessage =>
-      writer ! SocketWriter.WriteSyncResult
+      writerRef ! SocketWriter.WriteSyncResult
 
     case TimeDiffMessage =>
       readTimeDiff()
@@ -72,11 +76,19 @@ abstract class SocketReader(socket: Socket, writer: ActorRef) {
     Log.d("chakra", "reading sync result")
 
     val syncResultReadTime = Platform.currentTime
-    val otherTime = dataInput.readLong()
-    localTimeDiff = (syncResultReadTime - otherTime).toInt
-    //old way: localTimeDiff = ((syncResultReadTime + _syncRequestWriteTime)/2 - otherTime).toInt
-    writer ! SocketWriter.WriteTimeDiff(localTimeDiff)
-    Log.d("chakra", "Time Diff: " + localTimeDiff)
+    writerRef ! SocketWriter.SetSyncResultReadTime(syncResultReadTime)
+    val syncResult = dataInput.readLong()
+    writerRef ! SocketWriter.SetSyncResult(syncResult)
+    val f = writerRef ? SocketWriter.GetLocalTimeDiff
+    f.onComplete {
+      case Success(localTimeDiff: Int) => 
+        Log.d("chakra", "setting localTimeDiff in reader")
+        this.localTimeDiff = localTimeDiff
+
+      case Failure(e) =>
+        Log.d("chakra", "failed asking for localTimeDiff: " + e.getMessage)
+    }
+
   }
 
 

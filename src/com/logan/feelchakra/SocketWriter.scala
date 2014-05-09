@@ -7,6 +7,9 @@ object SocketWriter {
 
   case object WriteSyncResult 
   case class WriteTimeDiff(timeDiff: Int) 
+  case class SetSyncResultReadTime(syncResultReadTime: Long)
+  case class SetSyncResult(syncResult: Long)
+  case class GetLocalTimeDiff
 
 }
 
@@ -20,7 +23,11 @@ trait SocketWriter {
   var socketOutput: OutputStream = _
   var dataOutput: DataOutputStream = _
 
-  var _syncRequestWriteTime: Long = 0
+  var syncRequestWriteTime: Long = 0
+  var syncResultReadTime: Long = 0 
+  var syncResult: Long = 0 
+
+  def localTimeDiff = ((syncResultReadTime + syncRequestWriteTime)/2 - syncResult).toInt
 
   val receiveWriteSync: Receive = {
 
@@ -29,6 +36,17 @@ trait SocketWriter {
 
     case WriteTimeDiff(timeDiff) =>
       writeTimeDiff(timeDiff)
+
+    case SetSyncResultReadTime(syncResultReadTime) =>
+      this.syncResultReadTime = syncResultReadTime
+
+    case SetSyncResult(syncResult) =>
+      this.syncResult = syncResult
+      self ! WriteTimeDiff(localTimeDiff)
+      Log.d("chakra", "Local Time Diff: " + localTimeDiff)
+
+    case GetLocalTimeDiff =>
+      sender ! localTimeDiff
 
   }
 
@@ -44,7 +62,7 @@ trait SocketWriter {
       //write messageType 
       dataOutput.writeInt(SocketReader.SyncRequestMessage)
       dataOutput.flush()
-      _syncRequestWriteTime = Platform.currentTime
+      syncRequestWriteTime = Platform.currentTime
     } catch {
       case e: IOException => 
         Log.d("chakra", "error writing sync request")
