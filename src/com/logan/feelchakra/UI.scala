@@ -6,7 +6,10 @@ object UI {
   case class OnSelectionListChanged(selectionList: List[Selection]) extends OnChange
   case class OnPlayerOpenChanged(playerOpen: Boolean) extends OnChange
   case class OnSelectionChanged(selection: Selection) extends OnChange
+
   case class OnTrackListChanged(trackList: List[Track]) extends OnChange
+  case class OnArtistMapChanged(artistMap: ArtistMap) extends OnChange
+
   case class OnStationOptionChanged(stationOption: Option[Station]) extends OnChange
   case class OnStationListChanged(stationList: List[Station]) extends OnChange
 

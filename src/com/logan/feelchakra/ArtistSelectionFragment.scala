@@ -3,7 +3,7 @@ package com.logan.feelchakra
 import RichListView.listView2RichListView
 import android.util.Log
 
-class TrackSelectionFragment extends Fragment {
+class ArtistSelectionFragment extends Fragment {
 
   private val that = this
   private var _verticalLayout: LinearLayout = _
@@ -14,8 +14,8 @@ class TrackSelectionFragment extends Fragment {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
       msg.obj match {
-        case OnTrackListChanged(trackList) => 
-          that.populateListView(trackList)
+        case OnArtistMapChanged(artistMap) => 
+          //that.populateListView(trackList)
           true
         case _ => false
       }
@@ -28,6 +28,7 @@ class TrackSelectionFragment extends Fragment {
 
   override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
     _verticalLayout = new LinearLayout(getActivity()) {
+
       setOrientation(VERTICAL)
       addView {
         _listView = new ListView(getActivity()) {
@@ -46,6 +47,7 @@ class TrackSelectionFragment extends Fragment {
   }
 
   private def populateListView(trackList: List[Track]): Unit = {
+    /*
     
     _listView.getAdapter() match {
       case adapter: TrackListAdapter => {
@@ -62,6 +64,7 @@ class TrackSelectionFragment extends Fragment {
         ) 
       }
     } 
+    */
 
   }
 

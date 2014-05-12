@@ -63,8 +63,13 @@ package com.logan {
 
 
     type ListBuffer[A] = scala.collection.mutable.ListBuffer[A]
+
     val HashMap = scala.collection.immutable.HashMap
     type HashMap[A, B] = scala.collection.immutable.HashMap[A, B]
+
+    type ArtistMap = HashMap[String, HashMap[String, List[Track]]]
+    type AlbumMap = HashMap[String, List[Track]]
+
     type List[A] = scala.collection.immutable.List[A]
 
     type IOException = java.io.IOException

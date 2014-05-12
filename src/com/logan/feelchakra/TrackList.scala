@@ -16,10 +16,10 @@ object TrackList {
     ) onComplete {
       case Success(table) => { 
         
-        table.rowObservable map { row =>  
-          Track(row(DATA), row(TITLE), row(ALBUM), row(ARTIST))
-        } subscribe ( 
-          (track: Track) => { trackListBuffer += track },
+        table.rowObservable subscribe ( 
+          (row) => { 
+            trackListBuffer += Track(row(DATA), row(TITLE), row(ALBUM), row(ARTIST))
+          },
           (e: Throwable) => Log.d("chakra", "row observable failed: " + e.getMessage),
           () => { promise.success(trackListBuffer.toList) }
         )

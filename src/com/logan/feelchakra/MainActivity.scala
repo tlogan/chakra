@@ -13,14 +13,16 @@ class MainActivity extends Activity {
   private var _playerFrame: FrameLayout = _
   private val that = this
 
+  private val artistSelectionFragment =  new ArtistSelectionFragment;
   private val trackSelectionFragment =  new TrackSelectionFragment;
   private val stationSelectionFragment = new StationSelectionFragment;
 
   private def createSelectionTabs(selectionList: List[Selection]): Unit = {
+
     that.getActionBar().setNavigationMode(NAVIGATION_MODE_TABS)
-    that.getActionBar().setDisplayShowTitleEnabled(true)
-    that.getActionBar().setDisplayShowHomeEnabled(true)
-    that.getActionBar().removeAllTabs();
+    that.getActionBar().setDisplayShowTitleEnabled(false)
+    that.getActionBar().setDisplayShowHomeEnabled(false)
+    that.getActionBar().removeAllTabs()
 
     selectionList foreach { selection => 
       val tabListener = new TabListener() {
@@ -57,6 +59,8 @@ class MainActivity extends Activity {
     val transaction = getFragmentManager().beginTransaction()
 
     selection match {
+      case ArtistSelection => 
+        transaction.replace(_selectionFrame.getId(), artistSelectionFragment)
       case TrackSelection => 
         transaction.replace(_selectionFrame.getId(), trackSelectionFragment)
       case StationSelection =>
@@ -84,6 +88,7 @@ class MainActivity extends Activity {
   
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
+
 
     setContentView {
       new LinearLayout(this) {

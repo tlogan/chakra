@@ -100,7 +100,9 @@ class MainActor extends Actor {
 
         OnTrackIndexChanged(localManager.currentIndex),
         OnPlaylistChanged(localManager.playlist),
-        OnTrackListChanged(localManager.list),
+        OnTrackListChanged(localManager.trackList),
+
+        OnArtistMapChanged(localManager.artistMap),
 
         OnLocalTrackOptionChanged(localManager.currentOp),
         OnLocalStartPosChanged(localManager.startPos),
@@ -116,18 +118,19 @@ class MainActor extends Actor {
       uis = uis.-(key)
 
     case SetDatabase(database) =>
-      val trackListFuture = TrackList(database)
-      trackListFuture.onComplete({ 
-        case Success(trackList) => self ! SetTrackList(trackList)
-        case Failure(t) => Log.d("chakra", "trakListFuture failed: " + t.getMessage)
-      })
       this.database = database
+      TrackList(database) onComplete { 
+        case Success(trackList) => 
+          self ! SetTrackList(trackList)
+
+        case Failure(t) => Log.d("chakra", "trakListFuture failed: " + t.getMessage)
+      }
 
     case SetCacheDir(cacheDir) => 
       this.cacheDir = cacheDir
 
     case SetTrackList(trackList) =>
-      localManager = localManager.setList(trackList)
+      localManager = localManager.setTrackList(trackList)
 
     case SetSelection(selection) => 
       selectionManager = selectionManager.setCurrent(selection)
