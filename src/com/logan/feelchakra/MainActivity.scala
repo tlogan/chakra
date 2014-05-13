@@ -18,76 +18,28 @@ class MainActivity extends Activity {
   private val trackSelectionFragment =  new TrackSelectionFragment
   private val stationSelectionFragment = new StationSelectionFragment
 
-  private def createSelectionTabs(selectionList: List[Selection]): Unit = {
+  private var _selectionList: List[Selection] = List() 
 
-    that.getActionBar().setNavigationMode(NAVIGATION_MODE_TABS)
-    that.getActionBar().setDisplayShowTitleEnabled(false)
-    that.getActionBar().setDisplayShowHomeEnabled(false)
-    that.getActionBar().removeAllTabs()
-
-    selectionList foreach { selection => 
-      val tabListener = new TabListener() {
-        override def onTabSelected(tab: Tab, ft: FragmentTransaction): Unit = {
-          mainActorRef ! MainActor.SetSelection(selectionList(tab.getPosition()))
-        }
-
-        override def onTabUnselected(tab: Tab, ft: FragmentTransaction): Unit = {
-        }
-
-        override def onTabReselected(tab: Tab, ft: FragmentTransaction): Unit = {
-        }
-      }
-
-      val tab = that.getActionBar().newTab().setText(selection.label).setTabListener(tabListener)
-
-      that.getActionBar().addTab(tab)
-    }
-  }
-
-  private def setPlayerVisibility(playerOpen: Boolean): Unit = {
-    if (playerOpen) {
-      _selectionFrame.setLayoutParams {
-        new LLLayoutParams(MATCH_PARENT, 0, 0)
-      }
-    } else {
-      _selectionFrame.setLayoutParams {
-        new LLLayoutParams(MATCH_PARENT, 0, 6)
-      }
-    }
-  }
-
-  private def replaceSelectionFragment(selection: Selection): Unit = {
-    val transaction = getFragmentManager().beginTransaction()
-
-    selection match {
-      case ArtistSelection => 
-        transaction.replace(_selectionFrame.getId(), artistSelectionFragment)
-      case AlbumSelection => 
-        transaction.replace(_selectionFrame.getId(), albumSelectionFragment)
-      case TrackSelection => 
-        transaction.replace(_selectionFrame.getId(), trackSelectionFragment)
-      case StationSelection =>
-        transaction.replace(_selectionFrame.getId(), stationSelectionFragment)
-    }
-
-    transaction.commit()
-    
-  }
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
       msg.obj match {
         case OnSelectionListChanged(selectionList) => 
-          that.createSelectionTabs(selectionList); true
+          _selectionList = selectionList
+          that.createSelectionTabs(selectionList)
+          true
         case OnPlayerOpenChanged(playerOpen) => 
-          that.setPlayerVisibility(playerOpen); true
+          that.setPlayerVisibility(playerOpen)
+          true
         case OnSelectionChanged(selection) => 
-          that.replaceSelectionFragment(selection); true
+          that.getActionBar().setSelectedNavigationItem(_selectionList.indexOf(selection))
+          true
         case _ => false
       }
     }
   })
+
   
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
@@ -143,6 +95,68 @@ class MainActivity extends Activity {
     val playerServiceIntent = new Intent(this, classOf[PlayerService])
     stopService(playerServiceIntent);
     mainActorRef ! MainActor.Unsubscribe(this.toString)
+  }
+
+  private def createSelectionTabs(selectionList: List[Selection]): Unit = {
+
+    that.getActionBar().setNavigationMode(NAVIGATION_MODE_TABS)
+    that.getActionBar().setDisplayShowTitleEnabled(false)
+    that.getActionBar().setDisplayShowHomeEnabled(false)
+    that.getActionBar().removeAllTabs()
+
+    selectionList foreach { selection => 
+      val tabListener = new TabListener() {
+        override def onTabSelected(tab: Tab, ft: FragmentTransaction): Unit = {
+          replaceSelectionFragment(selectionList(tab.getPosition()))
+          //mainActorRef ! MainActor.SetSelection()
+        }
+
+        override def onTabUnselected(tab: Tab, ft: FragmentTransaction): Unit = {
+        }
+
+        override def onTabReselected(tab: Tab, ft: FragmentTransaction): Unit = {
+        }
+      }
+
+      val tab = that.getActionBar().newTab().setText(selection.label).setTabListener(tabListener)
+
+      that.getActionBar().addTab(tab)
+    }
+
+
+  }
+
+  private def setPlayerVisibility(playerOpen: Boolean): Unit = {
+    if (playerOpen) {
+      _selectionFrame.setLayoutParams {
+        new LLLayoutParams(MATCH_PARENT, 0, 0)
+      }
+    } else {
+      _selectionFrame.setLayoutParams {
+        new LLLayoutParams(MATCH_PARENT, 0, 6)
+      }
+    }
+  }
+
+  private def replaceSelectionFragment(selection: Selection): Unit = {
+
+    val transaction = getFragmentManager().beginTransaction()
+
+    selection match {
+      case ArtistSelection => 
+        transaction.replace(_selectionFrame.getId(), artistSelectionFragment)
+      case AlbumSelection => 
+        transaction.replace(_selectionFrame.getId(), albumSelectionFragment)
+      case TrackSelection => 
+        transaction.replace(_selectionFrame.getId(), trackSelectionFragment)
+      case StationSelection =>
+        transaction.replace(_selectionFrame.getId(), stationSelectionFragment)
+    }
+
+    transaction.commit()
+
+
+    
   }
 
 
