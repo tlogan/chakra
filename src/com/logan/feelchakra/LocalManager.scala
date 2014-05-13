@@ -5,13 +5,15 @@ import android.util.Log
 case class LocalManager(
   currentIndex: Int, 
   playlist: List[Track], 
+  artistMap: ArtistMap,
+  albumMap: AlbumMap,
   trackList: List[Track],
   playerOpen: Boolean,
   playing: Boolean, 
   startPos: Int
 ) {
 
-  def this() = this(-1, List(), List(), false, false, 0)
+  def this() = this(-1, List(), new ArtistMap(), new AlbumMap(), List(), false, false, 0)
 
   import MainActor._
   import UI._
@@ -19,9 +21,6 @@ case class LocalManager(
   def optionByIndex(index: Int): Option[Track] = playlist.lift(index)
   def currentOp: Option[Track] = playlist.lift(currentIndex)
   def nextOp: Option[Track] = playlist.lift(currentIndex + 1)
-
-  val artistMap = ArtistMap(trackList)
-  val albumMap = AlbumMap(trackList)
 
   def setCurrentIndex(index: Int): LocalManager = {
     mainActorRef ! NotifyHandlers(OnTrackIndexChanged(index))
@@ -38,6 +37,7 @@ case class LocalManager(
         )
     }
 
+
     copy(currentIndex = index)
   }
    
@@ -48,8 +48,14 @@ case class LocalManager(
   }
 
   def setTrackList(list: List[Track]): LocalManager = {
+
     mainActorRef ! NotifyHandlers(OnTrackListChanged(list))
-    copy(trackList = list)
+    val albumMap = AlbumMap(list)
+    mainActorRef ! NotifyHandlers(OnAlbumMapChanged(albumMap))
+    val artistMap = ArtistMap(list)
+    mainActorRef ! NotifyHandlers(OnArtistMapChanged(artistMap))
+
+    copy(trackList = list, albumMap = albumMap, artistMap = artistMap)
   }
 
   def setPlayerOpen(playerOpen: Boolean): LocalManager = {

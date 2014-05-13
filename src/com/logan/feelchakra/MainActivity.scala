@@ -20,7 +20,6 @@ class MainActivity extends Activity {
 
   private var _selectionList: List[Selection] = List() 
 
-
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._

@@ -103,6 +103,7 @@ class MainActor extends Actor {
         OnTrackListChanged(localManager.trackList),
 
         OnArtistMapChanged(localManager.artistMap),
+        OnAlbumMapChanged(localManager.albumMap),
 
         OnLocalTrackOptionChanged(localManager.currentOp),
         OnLocalStartPosChanged(localManager.startPos),

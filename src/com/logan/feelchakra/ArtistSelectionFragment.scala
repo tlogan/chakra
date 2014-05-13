@@ -2,6 +2,7 @@ package com.logan.feelchakra
 
 import RichListView.listView2RichListView
 import android.util.Log
+import android.widget.Toast
 
 class ArtistSelectionFragment extends Fragment {
 
@@ -15,7 +16,7 @@ class ArtistSelectionFragment extends Fragment {
       import UI._
       msg.obj match {
         case OnArtistMapChanged(artistMap) => 
-          //that.populateListView(trackList)
+          populateListView(artistMap)
           true
         case _ => false
       }
@@ -46,25 +47,25 @@ class ArtistSelectionFragment extends Fragment {
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
 
-  private def populateListView(trackList: List[Track]): Unit = {
-    /*
-    
+  private def populateListView(artistMap: ArtistMap): Unit = {
     _listView.getAdapter() match {
-      case adapter: TrackListAdapter => {
-        adapter.setTrackList(trackList)
+      case adapter: ArtistListAdapter => {
+        adapter.setArtistList(artistMap.toList)
       }
       case _ => {
-        val adapter = new TrackListAdapter(getActivity(), trackList)
+        val adapter = new ArtistListAdapter(getActivity(), artistMap.toList)
         _listView.setAdapter(adapter) 
         _listView.setOnItemClick( 
           (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-            val track =  adapter.getItem(position)
-            mainActorRef ! MainActor.AddTrackToPlaylist(track) 
+            val artistTuple =  adapter.getItem(position)
+
+            Toast.makeText(getActivity(), "artistTuple: " + artistTuple, Toast.LENGTH_SHORT).show()
+            Log.d("chakra", "artistTuple: " + artistTuple)
+            //mainActorRef ! MainActor.AddTrackToPlaylist(track) 
           }
         ) 
       }
     } 
-    */
 
   }
 
