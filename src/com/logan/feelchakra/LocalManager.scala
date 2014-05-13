@@ -20,23 +20,8 @@ case class LocalManager(
   def currentOp: Option[Track] = playlist.lift(currentIndex)
   def nextOp: Option[Track] = playlist.lift(currentIndex + 1)
 
-
-  val artistMap = trackList.foldLeft(new ArtistMap())((artistMap, track) => {
-
-    val albumMap = artistMap.get(track.artist) match {
-      case Some(albumMap) =>
-        val trackList = albumMap.get(track.album) match {
-          case Some(trackList) => trackList :+ track
-          case None => List[Track](track)
-        }
-        albumMap + (track.album -> trackList)
-      case None =>
-        new AlbumMap() + (track.album -> List[Track](track))
-    }
-
-    artistMap + (track.artist -> albumMap)
-    
-  })
+  val artistMap = ArtistMap(trackList)
+  val albumMap = AlbumMap(trackList)
 
   def setCurrentIndex(index: Int): LocalManager = {
     mainActorRef ! NotifyHandlers(OnTrackIndexChanged(index))

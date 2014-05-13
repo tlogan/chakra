@@ -3,7 +3,7 @@ package com.logan.feelchakra
 import android.util.Log
 import scala.concurrent.ExecutionContext.Implicits.global
  
-object TrackList {
+object TrackListFuture {
 
   def apply(database: Database): Future[List[Track]] = {
 

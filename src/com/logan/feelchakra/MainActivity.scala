@@ -13,9 +13,10 @@ class MainActivity extends Activity {
   private var _playerFrame: FrameLayout = _
   private val that = this
 
-  private val artistSelectionFragment =  new ArtistSelectionFragment;
-  private val trackSelectionFragment =  new TrackSelectionFragment;
-  private val stationSelectionFragment = new StationSelectionFragment;
+  private val albumSelectionFragment =  new AlbumSelectionFragment
+  private val artistSelectionFragment =  new ArtistSelectionFragment
+  private val trackSelectionFragment =  new TrackSelectionFragment
+  private val stationSelectionFragment = new StationSelectionFragment
 
   private def createSelectionTabs(selectionList: List[Selection]): Unit = {
 
@@ -61,6 +62,8 @@ class MainActivity extends Activity {
     selection match {
       case ArtistSelection => 
         transaction.replace(_selectionFrame.getId(), artistSelectionFragment)
+      case AlbumSelection => 
+        transaction.replace(_selectionFrame.getId(), albumSelectionFragment)
       case TrackSelection => 
         transaction.replace(_selectionFrame.getId(), trackSelectionFragment)
       case StationSelection =>

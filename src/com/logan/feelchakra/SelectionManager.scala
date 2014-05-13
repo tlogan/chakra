@@ -5,8 +5,8 @@ import android.util.Log
 case class SelectionManager(list: List[Selection], current: Selection) {
 
   def this() = this(
-    List(ArtistSelection, TrackSelection, StationSelection), 
-    TrackSelection
+    List(StationSelection, ArtistSelection, AlbumSelection, TrackSelection), 
+    ArtistSelection
   )
 
   import MainActor._

@@ -66,9 +66,11 @@ package com.logan {
 
     val HashMap = scala.collection.immutable.HashMap
     type HashMap[A, B] = scala.collection.immutable.HashMap[A, B]
+    val TreeMap = scala.collection.immutable.TreeMap
+    type TreeMap[A, +B] = scala.collection.immutable.TreeMap[A, B]
 
-    type ArtistMap = HashMap[String, HashMap[String, List[Track]]]
-    type AlbumMap = HashMap[String, List[Track]]
+    type ArtistMap = TreeMap[String, TreeMap[String, List[Track]]]
+    type AlbumMap = TreeMap[String, List[Track]]
 
     type List[A] = scala.collection.immutable.List[A]
 

@@ -119,7 +119,7 @@ class MainActor extends Actor {
 
     case SetDatabase(database) =>
       this.database = database
-      TrackList(database) onComplete { 
+      TrackListFuture(database) onComplete { 
         case Success(trackList) => 
           self ! SetTrackList(trackList)
 
