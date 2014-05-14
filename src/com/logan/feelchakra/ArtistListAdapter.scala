@@ -17,8 +17,6 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
 
   override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
 
-    Log.d("chakra", "artist pos " + position)
-
     val artistTuple = getItem(position)
     val artist = artistTuple._1
     val albumMap = artistTuple._2

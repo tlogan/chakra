@@ -7,7 +7,7 @@ object AlbumMap {
 
   def apply(trackList: List[Track]): AlbumMap = {
     trackList.foldLeft(new AlbumMap())((albumMap, track) => {
-      val trackList = albumMap.get(track.artist) match {
+      val trackList = albumMap.get(track.album) match {
         case Some(trackList) => trackList :+ track
         case None => List[Track](track)
       }
