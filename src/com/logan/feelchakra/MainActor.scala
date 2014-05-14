@@ -44,6 +44,7 @@ object MainActor {
   case class SetStationPlayState(playState: PlayState)
 
   case class SetArtistTuple(artistTuple: (String, AlbumMap)) 
+  case class SetAlbumTuple(albumTuple: (String, List[Track])) 
 
 }
 
@@ -266,6 +267,9 @@ class MainActor extends Actor {
 
     case SetArtistTuple(artistTuple) =>
       localManager = localManager.setArtistTuple(artistTuple)
+
+    case SetAlbumTuple(albumTuple) =>
+      localManager = localManager.setAlbumTuple(albumTuple)
 
 
   }

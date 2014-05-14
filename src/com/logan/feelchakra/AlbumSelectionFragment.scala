@@ -19,6 +19,13 @@ class AlbumSelectionFragment extends Fragment {
         case OnAlbumMapChanged(albumMap) => 
           populateListView(albumMap)
           true
+        case OnAlbumTupleOpChanged(albumTupleOp) =>
+          albumTupleOp match {
+            case Some(albumTuple) => 
+              openTrackList(albumTuple)
+            case None => //closeAlbumList
+          }
+          true
         case _ => false
       }
 
@@ -60,15 +67,21 @@ class AlbumSelectionFragment extends Fragment {
         _listView.setOnItemClick( 
           (parent: AdapterView[_], view: View, position: Int, id: Long) => {
             val albumTuple =  adapter.getItem(position)
-
-            Toast.makeText(getActivity(), "albumTuple: " + albumTuple, Toast.LENGTH_SHORT).show()
-            Log.d("chakra", "albumTuple: " + albumTuple)
-            //mainActorRef ! MainActor.AddTrackToPlaylist(track) 
+            mainActorRef ! MainActor.SetAlbumTuple(albumTuple) 
           }
         ) 
       }
     } 
 
+  }
+
+  private def openTrackList(albumTuple: (String, List[Track])): Unit = {
+    _listView.getAdapter() match {
+      case adapter: AlbumListAdapter => {
+        adapter.setAlbumTuple(albumTuple)
+      }
+      case _ => Log.d("chakra", "ArtistListAdapter missing")
+    } 
   }
 
 

@@ -84,10 +84,6 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
               }
 
             })
-              
-
-
-
           }
         case None => {}
       }
