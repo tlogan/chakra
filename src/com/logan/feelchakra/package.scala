@@ -55,8 +55,12 @@ package com.logan {
     type BaseAdapter = android.widget.BaseAdapter
     type LinearLayout = android.widget.LinearLayout
     type LLLayoutParams = android.widget.LinearLayout.LayoutParams
+    type VGLayoutParams = android.view.ViewGroup.LayoutParams
+    type LVLayoutParams = android.widget.AbsListView.LayoutParams
     val MATCH_PARENT = android.view.ViewGroup.LayoutParams.MATCH_PARENT
+    val WRAP_CONTENT = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
     val VERTICAL =  android.widget.LinearLayout.VERTICAL
+    val HORIZONTAL =  android.widget.LinearLayout.HORIZONTAL
     type Handler = android.os.Handler
     type HandlerCallback = android.os.Handler.Callback
     type Bundle = android.os.Bundle

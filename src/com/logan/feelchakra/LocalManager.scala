@@ -5,6 +5,7 @@ import android.util.Log
 case class LocalManager(
   currentIndex: Int, 
   playlist: List[Track], 
+  artistTupleOp: Option[(String, AlbumMap)],
   artistMap: ArtistMap,
   albumMap: AlbumMap,
   trackList: List[Track],
@@ -13,7 +14,7 @@ case class LocalManager(
   startPos: Int
 ) {
 
-  def this() = this(-1, List(), new ArtistMap(), new AlbumMap(), List(), false, false, 0)
+  def this() = this(-1, List(), None, new ArtistMap(), new AlbumMap(), List(), false, false, 0)
 
   import MainActor._
   import UI._
@@ -56,6 +57,12 @@ case class LocalManager(
     mainActorRef ! NotifyHandlers(OnArtistMapChanged(artistMap))
 
     copy(trackList = list, albumMap = albumMap, artistMap = artistMap)
+  }
+
+  def setArtistTuple(artistTuple: (String, AlbumMap)): LocalManager = {
+    val op = Some(artistTuple)
+    mainActorRef ! NotifyHandlers(OnArtistTupleOpChanged(op))
+    copy(artistTupleOp = op)
   }
 
   def setPlayerOpen(playerOpen: Boolean): LocalManager = {

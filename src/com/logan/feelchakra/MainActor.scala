@@ -43,6 +43,8 @@ object MainActor {
   case object EndStationAudioBuffer
   case class SetStationPlayState(playState: PlayState)
 
+  case class SetArtistTuple(artistTuple: (String, AlbumMap)) 
+
 }
 
 class MainActor extends Actor {
@@ -261,6 +263,9 @@ class MainActor extends Actor {
     case SetStationPlayState(playState) =>
       Log.d("chakra", "set station playstate: " + playState)
       stationManager = stationManager.setPlayState(playState)
+
+    case SetArtistTuple(artistTuple) =>
+      localManager = localManager.setArtistTuple(artistTuple)
 
 
   }

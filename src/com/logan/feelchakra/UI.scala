@@ -11,6 +11,8 @@ object UI {
   case class OnArtistMapChanged(artistMap: ArtistMap) extends OnChange
   case class OnAlbumMapChanged(albumMap: AlbumMap) extends OnChange
 
+  case class OnArtistTupleOpChanged(artistTupleOp: Option[(String, AlbumMap)]) extends OnChange
+
   case class OnStationOptionChanged(stationOption: Option[Station]) extends OnChange
   case class OnStationListChanged(stationList: List[Station]) extends OnChange
 
