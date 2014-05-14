@@ -40,7 +40,7 @@ class AlbumListAdapter(activity: Activity, initialAlbumList: List[(String, List[
 
             setBackgroundColor(GRAY)
 
-            trackList.zipWithIndex.foreach(pair => {
+            trackList.toIterator.zipWithIndex.foreach(pair => {
               val track = pair._1
               val trackNum = pair._2 + 1
 

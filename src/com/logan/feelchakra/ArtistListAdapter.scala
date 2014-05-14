@@ -1,6 +1,7 @@
 package com.logan.feelchakra
 
 import RichListView.listView2RichListView
+import RichView.view2RichView
 import android.util.Log
 import android.widget.Toast
 
@@ -25,62 +26,117 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
       setOrientation(VERTICAL)
       setBackgroundColor(DKGRAY)
       setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-      List(artist, albumMap.size + " Albums") foreach {
-        (term: String) => { 
-          addView {
-            new TextView(activity) {
-              setText(term)
-              setTextColor(WHITE)
-              setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-            }
-          }
-        } 
+
+      addView {
+        new TextView(activity) {
+          setText(artist)
+          setTextSize(20)
+          setTextColor(WHITE)
+        }
+      }
+
+      addView {
+        new TextView(activity) {
+          setText(albumMap.size + " Albums")
+          setTextSize(14)
+          setTextColor(WHITE)
+        }
       }
       
       _artistTupleOp match {
         case Some(openArtistTuple) =>
           if (artistTuple == openArtistTuple) {
 
-            setBackgroundColor(GRAY)
-
-            albumMap.foreach(tuple => {
-              val album = tuple._1
-              val trackList = tuple._2
+            albumMap.foreach(albumTuple => {
+              val album = albumTuple._1
+              val trackList = albumTuple._2
 
               addView {
-                new LinearLayout(activity) {
+                new View(activity) {
+                  setBackgroundColor(BLACK)
+                  setLayoutParams(new LLLayoutParams(MATCH_PARENT, 2))
+                }
+              }
+
+              addView {
+                val albumLL = new LinearLayout(activity) {
                   setOrientation(HORIZONTAL)
                   setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+                  setBackgroundColor(BLACK)
                   addView {
                     new View(activity) {
-                      setBackgroundColor(DKGRAY)
-                      setLayoutParams(new LLLayoutParams(100, MATCH_PARENT))
+                      setBackgroundColor(YELLOW)
+                      setLayoutParams(new LLLayoutParams(80, 80))
                     }
                   }
 
                   addView {
                     new LinearLayout(activity) {
                       setOrientation(VERTICAL)
+                      setBackgroundColor(DKGRAY)
                       setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+                      setPadding(10, 10, 10, 10)
+
                       addView {
-                        new View(activity) {
-                          setBackgroundColor(DKGRAY)
-                          setLayoutParams(new LLLayoutParams(MATCH_PARENT, 1))
+                        new TextView(activity) {
+                          setText(album)
+                          setTextSize(20)
+                          setTextColor(WHITE)
                         }
                       }
-                      List(album, trackList.size + " Tracks").foreach(text => {
+
+                      addView {
+                        new TextView(activity) {
+                          setText(trackList.size + " Tracks")
+                          setTextSize(14)
+                          setTextColor(WHITE)
+                        }
+                      }
+
+                      addView {
+                        new View(activity) {
+                          setLayoutParams(new LLLayoutParams(MATCH_PARENT, 8))
+                        }
+                      }
+
+                      trackList.toIterator.zipWithIndex.foreach(pair => {
+                        val track = pair._1
+                        val trackNum = pair._2 + 1
+
                         addView {
-                          new TextView(activity) {
-                            setText(text)
-                            setTextColor(WHITE)
-                            setBackgroundColor(GRAY)
+                          new LinearLayout(activity) {
+                            setOrientation(VERTICAL)
                             setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+
+                            addView {
+                              new TextView(activity) {
+                                setText(trackNum + ". " + track.title)
+                                setTextSize(18)
+                                setTextColor(WHITE)
+                                setPadding(0, 6, 0, 6)
+                                setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+                              }
+                            }
+                            
                           }
                         }
+
+                        if (trackNum != trackList.size) {
+                          addView {
+                            new View(activity) {
+                              setBackgroundColor(WHITE)
+                              setLayoutParams(new LLLayoutParams(MATCH_PARENT, 1))
+                            }
+                          }
+                        }
+
                       })
+
                     }
                   }
+
                 }
+                albumLL
               }
 
             })

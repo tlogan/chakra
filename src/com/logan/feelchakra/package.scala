@@ -156,6 +156,7 @@ package com.logan {
 
     type Color = android.graphics.Color
     val YELLOW = android.graphics.Color.YELLOW
+    val BLACK = android.graphics.Color.BLACK
     val DKGRAY = android.graphics.Color.DKGRAY
     val GRAY = android.graphics.Color.GRAY
     val WHITE = android.graphics.Color.WHITE

@@ -271,7 +271,6 @@ class MainActor extends Actor {
     case SetAlbumTuple(albumTuple) =>
       localManager = localManager.setAlbumTuple(albumTuple)
 
-
   }
 
   private def notifyHandlers(uis: Map[String, Handler], response: OnChange): Unit = {
