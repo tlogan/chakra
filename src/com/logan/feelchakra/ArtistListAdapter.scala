@@ -48,7 +48,8 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
             }
 
             addView {
-              new AlbumLayout(activity, album, trackList) 
+              new AlbumLayout(activity, album, trackList) {
+              }
             }
 
           })

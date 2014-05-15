@@ -22,7 +22,7 @@ object MainActor {
   case class AddLocalAudioBuffer(audioBuffer: Array[Byte])
   case object EndLocalAudioBuffer
 
-  case class AddTrackToPlaylist(track: Track) 
+  case class AddPlaylistTrack(track: Track) 
   case object FlipPlayer
   case class AddStation(station: Station)
   case class CommitStation(device: WifiP2pDevice)
@@ -162,7 +162,7 @@ class MainActor extends Actor {
       notifyWriters(ListenerWriter.WriteAudioDone)
       Log.d("chakra", "Audio Done")
 
-    case AddTrackToPlaylist(track) =>
+    case AddPlaylistTrack(track) =>
       if (localManager.playlist.size == 0) {
         if (stationManager.currentOp == None) {
           notifyWriters(ListenerWriter.WriteTrackOp(Some(track)))

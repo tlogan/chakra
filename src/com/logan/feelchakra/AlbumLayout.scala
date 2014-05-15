@@ -1,10 +1,18 @@
 package com.logan.feelchakra
+import RichListView.listView2RichListView
+import RichView.view2RichView
 
 class AlbumLayout(
     context: Context, 
     album: String,
     trackList: List[Track]
 ) extends ImageTextLayout(context, album, trackList.size + " Tracks", "time") {
+
+      this.setOnClick(view => {
+        trackList.foreach(track => {
+          mainActorRef ! MainActor.AddPlaylistTrack(track)
+        })
+      })
 
       verticalLayout.addView {
         new View(context) {
@@ -17,7 +25,7 @@ class AlbumLayout(
         val trackNum = pair._2 + 1
 
         verticalLayout.addView {
-          new LinearLayout(context) {
+          val trackLL = new LinearLayout(context) {
             setOrientation(VERTICAL)
             setPadding(10, 0, 10, 0)
 
@@ -31,6 +39,11 @@ class AlbumLayout(
             }
             
           }
+          trackLL.setOnClick(view => {
+            mainActorRef ! MainActor.AddPlaylistTrack(track)
+          })
+
+          trackLL
         }
 
         if (trackNum != trackList.size) {

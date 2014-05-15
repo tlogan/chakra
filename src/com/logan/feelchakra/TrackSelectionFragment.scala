@@ -59,7 +59,7 @@ class TrackSelectionFragment extends Fragment {
         _listView.setOnItemClick( 
           (parent: AdapterView[_], view: View, position: Int, id: Long) => {
             val track =  adapter.getItem(position)
-            mainActorRef ! MainActor.AddTrackToPlaylist(track) 
+            mainActorRef ! MainActor.AddPlaylistTrack(track) 
           }
         ) 
       }
