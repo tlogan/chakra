@@ -5,58 +5,73 @@ import RichView.view2RichView
 class AlbumLayout(
     context: Context, 
     album: String,
-    trackList: List[Track]
+    trackList: List[Track],
+    playmap: Map[Track, List[Int]]
 ) extends ImageTextLayout(context, album, trackList.size + " Tracks", "time") {
 
-      this.setOnClick(view => {
-        trackList.foreach(track => {
-          mainActorRef ! MainActor.AddPlaylistTrack(track)
-        })
-      })
+  verticalLayout.setOnClick(view => {
+    trackList.foreach(track => {
+      mainActorRef ! MainActor.AddPlaylistTrack(track)
+    })
+  })
 
-      verticalLayout.addView {
-        new View(context) {
-          setLayoutParams(new LLLayoutParams(MATCH_PARENT, 8))
+  verticalLayout.addView {
+    new View(context) {
+      setLayoutParams(new LLLayoutParams(MATCH_PARENT, 8))
+    }
+  }
+
+  trackList.toIterator.zipWithIndex.foreach(pair => {
+    val track = pair._1
+    val trackNum = pair._2 + 1
+
+    verticalLayout.addView {
+      val trackLL = new LinearLayout(context) {
+        setOrientation(VERTICAL)
+        setPadding(10, 12, 10, 12)
+
+        addView {
+          new TextView(context) {
+            setText(trackNum + ". " + track.title)
+            setTextSize(18)
+            setTextColor(WHITE)
+          }
         }
-      }
 
-      trackList.toIterator.zipWithIndex.foreach(pair => {
-        val track = pair._1
-        val trackNum = pair._2 + 1
+        playmap.get(track) match {
+          case Some(posList) =>
 
-        verticalLayout.addView {
-          val trackLL = new LinearLayout(context) {
-            setOrientation(VERTICAL)
-            setPadding(10, 0, 10, 0)
-
+            setBackgroundColor(GRAY) 
             addView {
               new TextView(context) {
-                setText(trackNum + ". " + track.title)
-                setTextSize(18)
-                setTextColor(WHITE)
-                setPadding(0, 12, 0, 12)
+                setText(posList.mkString(", "))
+                setTextSize(14)
+                setTextColor(LTGRAY)
               }
             }
-            
-          }
-          trackLL.setOnClick(view => {
-            mainActorRef ! MainActor.AddPlaylistTrack(track)
-          })
-
-          trackLL
+          case None =>
+            setBackgroundColor(DKGRAY) 
         }
 
-        if (trackNum != trackList.size) {
-          verticalLayout.addView {
-            new View(context) {
-              setBackgroundColor(LTGRAY)
-              val lp = new LLLayoutParams(MATCH_PARENT, 1)
-              lp.setMargins(10, 0, 10, 0)
-              setLayoutParams(lp)
-            }
-          }
-        }
+        
+      }
+      trackLL.setOnClick(view => {
+        mainActorRef ! MainActor.AddPlaylistTrack(track)
       })
 
+      trackLL
+    }
+
+    if (trackNum != trackList.size) {
+      verticalLayout.addView {
+        new View(context) {
+          setBackgroundColor(LTGRAY)
+          val lp = new LLLayoutParams(MATCH_PARENT, 1)
+          lp.setMargins(10, 0, 10, 0)
+          setLayoutParams(lp)
+        }
+      }
+    }
+  })
 
 }

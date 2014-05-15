@@ -22,9 +22,15 @@ class ArtistSelectionFragment extends Fragment {
         case OnArtistTupleOpChanged(artistTupleOp) =>
           artistTupleOp match {
             case Some(artistTuple) => 
-              openAlbumList(artistTuple)
+              setArtistTuple(artistTuple)
             case None => //closeAlbumList
           }
+          true
+        case OnPlaylistChanged(playlist) => 
+          that.setPlaylist(playlist)
+          true
+        case OnLocalTrackOptionChanged(trackOption) => 
+          that.setTrackOption(trackOption)
           true
         case _ => false
       }
@@ -81,17 +87,33 @@ class ArtistSelectionFragment extends Fragment {
 
   }
 
-  private def openAlbumList(artistTuple: (String, AlbumMap)): Unit = {
+  private def doOnAdapter(f: ArtistListAdapter => Unit): Unit = {
     _listView.getAdapter() match {
       case adapter: ArtistListAdapter => {
-        adapter.setArtistTuple(artistTuple)
-        _listView.setSelectionFromTop(selectedPosition, 0)
+        f(adapter)
       }
       case _ => Log.d("chakra", "ArtistListAdapter missing")
     } 
   }
 
+  private def setArtistTuple(artistTuple: (String, AlbumMap)): Unit = {
+    doOnAdapter(adapter => {
+      adapter.setArtistTuple(artistTuple)
+      _listView.setSelectionFromTop(selectedPosition, 0)
+    })
+  }
+
+  private def setPlaylist(playlist: List[Track]): Unit = {
+    doOnAdapter(adapter => {
+      adapter.setPlaymap(Playmap(playlist))
+    })
+  }
 
 
+  private def setTrackOption(trackOption: Option[Track]): Unit = {
+    doOnAdapter(adapter => {
+      adapter.setTrackOption(trackOption)
+    })
+  }
 
 }

@@ -10,6 +10,9 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
   private var _artistList: List[(String, AlbumMap)] = initialArtistList
   private var _artistTupleOp: Option[(String, AlbumMap)] = None 
 
+  private var _playmap: Map[Track, List[Int]] = HashMap() 
+  private var _trackOption: Option[Track] = None 
+
   override def getCount(): Int = _artistList.size
 
   override def getItem(position: Int): (String, AlbumMap) = _artistList(getItemId(position).toInt)
@@ -48,8 +51,7 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
             }
 
             addView {
-              new AlbumLayout(activity, album, trackList) {
-              }
+              new AlbumLayout(activity, album, trackList, _playmap)
             }
 
           })
@@ -67,6 +69,16 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
 
   def setArtistTuple(artistTuple: (String, AlbumMap)): Unit = {
     _artistTupleOp = Some(artistTuple)
+    this.notifyDataSetChanged()
+  }
+
+  def setPlaymap(playmap: Map[Track, List[Int]]): Unit = {
+    _playmap = playmap
+    this.notifyDataSetChanged()
+  }
+
+  def setTrackOption(trackOption: Option[Track]): Unit = {
+    _trackOption = trackOption 
     this.notifyDataSetChanged()
   }
 

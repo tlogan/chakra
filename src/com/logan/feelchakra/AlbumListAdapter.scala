@@ -8,6 +8,9 @@ class AlbumListAdapter(activity: Activity, initialAlbumList: List[(String, List[
   private var _albumTupleOp: Option[(String, List[Track])] = None 
   private var _albumList: List[(String, List[Track])] = initialAlbumList
 
+  private var _playmap: HashMap[Track, List[Int]] = HashMap() 
+  private var _trackOption: Option[Track] = None 
+
   override def getCount(): Int = _albumList.size
 
   override def getItem(position: Int): (String, List[Track]) = _albumList(getItemId(position).toInt)
@@ -22,7 +25,7 @@ class AlbumListAdapter(activity: Activity, initialAlbumList: List[(String, List[
 
     _albumTupleOp match {
       case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
-        new AlbumLayout(activity, album, trackList) 
+        new AlbumLayout(activity, album, trackList, _playmap) 
       case _ =>
         new ImageTextLayout(activity, album, trackList.size + " Tracks", "time")
     }
