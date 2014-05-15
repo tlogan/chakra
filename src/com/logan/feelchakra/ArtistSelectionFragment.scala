@@ -10,6 +10,7 @@ class ArtistSelectionFragment extends Fragment {
   private var _verticalLayout: LinearLayout = _
   private var _listView: ListView = _
   private var _adapter: TrackListAdapter = _
+  private var selectedPosition: Int = 0
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
@@ -67,6 +68,7 @@ class ArtistSelectionFragment extends Fragment {
         _listView.setAdapter(adapter) 
         _listView.setOnItemClick( 
           (parent: AdapterView[_], view: View, position: Int, id: Long) => {
+            selectedPosition = position
             val artistTuple =  adapter.getItem(position)
             mainActorRef ! MainActor.SetArtistTuple(artistTuple) 
 
@@ -83,6 +85,7 @@ class ArtistSelectionFragment extends Fragment {
     _listView.getAdapter() match {
       case adapter: ArtistListAdapter => {
         adapter.setArtistTuple(artistTuple)
+        _listView.setSelectionFromTop(selectedPosition, 0)
       }
       case _ => Log.d("chakra", "ArtistListAdapter missing")
     } 

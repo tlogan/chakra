@@ -16,16 +16,30 @@ class TrackListAdapter(activity: Activity, initialTrackList: List[Track]) extend
 
     new LinearLayout(activity) {
       setOrientation(VERTICAL)
-      setBackgroundColor(GRAY)
-      List(track.title, track.album, track.artist) foreach {
-        (term: String) => { 
-          addView {
-            new TextView(activity) {
-              setText(term)
-              setTextColor(WHITE)
-            }
-          }
-        } 
+      setBackgroundColor(DKGRAY)
+
+      addView {
+        new TextView(activity) {
+          setText(track.title)
+          setTextSize(20)
+          setTextColor(WHITE)
+        }
+      }
+
+      addView {
+        new TextView(activity) {
+          setText(track.artist)
+          setTextSize(14)
+          setTextColor(WHITE)
+        }
+      }
+
+      addView {
+        new TextView(activity) {
+          setText(track.album)
+          setTextSize(14)
+          setTextColor(GRAY)
+        }
       }
     }
 

@@ -28,19 +28,7 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
       setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
       addView {
-        new TextView(activity) {
-          setText(artist)
-          setTextSize(20)
-          setTextColor(WHITE)
-        }
-      }
-
-      addView {
-        new TextView(activity) {
-          setText(albumMap.size + " Albums")
-          setTextSize(14)
-          setTextColor(WHITE)
-        }
+        new ImageTextLayout(activity, artist, albumMap.size + " Albums", "time")
       }
       
       _artistTupleOp match {
@@ -59,84 +47,7 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
               }
 
               addView {
-                val albumLL = new LinearLayout(activity) {
-                  setOrientation(HORIZONTAL)
-                  setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-                  setBackgroundColor(BLACK)
-                  addView {
-                    new View(activity) {
-                      setBackgroundColor(YELLOW)
-                      setLayoutParams(new LLLayoutParams(80, 80))
-                    }
-                  }
-
-                  addView {
-                    new LinearLayout(activity) {
-                      setOrientation(VERTICAL)
-                      setBackgroundColor(DKGRAY)
-                      setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-                      setPadding(10, 10, 10, 10)
-
-                      addView {
-                        new TextView(activity) {
-                          setText(album)
-                          setTextSize(20)
-                          setTextColor(WHITE)
-                        }
-                      }
-
-                      addView {
-                        new TextView(activity) {
-                          setText(trackList.size + " Tracks")
-                          setTextSize(14)
-                          setTextColor(WHITE)
-                        }
-                      }
-
-                      addView {
-                        new View(activity) {
-                          setLayoutParams(new LLLayoutParams(MATCH_PARENT, 8))
-                        }
-                      }
-
-                      trackList.toIterator.zipWithIndex.foreach(pair => {
-                        val track = pair._1
-                        val trackNum = pair._2 + 1
-
-                        addView {
-                          new LinearLayout(activity) {
-                            setOrientation(VERTICAL)
-                            setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-
-                            addView {
-                              new TextView(activity) {
-                                setText(trackNum + ". " + track.title)
-                                setTextSize(18)
-                                setTextColor(WHITE)
-                                setPadding(0, 6, 0, 6)
-                                setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-                              }
-                            }
-                            
-                          }
-                        }
-
-                        if (trackNum != trackList.size) {
-                          addView {
-                            new View(activity) {
-                              setBackgroundColor(WHITE)
-                              setLayoutParams(new LLLayoutParams(MATCH_PARENT, 1))
-                            }
-                          }
-                        }
-
-                      })
-
-                    }
-                  }
-
-                }
-                albumLL
+                new AlbumLayout(activity, album, trackList) 
               }
 
             })
