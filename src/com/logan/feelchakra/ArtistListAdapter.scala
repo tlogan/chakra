@@ -21,43 +21,41 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
     val artistTuple = getItem(position)
     val artist = artistTuple._1
     val albumMap = artistTuple._2
-
-    new LinearLayout(activity) {
-      setOrientation(VERTICAL)
-      setBackgroundColor(DKGRAY)
-      setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-
-      addView {
-        new ImageTextLayout(activity, artist, albumMap.size + " Albums", "time")
+    val imTxLayout = {
+      new ImageTextLayout(activity, artist, albumMap.size + " Albums", "time") {
+        darken()
       }
-      
-      _artistTupleOp match {
-        case Some(openArtistTuple) =>
-          if (artistTuple == openArtistTuple) {
-
-            albumMap.foreach(albumTuple => {
-              val album = albumTuple._1
-              val trackList = albumTuple._2
-
-              addView {
-                new View(activity) {
-                  setBackgroundColor(BLACK)
-                  setLayoutParams(new LLLayoutParams(MATCH_PARENT, 2))
-                }
-              }
-
-              addView {
-                new AlbumLayout(activity, album, trackList) 
-              }
-
-            })
-          }
-        case None => {}
-      }
-
-
     }
 
+    _artistTupleOp match {
+      case Some(openArtistTuple) if (artistTuple == openArtistTuple) => 
+        new LinearLayout(activity) {
+          setOrientation(VERTICAL)
+          setBackgroundColor(DKGRAY)
+          setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+
+          addView(imTxLayout)
+
+          albumMap.foreach(albumTuple => {
+            val album = albumTuple._1
+            val trackList = albumTuple._2
+
+            addView {
+              new View(activity) {
+                setBackgroundColor(BLACK)
+                setLayoutParams(new LLLayoutParams(MATCH_PARENT, 2))
+              }
+            }
+
+            addView {
+              new AlbumLayout(activity, album, trackList) 
+            }
+
+          })
+
+        }
+      case _ => imTxLayout
+    }
 
   }
 

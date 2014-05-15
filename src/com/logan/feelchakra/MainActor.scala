@@ -94,7 +94,6 @@ class MainActor extends Actor {
       List(
         OnSelectionListChanged(selectionManager.list),
         OnPlayerOpenChanged(localManager.playerOpen),
-        OnSelectionChanged(selectionManager.current),
 
         OnStationOptionChanged(stationManager.currentOp),
         OnDiscoveringChanged(stationManager.discovering),
@@ -138,6 +137,7 @@ class MainActor extends Actor {
 
     case SetSelection(selection) => 
       selectionManager = selectionManager.setCurrent(selection)
+      localManager = localManager.setPlayerOpen(false)
 
     case Discover => 
       stationManager = stationManager.setDiscovering(true)

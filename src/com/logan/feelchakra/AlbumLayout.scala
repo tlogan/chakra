@@ -19,15 +19,14 @@ class AlbumLayout(
         verticalLayout.addView {
           new LinearLayout(context) {
             setOrientation(VERTICAL)
-            setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+            setPadding(10, 0, 10, 0)
 
             addView {
               new TextView(context) {
                 setText(trackNum + ". " + track.title)
                 setTextSize(18)
                 setTextColor(WHITE)
-                setPadding(0, 6, 0, 6)
-                setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+                setPadding(0, 12, 0, 12)
               }
             }
             
@@ -37,8 +36,10 @@ class AlbumLayout(
         if (trackNum != trackList.size) {
           verticalLayout.addView {
             new View(context) {
-              setBackgroundColor(WHITE)
-              setLayoutParams(new LLLayoutParams(MATCH_PARENT, 1))
+              setBackgroundColor(LTGRAY)
+              val lp = new LLLayoutParams(MATCH_PARENT, 1)
+              lp.setMargins(10, 0, 10, 0)
+              setLayoutParams(lp)
             }
           }
         }

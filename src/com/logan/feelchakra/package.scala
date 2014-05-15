@@ -158,6 +158,7 @@ package com.logan {
     val YELLOW = android.graphics.Color.YELLOW
     val BLACK = android.graphics.Color.BLACK
     val DKGRAY = android.graphics.Color.DKGRAY
+    val LTGRAY = android.graphics.Color.LTGRAY
     val GRAY = android.graphics.Color.GRAY
     val WHITE = android.graphics.Color.WHITE
     type MediaStore = android.provider.MediaStore 

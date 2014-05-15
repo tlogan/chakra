@@ -14,35 +14,9 @@ class TrackListAdapter(activity: Activity, initialTrackList: List[Track]) extend
 
     val track = getItem(position)
 
-    new LinearLayout(activity) {
-      setOrientation(VERTICAL)
-      setBackgroundColor(DKGRAY)
-
-      addView {
-        new TextView(activity) {
-          setText(track.title)
-          setTextSize(20)
-          setTextColor(WHITE)
-        }
-      }
-
-      addView {
-        new TextView(activity) {
-          setText(track.artist)
-          setTextSize(14)
-          setTextColor(WHITE)
-        }
-      }
-
-      addView {
-        new TextView(activity) {
-          setText(track.album)
-          setTextSize(14)
-          setTextColor(GRAY)
-        }
-      }
+    new ImageTextLayout(activity, track.title, track.artist, track.album) {
+      darken()
     }
-
 
   }
 

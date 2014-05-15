@@ -32,7 +32,7 @@ class MainActivity extends Activity {
           that.setPlayerVisibility(playerOpen)
           true
         case OnSelectionChanged(selection) => 
-          that.getActionBar().setSelectedNavigationItem(_selectionList.indexOf(selection))
+          replaceSelectionFragment(selection)
           true
         case _ => false
       }
@@ -106,8 +106,7 @@ class MainActivity extends Activity {
     selectionList foreach { selection => 
       val tabListener = new TabListener() {
         override def onTabSelected(tab: Tab, ft: FragmentTransaction): Unit = {
-          replaceSelectionFragment(selectionList(tab.getPosition()))
-          //mainActorRef ! MainActor.SetSelection()
+          mainActorRef ! MainActor.SetSelection(selection)
         }
 
         override def onTabUnselected(tab: Tab, ft: FragmentTransaction): Unit = {
@@ -121,6 +120,7 @@ class MainActivity extends Activity {
 
       that.getActionBar().addTab(tab)
     }
+    that.getActionBar().setSelectedNavigationItem(1)
 
 
   }

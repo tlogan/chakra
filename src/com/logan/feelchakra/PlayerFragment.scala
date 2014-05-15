@@ -6,7 +6,7 @@ class PlayerFragment extends Fragment {
 
   private val that = this
   private var _playlistView: ListView = _
-  private var _trackLayout: TrackLayout = _
+  private var _playerView: ImageTextLayout = _
   private var _adapter: PlaylistAdapter = _
 
   import RichView.view2RichView
@@ -31,7 +31,12 @@ class PlayerFragment extends Fragment {
   }
 
   private def setTrackOption(trackOption: Option[Track]): Unit = {
-    _trackLayout.setTrackOption(trackOption)
+    trackOption match {
+      case Some(track) =>
+        _playerView.setTexts(track.title, track.artist, track.album)
+      case _ => 
+        _playerView.setTexts("", "", "")
+    }
   }
 
   private def resizePlaylistView(playerOpen: Boolean): Unit = {
@@ -75,17 +80,19 @@ class PlayerFragment extends Fragment {
       setOrientation(VERTICAL)
 
       addView {
-        _trackLayout = new TrackLayout(getActivity)
-        _trackLayout.setOnClick(
+        _playerView = new ImageTextLayout(getActivity, "", "", "") {
+          blacken()
+        }
+        _playerView.setOnClick(
           view => { mainActorRef ! MainActor.FlipPlayer }
         )
-        _trackLayout
+        _playerView
 
       }
 
       addView {
         _playlistView = new ListView(getActivity()) {
-          setBackgroundColor(YELLOW)
+          setBackgroundColor(BLACK)
           setLayoutParams(
             new LLLayoutParams(MATCH_PARENT, 0, 0)
           ) 

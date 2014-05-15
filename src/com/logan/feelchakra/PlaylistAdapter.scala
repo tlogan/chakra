@@ -13,36 +13,22 @@ class PlaylistAdapter(activity: Activity) extends BaseAdapter {
 
   override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
 
+    val track = getItem(position)
 
-    new LinearLayout(activity) {
-
-      val track = getItem(position)
-
-      if (getItemId(position) == _trackIndex) {
+    if (getItemId(position) == _trackIndex) {
+      new LinearLayout(activity) {
         setVisibility(GONE)
-      } else {
-
-        setOrientation(VERTICAL)
-        val bgColor = if (getItemId(position) < _trackIndex) DKGRAY else GRAY
-        setBackgroundColor(bgColor)
-        List(track.title, track.album, track.artist) foreach {
-          (term: String) => { 
-            addView {
-              new TextView(activity) {
-                setTextColor(WHITE)
-                setText(term)
-              }
-            }
-          } 
-        }
-
       }
-        
-
-
+    } else {
+      new ImageTextLayout(activity, track.title, track.album, track.artist) {
+        if (getItemId(position) < _trackIndex) {
+          darken()
+        } else lighten()
+      }
     }
 
   }
+
   def setPlaylist(playlist: List[Track]): Unit = {
     _playlist = playlist 
     this.notifyDataSetChanged()

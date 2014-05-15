@@ -20,71 +20,11 @@ class AlbumListAdapter(activity: Activity, initialAlbumList: List[(String, List[
     val album = albumTuple._1
     val trackList = albumTuple._2
 
-    new LinearLayout(activity) {
-      setOrientation(VERTICAL)
-      setBackgroundColor(DKGRAY)
-      setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-
-      _albumTupleOp match {
-        case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
-
-          addView {
-            new AlbumLayout(activity, album, trackList) 
-          }
-
-          /*
-
-          trackList.toIterator.zipWithIndex.foreach(pair => {
-            val track = pair._1
-            val trackNum = pair._2 + 1
-
-            addView {
-              new LinearLayout(activity) {
-                setOrientation(HORIZONTAL)
-                setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-                addView {
-                  new View(activity) {
-                    setBackgroundColor(DKGRAY)
-                    setLayoutParams(new LLLayoutParams(100, MATCH_PARENT))
-                  }
-                }
-
-                addView {
-                  new LinearLayout(activity) {
-                    setOrientation(VERTICAL)
-                    setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-                    addView {
-                      new View(activity) {
-                        setBackgroundColor(DKGRAY)
-                        setLayoutParams(new LLLayoutParams(MATCH_PARENT, 1))
-                      }
-                    }
-                    List(trackNum + ". " + track.title, track.artist).foreach(text => {
-                      addView {
-                        new TextView(activity) {
-                          setText(text)
-                          setTextColor(WHITE)
-                          setBackgroundColor(GRAY)
-                          setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-                        }
-                      }
-                    })
-                  }
-                }
-
-              }
-            }
-
-          })
-          */
-
-        case _ =>
-          addView {
-            new ImageTextLayout(activity, album, trackList.size + " Tracks", "time")
-          }
-
-      }
-
+    _albumTupleOp match {
+      case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
+        new AlbumLayout(activity, album, trackList) 
+      case _ =>
+        new ImageTextLayout(activity, album, trackList.size + " Tracks", "time")
     }
 
   }
