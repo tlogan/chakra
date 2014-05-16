@@ -100,12 +100,12 @@ class MainActor extends Actor {
         OnAdvertisingChanged(stationManager.advertising),
         OnStationListChanged(stationManager.map.values.toList),
 
-        OnTrackIndexChanged(localManager.currentIndex),
-        OnPlaylistChanged(localManager.playlist),
-        OnTrackListChanged(localManager.trackList),
-
         OnArtistMapChanged(localManager.artistMap),
         OnAlbumMapChanged(localManager.albumMap),
+        OnTrackListChanged(localManager.trackList),
+
+        OnTrackIndexChanged(localManager.currentIndex),
+        OnPlaylistChanged(localManager.playlist),
 
         OnLocalTrackOptionChanged(localManager.currentOp),
         OnLocalStartPosChanged(localManager.startPos),

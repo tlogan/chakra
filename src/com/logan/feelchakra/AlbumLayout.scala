@@ -6,7 +6,8 @@ class AlbumLayout(
     context: Context, 
     album: String,
     trackList: List[Track],
-    playmap: Map[Track, List[Int]]
+    playmap: Map[Track, List[Int]],
+    trackOption: Option[Track]
 ) extends ImageTextLayout(context, album, trackList.size + " Tracks", "time") {
 
   verticalLayout.setOnClick(view => {
@@ -40,8 +41,11 @@ class AlbumLayout(
 
         playmap.get(track) match {
           case Some(posList) =>
-
-            setBackgroundColor(GRAY) 
+            trackOption match {
+              case Some(currentTrack) if (currentTrack == track) =>
+                setBackgroundColor(BLUE) 
+              case _ => setBackgroundColor(GRAY) 
+            }
             addView {
               new TextView(context) {
                 setText(posList.mkString(", "))

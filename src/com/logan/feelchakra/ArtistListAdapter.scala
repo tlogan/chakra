@@ -5,9 +5,9 @@ import RichView.view2RichView
 import android.util.Log
 import android.widget.Toast
 
-class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, AlbumMap)]) extends BaseAdapter {
+class ArtistListAdapter(activity: Activity) extends BaseAdapter {
 
-  private var _artistList: List[(String, AlbumMap)] = initialArtistList
+  private var _artistList: List[(String, AlbumMap)] = List() 
   private var _artistTupleOp: Option[(String, AlbumMap)] = None 
 
   private var _playmap: Map[Track, List[Int]] = HashMap() 
@@ -51,7 +51,7 @@ class ArtistListAdapter(activity: Activity, initialArtistList: List[(String, Alb
             }
 
             addView {
-              new AlbumLayout(activity, album, trackList, _playmap)
+              new AlbumLayout(activity, album, trackList, _playmap, _trackOption)
             }
 
           })

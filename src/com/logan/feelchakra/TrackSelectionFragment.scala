@@ -17,7 +17,13 @@ class TrackSelectionFragment extends Fragment {
       import UI._
       msg.obj match {
         case OnTrackListChanged(trackList) => 
-          that.populateListView(trackList)
+          that.setTrackList(trackList)
+          true
+        case OnPlaylistChanged(playlist) => 
+          that.setPlaylist(playlist)
+          true
+        case OnLocalTrackOptionChanged(trackOption) => 
+          that.setTrackOption(trackOption)
           true
         case _ => false
       }
@@ -33,7 +39,16 @@ class TrackSelectionFragment extends Fragment {
       setOrientation(VERTICAL)
       addView {
         _listView = new ListView(getActivity()) {
-        }; _listView
+          val adapter = new TrackListAdapter(getActivity())
+          this.setAdapter(adapter) 
+          this.setOnItemClick( 
+            (parent: AdapterView[_], view: View, position: Int, id: Long) => {
+              val track =  adapter.getItem(position)
+              mainActorRef ! MainActor.AddPlaylistTrack(track) 
+            }
+          ) 
+        }
+        _listView
       }
 
     }
@@ -47,24 +62,32 @@ class TrackSelectionFragment extends Fragment {
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
 
-  private def populateListView(trackList: List[Track]): Unit = {
-    
+  private def withAdapter(f: TrackListAdapter => Unit): Unit = {
     _listView.getAdapter() match {
       case adapter: TrackListAdapter => {
-        adapter.setTrackList(trackList)
+        f(adapter)
       }
-      case _ => {
-        val adapter = new TrackListAdapter(getActivity(), trackList)
-        _listView.setAdapter(adapter) 
-        _listView.setOnItemClick( 
-          (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-            val track =  adapter.getItem(position)
-            mainActorRef ! MainActor.AddPlaylistTrack(track) 
-          }
-        ) 
-      }
+      case _ => Log.d("chakra", "ArtistListAdapter missing")
     } 
+  }
 
+  private def setTrackList(trackList: List[Track]): Unit = {
+    withAdapter(adapter => {
+      adapter.setTrackList(trackList)
+    })
+  }
+
+  private def setPlaylist(playlist: List[Track]): Unit = {
+    withAdapter(adapter => {
+      adapter.setPlaymap(Playmap(playlist))
+    })
+  }
+
+
+  private def setTrackOption(trackOption: Option[Track]): Unit = {
+    withAdapter(adapter => {
+      adapter.setTrackOption(trackOption)
+    })
   }
 
 

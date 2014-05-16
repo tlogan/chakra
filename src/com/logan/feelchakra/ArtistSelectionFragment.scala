@@ -17,7 +17,7 @@ class ArtistSelectionFragment extends Fragment {
       import UI._
       msg.obj match {
         case OnArtistMapChanged(artistMap) => 
-          populateListView(artistMap)
+          setArtistMap(artistMap)
           true
         case OnArtistTupleOpChanged(artistTupleOp) =>
           artistTupleOp match {
@@ -50,27 +50,7 @@ class ArtistSelectionFragment extends Fragment {
       addView {
         _listView = new ListView(getActivity())
         _listView.setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        _listView
-      }
-
-    }
-
-    mainActorRef ! MainActor.Subscribe(this.toString, handler) 
-    _verticalLayout
-  }
-
-  override def onDestroy(): Unit =  {
-    super.onDestroy()
-    mainActorRef ! MainActor.Unsubscribe(this.toString)
-  }
-
-  private def populateListView(artistMap: ArtistMap): Unit = {
-    _listView.getAdapter() match {
-      case adapter: ArtistListAdapter => {
-        adapter.setArtistList(artistMap.toList)
-      }
-      case _ => {
-        val adapter = new ArtistListAdapter(getActivity(), artistMap.toList)
+        val adapter = new ArtistListAdapter(getActivity())
         _listView.setAdapter(adapter) 
         _listView.setOnItemClick( 
           (parent: AdapterView[_], view: View, position: Int, id: Long) => {
@@ -82,12 +62,22 @@ class ArtistSelectionFragment extends Fragment {
             Log.d("chakra", "artistTuple: " + artistTuple)
           }
         ) 
+        _listView
       }
-    } 
 
+    }
+
+
+    mainActorRef ! MainActor.Subscribe(this.toString, handler) 
+    _verticalLayout
   }
 
-  private def doOnAdapter(f: ArtistListAdapter => Unit): Unit = {
+  override def onDestroy(): Unit =  {
+    super.onDestroy()
+    mainActorRef ! MainActor.Unsubscribe(this.toString)
+  }
+
+  private def withAdapter(f: ArtistListAdapter => Unit): Unit = {
     _listView.getAdapter() match {
       case adapter: ArtistListAdapter => {
         f(adapter)
@@ -96,22 +86,28 @@ class ArtistSelectionFragment extends Fragment {
     } 
   }
 
+  private def setArtistMap(artistMap: ArtistMap): Unit = {
+    withAdapter(adapter => {
+      adapter.setArtistList(artistMap.toList)
+    })
+  }
+
   private def setArtistTuple(artistTuple: (String, AlbumMap)): Unit = {
-    doOnAdapter(adapter => {
+    withAdapter(adapter => {
       adapter.setArtistTuple(artistTuple)
       _listView.setSelectionFromTop(selectedPosition, 0)
     })
   }
 
   private def setPlaylist(playlist: List[Track]): Unit = {
-    doOnAdapter(adapter => {
+    withAdapter(adapter => {
       adapter.setPlaymap(Playmap(playlist))
     })
   }
 
 
   private def setTrackOption(trackOption: Option[Track]): Unit = {
-    doOnAdapter(adapter => {
+    withAdapter(adapter => {
       adapter.setTrackOption(trackOption)
     })
   }

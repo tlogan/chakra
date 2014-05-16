@@ -3,12 +3,12 @@ package com.logan.feelchakra
 import android.util.Log
 import android.widget.Toast
 
-class AlbumListAdapter(activity: Activity, initialAlbumList: List[(String, List[Track])]) extends BaseAdapter {
+class AlbumListAdapter(activity: Activity) extends BaseAdapter {
 
   private var _albumTupleOp: Option[(String, List[Track])] = None 
-  private var _albumList: List[(String, List[Track])] = initialAlbumList
+  private var _albumList: List[(String, List[Track])] = List() 
 
-  private var _playmap: HashMap[Track, List[Int]] = HashMap() 
+  private var _playmap: Map[Track, List[Int]] = HashMap() 
   private var _trackOption: Option[Track] = None 
 
   override def getCount(): Int = _albumList.size
@@ -25,7 +25,7 @@ class AlbumListAdapter(activity: Activity, initialAlbumList: List[(String, List[
 
     _albumTupleOp match {
       case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
-        new AlbumLayout(activity, album, trackList, _playmap) 
+        new AlbumLayout(activity, album, trackList, _playmap, _trackOption) 
       case _ =>
         new ImageTextLayout(activity, album, trackList.size + " Tracks", "time")
     }
@@ -39,6 +39,16 @@ class AlbumListAdapter(activity: Activity, initialAlbumList: List[(String, List[
 
   def setAlbumTuple(albumTuple: (String, List[Track])): Unit = {
     _albumTupleOp = Some(albumTuple)
+    this.notifyDataSetChanged()
+  }
+
+  def setPlaymap(playmap: Map[Track, List[Int]]): Unit = {
+    _playmap = playmap
+    this.notifyDataSetChanged()
+  }
+
+  def setTrackOption(trackOption: Option[Track]): Unit = {
+    _trackOption = trackOption 
     this.notifyDataSetChanged()
   }
 

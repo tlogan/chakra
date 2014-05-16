@@ -62,6 +62,12 @@ class ImageTextLayout(
     verticalLayout
   }
 
+  def blueify(): Unit = {
+    verticalLayout.setBackgroundColor(BLUE)
+    secondTextView.setTextColor(WHITE)
+    thirdTextView.setTextColor(WHITE)
+  }
+
   def blacken(): Unit = {
     verticalLayout.setBackgroundColor(BLACK)
     secondTextView.setTextColor(WHITE)

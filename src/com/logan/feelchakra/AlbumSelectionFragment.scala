@@ -18,14 +18,20 @@ class AlbumSelectionFragment extends Fragment {
 
       msg.obj match {
         case OnAlbumMapChanged(albumMap) => 
-          populateListView(albumMap)
+          setAlbumMap(albumMap)
           true
         case OnAlbumTupleOpChanged(albumTupleOp) =>
           albumTupleOp match {
             case Some(albumTuple) => 
-              openTrackList(albumTuple)
+              setAlbumTuple(albumTuple)
             case None => //closeAlbumList
           }
+          true
+        case OnPlaylistChanged(playlist) => 
+          that.setPlaylist(playlist)
+          true
+        case OnLocalTrackOptionChanged(trackOption) => 
+          that.setTrackOption(trackOption)
           true
         case _ => false
       }
@@ -43,7 +49,17 @@ class AlbumSelectionFragment extends Fragment {
       setOrientation(VERTICAL)
       addView {
         _listView = new ListView(getActivity()) {
-        }; _listView
+          val adapter = new AlbumListAdapter(getActivity())
+          this.setAdapter(adapter) 
+          this.setOnItemClick( 
+            (parent: AdapterView[_], view: View, position: Int, id: Long) => {
+              selectedPosition = position
+              val albumTuple =  adapter.getItem(position)
+              mainActorRef ! MainActor.SetAlbumTuple(albumTuple) 
+            }
+          ) 
+        }
+        _listView
       }
 
     }
@@ -57,34 +73,41 @@ class AlbumSelectionFragment extends Fragment {
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
 
-  private def populateListView(albumMap: AlbumMap): Unit = {
+
+
+  private def withAdapter(f: AlbumListAdapter => Unit): Unit = {
     _listView.getAdapter() match {
       case adapter: AlbumListAdapter => {
-        adapter.setAlbumList(albumMap.toList)
-      }
-      case _ => {
-        val adapter = new AlbumListAdapter(getActivity(), albumMap.toList)
-        _listView.setAdapter(adapter) 
-        _listView.setOnItemClick( 
-          (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-            selectedPosition = position
-            val albumTuple =  adapter.getItem(position)
-            mainActorRef ! MainActor.SetAlbumTuple(albumTuple) 
-          }
-        ) 
-      }
-    } 
-
-  }
-
-  private def openTrackList(albumTuple: (String, List[Track])): Unit = {
-    _listView.getAdapter() match {
-      case adapter: AlbumListAdapter => {
-        adapter.setAlbumTuple(albumTuple)
-        _listView.setSelectionFromTop(selectedPosition, 0)
+        f(adapter)
       }
       case _ => Log.d("chakra", "ArtistListAdapter missing")
     } 
+  }
+
+  private def setAlbumMap(albumMap: AlbumMap): Unit = {
+    withAdapter(adapter => {
+      adapter.setAlbumList(albumMap.toList)
+    })
+  }
+
+  private def setAlbumTuple(albumTuple: (String, List[Track])): Unit = {
+    withAdapter(adapter => {
+      adapter.setAlbumTuple(albumTuple)
+      _listView.setSelectionFromTop(selectedPosition, 0)
+    })
+  }
+
+  private def setPlaylist(playlist: List[Track]): Unit = {
+    withAdapter(adapter => {
+      adapter.setPlaymap(Playmap(playlist))
+    })
+  }
+
+
+  private def setTrackOption(trackOption: Option[Track]): Unit = {
+    withAdapter(adapter => {
+      adapter.setTrackOption(trackOption)
+    })
   }
 
 
