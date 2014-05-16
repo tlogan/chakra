@@ -25,9 +25,7 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
     val artist = artistTuple._1
     val albumMap = artistTuple._2
     val imTxLayout = {
-      new ImageTextLayout(activity, artist, albumMap.size + " Albums", "time") {
-        darken()
-      }
+      new ImageTextLayout(activity, artist, albumMap.size + " Albums", "time", DKGRAY) 
     }
 
     _artistTupleOp match {

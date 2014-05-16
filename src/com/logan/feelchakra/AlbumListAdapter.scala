@@ -27,7 +27,7 @@ class AlbumListAdapter(activity: Activity) extends BaseAdapter {
       case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
         new AlbumLayout(activity, album, trackList, _playmap, _trackOption) 
       case _ =>
-        new ImageTextLayout(activity, album, trackList.size + " Tracks", "time")
+        new ImageTextLayout(activity, album, trackList.size + " Tracks", "time", DKGRAY)
     }
 
   }

@@ -80,9 +80,7 @@ class PlayerFragment extends Fragment {
       setOrientation(VERTICAL)
 
       addView {
-        _playerView = new ImageTextLayout(getActivity, "", "", "") {
-          blacken()
-        }
+        _playerView = new ImageTextLayout(getActivity, "", "", "", BLACK)
         _playerView.setOnClick(
           view => { mainActorRef ! MainActor.FlipPlayer }
         )

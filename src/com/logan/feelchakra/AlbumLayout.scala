@@ -8,7 +8,13 @@ class AlbumLayout(
     trackList: List[Track],
     playmap: Map[Track, List[Int]],
     trackOption: Option[Track]
-) extends ImageTextLayout(context, album, trackList.size + " Tracks", "time") {
+) extends ImageTextLayout(
+    context, 
+    album, 
+    trackList.size + " Tracks", 
+    "time",
+    DKGRAY
+) {
 
   verticalLayout.setOnClick(view => {
     trackList.foreach(track => {

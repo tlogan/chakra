@@ -17,17 +17,17 @@ class TrackListAdapter(activity: Activity) extends BaseAdapter {
 
     val track = getItem(position)
 
-    new ImageTextLayout(activity, track.title, track.artist, track.album) {
-      _playmap.get(track) match {
-        case Some(posList) => 
-          _trackOption match {
-            case Some(currentTrack) if (currentTrack == track) =>
-              blueify()
-            case _ => lighten()
-          }
-        case None => darken()
-      }
+    val color = _playmap.get(track) match {
+      case Some(posList) => 
+        _trackOption match {
+          case Some(currentTrack) if (currentTrack == track) =>
+            BLUE 
+          case _ => GRAY 
+        }
+      case None => DKGRAY 
     }
+
+    new ImageTextLayout(activity, track.title, track.artist, track.album, color)
 
   }
 

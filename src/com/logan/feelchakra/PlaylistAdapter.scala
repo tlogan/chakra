@@ -20,11 +20,10 @@ class PlaylistAdapter(activity: Activity) extends BaseAdapter {
         setVisibility(GONE)
       }
     } else {
-      new ImageTextLayout(activity, track.title, track.album, track.artist) {
-        if (getItemId(position) < _trackIndex) {
-          darken()
-        } else lighten()
-      }
+      val color = if (getItemId(position) < _trackIndex) {
+        DKGRAY 
+      } else GRAY 
+      new ImageTextLayout(activity, track.title, track.album, track.artist, color)
     }
 
   }

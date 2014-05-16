@@ -4,7 +4,8 @@ class ImageTextLayout(
     context: Context, 
     mainText: String, 
     secondText: String, 
-    thirdText: String
+    thirdText: String,
+    color: Int 
 ) extends LinearLayout(context) {
 
   var squareLayout: View = _
@@ -23,10 +24,17 @@ class ImageTextLayout(
     squareLayout
   }
 
+  val textColor = color match {
+    case BLACK => WHITE
+    case DKGRAY => GRAY
+    case GRAY => LTGRAY
+    case BLUE => WHITE
+  }
+
   addView {
     verticalLayout = new LinearLayout(context) {
       setOrientation(VERTICAL)
-      setBackgroundColor(DKGRAY)
+      setBackgroundColor(color)
       setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
       addView {
         mainTextView = new TextView(context) {
@@ -43,7 +51,7 @@ class ImageTextLayout(
           setText(secondText)
           setTextSize(14)
           setPadding(10, 0, 10, 0)
-          setTextColor(GRAY)
+          setTextColor(textColor)
         }
         secondTextView
       }
@@ -53,37 +61,13 @@ class ImageTextLayout(
           setText(thirdText)
           setTextSize(14)
           setPadding(10, 0, 10, 0)
-          setTextColor(GRAY)
+          setTextColor(textColor)
         }
         thirdTextView
       }
 
     }
     verticalLayout
-  }
-
-  def blueify(): Unit = {
-    verticalLayout.setBackgroundColor(BLUE)
-    secondTextView.setTextColor(WHITE)
-    thirdTextView.setTextColor(WHITE)
-  }
-
-  def blacken(): Unit = {
-    verticalLayout.setBackgroundColor(BLACK)
-    secondTextView.setTextColor(WHITE)
-    thirdTextView.setTextColor(WHITE)
-  }
-
-  def darken(): Unit = {
-    verticalLayout.setBackgroundColor(DKGRAY)
-    secondTextView.setTextColor(GRAY)
-    thirdTextView.setTextColor(GRAY)
-  }
-
-  def lighten(): Unit = {
-    verticalLayout.setBackgroundColor(GRAY)
-    secondTextView.setTextColor(LTGRAY)
-    thirdTextView.setTextColor(LTGRAY)
   }
 
   def setTexts(mainText: String, secondText: String, thirdText: String): Unit = {
