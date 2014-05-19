@@ -37,8 +37,8 @@ class AlbumListAdapter(activity: Activity) extends BaseAdapter {
     this.notifyDataSetChanged()
   }
 
-  def setAlbumTuple(albumTuple: (String, List[Track])): Unit = {
-    _albumTupleOp = Some(albumTuple)
+  def setAlbumTupleOp(albumTupleOp: Option[(String, List[Track])]): Unit = {
+    _albumTupleOp = albumTupleOp
     this.notifyDataSetChanged()
   }
 

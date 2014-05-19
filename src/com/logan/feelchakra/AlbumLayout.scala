@@ -16,10 +16,11 @@ class AlbumLayout(
     DKGRAY
 ) {
 
-  verticalLayout.setOnClick(view => {
+  verticalLayout.setOnLongClick(view => {
     trackList.foreach(track => {
       mainActorRef ! MainActor.AddPlaylistTrack(track)
     })
+    true 
   })
 
   verticalLayout.addView {

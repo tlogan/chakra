@@ -21,11 +21,7 @@ class AlbumSelectionFragment extends Fragment {
           setAlbumMap(albumMap)
           true
         case OnAlbumTupleOpChanged(albumTupleOp) =>
-          albumTupleOp match {
-            case Some(albumTuple) => 
-              setAlbumTuple(albumTuple)
-            case None => //closeAlbumList
-          }
+          setAlbumTupleOp(albumTupleOp)
           true
         case OnPlaylistChanged(playlist) => 
           that.setPlaylist(playlist)
@@ -55,7 +51,7 @@ class AlbumSelectionFragment extends Fragment {
             (parent: AdapterView[_], view: View, position: Int, id: Long) => {
               selectedPosition = position
               val albumTuple =  adapter.getItem(position)
-              mainActorRef ! MainActor.SetAlbumTuple(albumTuple) 
+              mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
             }
           ) 
         }
@@ -90,10 +86,12 @@ class AlbumSelectionFragment extends Fragment {
     })
   }
 
-  private def setAlbumTuple(albumTuple: (String, List[Track])): Unit = {
+  private def setAlbumTupleOp(albumTupleOp: Option[(String, List[Track])]): Unit = {
     withAdapter(adapter => {
-      adapter.setAlbumTuple(albumTuple)
-      _listView.setSelectionFromTop(selectedPosition, 0)
+      adapter.setAlbumTupleOp(albumTupleOp)
+      if (albumTupleOp != None) {
+        _listView.setSelectionFromTop(selectedPosition, 0)
+      }
     })
   }
 

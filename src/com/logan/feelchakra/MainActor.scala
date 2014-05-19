@@ -43,8 +43,8 @@ object MainActor {
   case object EndStationAudioBuffer
   case class SetStationPlayState(playState: PlayState)
 
-  case class SetArtistTuple(artistTuple: (String, AlbumMap)) 
-  case class SetAlbumTuple(albumTuple: (String, List[Track])) 
+  case class SelectArtistTuple(artistTuple: (String, AlbumMap)) 
+  case class SelectAlbumTuple(albumTuple: (String, List[Track])) 
 
 }
 
@@ -265,11 +265,21 @@ class MainActor extends Actor {
       Log.d("chakra", "set station playstate: " + playState)
       stationManager = stationManager.setPlayState(playState)
 
-    case SetArtistTuple(artistTuple) =>
-      localManager = localManager.setArtistTuple(artistTuple)
+    case SelectArtistTuple(artistTuple) =>
+      localManager = localManager.artistTupleOp match {
+        case Some(currentArtistTuple) if currentArtistTuple == artistTuple =>
+          localManager.setArtistTupleOp(None)
+        case _ =>
+          localManager.setArtistTupleOp(Some(artistTuple))
+      }
 
-    case SetAlbumTuple(albumTuple) =>
-      localManager = localManager.setAlbumTuple(albumTuple)
+    case SelectAlbumTuple(albumTuple) =>
+      localManager = localManager.albumTupleOp match {
+        case Some(currentAlbumTuple) if currentAlbumTuple == albumTuple =>
+          localManager.setAlbumTupleOp(None)
+        case _ =>
+          localManager.setAlbumTupleOp(Some(albumTuple))
+      }
 
   }
 

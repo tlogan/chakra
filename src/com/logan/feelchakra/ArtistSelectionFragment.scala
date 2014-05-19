@@ -20,11 +20,7 @@ class ArtistSelectionFragment extends Fragment {
           setArtistMap(artistMap)
           true
         case OnArtistTupleOpChanged(artistTupleOp) =>
-          artistTupleOp match {
-            case Some(artistTuple) => 
-              setArtistTuple(artistTuple)
-            case None => //closeAlbumList
-          }
+          setArtistTupleOp(artistTupleOp)
           true
         case OnPlaylistChanged(playlist) => 
           that.setPlaylist(playlist)
@@ -56,7 +52,7 @@ class ArtistSelectionFragment extends Fragment {
           (parent: AdapterView[_], view: View, position: Int, id: Long) => {
             selectedPosition = position
             val artistTuple =  adapter.getItem(position)
-            mainActorRef ! MainActor.SetArtistTuple(artistTuple) 
+            mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
 
             //Toast.makeText(getActivity(), "artistTuple: " + artistTuple, Toast.LENGTH_SHORT).show()
             Log.d("chakra", "artistTuple: " + artistTuple)
@@ -92,10 +88,12 @@ class ArtistSelectionFragment extends Fragment {
     })
   }
 
-  private def setArtistTuple(artistTuple: (String, AlbumMap)): Unit = {
+  private def setArtistTupleOp(artistTupleOp: Option[(String, AlbumMap)]): Unit = {
     withAdapter(adapter => {
-      adapter.setArtistTuple(artistTuple)
-      _listView.setSelectionFromTop(selectedPosition, 0)
+      adapter.setArtistTupleOp(artistTupleOp)
+      if (artistTupleOp != None) {
+        _listView.setSelectionFromTop(selectedPosition, 0)
+      }
     })
   }
 

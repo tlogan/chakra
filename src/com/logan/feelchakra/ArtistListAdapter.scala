@@ -65,8 +65,8 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
     this.notifyDataSetChanged()
   }
 
-  def setArtistTuple(artistTuple: (String, AlbumMap)): Unit = {
-    _artistTupleOp = Some(artistTuple)
+  def setArtistTupleOp(artistTupleOp: Option[(String, AlbumMap)]): Unit = {
+    _artistTupleOp = artistTupleOp
     this.notifyDataSetChanged()
   }
 
