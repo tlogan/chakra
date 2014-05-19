@@ -10,7 +10,6 @@ class AlbumSelectionFragment extends Fragment {
   private var _verticalLayout: LinearLayout = _
   private var _listView: ListView = _
   private var _adapter: TrackListAdapter = _
-  private var selectedPosition: Int = 0
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
@@ -47,13 +46,6 @@ class AlbumSelectionFragment extends Fragment {
         _listView = new ListView(getActivity()) {
           val adapter = new AlbumListAdapter(getActivity())
           this.setAdapter(adapter) 
-          this.setOnItemClick( 
-            (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-              selectedPosition = position
-              val albumTuple =  adapter.getItem(position)
-              mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
-            }
-          ) 
         }
         _listView
       }
@@ -82,7 +74,7 @@ class AlbumSelectionFragment extends Fragment {
 
   private def setAlbumMap(albumMap: AlbumMap): Unit = {
     withAdapter(adapter => {
-      adapter.setAlbumList(albumMap.toList)
+      adapter.setAlbumMap(albumMap)
     })
   }
 
@@ -90,7 +82,8 @@ class AlbumSelectionFragment extends Fragment {
     withAdapter(adapter => {
       adapter.setAlbumTupleOp(albumTupleOp)
       if (albumTupleOp != None) {
-        _listView.setSelectionFromTop(selectedPosition, 0)
+        val pos = adapter.albumTuplePosition
+        _listView.setSelectionFromTop(pos, 0)
       }
     })
   }

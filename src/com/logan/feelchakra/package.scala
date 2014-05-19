@@ -66,6 +66,8 @@ package com.logan {
     type Bundle = android.os.Bundle
 
 
+    type Stream[+A] = scala.collection.immutable.Stream[A]
+
     type ListBuffer[A] = scala.collection.mutable.ListBuffer[A]
 
     val HashMap = scala.collection.immutable.HashMap

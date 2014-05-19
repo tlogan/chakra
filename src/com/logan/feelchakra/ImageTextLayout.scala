@@ -1,4 +1,6 @@
 package com.logan.feelchakra
+import RichListView.listView2RichListView
+import RichView.view2RichView
 
 class ImageTextLayout(
     context: Context, 
@@ -74,6 +76,10 @@ class ImageTextLayout(
     mainTextView.setText(mainText)
     secondTextView.setText(secondText)
     thirdTextView.setText(thirdText)
+  }
+
+  def setOnTextLayoutClick(f: View => Unit): Unit = {
+    verticalLayout.setOnClick(f)
   }
 
 

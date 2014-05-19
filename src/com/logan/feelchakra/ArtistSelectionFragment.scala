@@ -10,7 +10,6 @@ class ArtistSelectionFragment extends Fragment {
   private var _verticalLayout: LinearLayout = _
   private var _listView: ListView = _
   private var _adapter: TrackListAdapter = _
-  private var selectedPosition: Int = 0
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
@@ -44,20 +43,11 @@ class ArtistSelectionFragment extends Fragment {
 
       setOrientation(VERTICAL)
       addView {
-        _listView = new ListView(getActivity())
-        _listView.setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        val adapter = new ArtistListAdapter(getActivity())
-        _listView.setAdapter(adapter) 
-        _listView.setOnItemClick( 
-          (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-            selectedPosition = position
-            val artistTuple =  adapter.getItem(position)
-            mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
-
-            //Toast.makeText(getActivity(), "artistTuple: " + artistTuple, Toast.LENGTH_SHORT).show()
-            Log.d("chakra", "artistTuple: " + artistTuple)
-          }
-        ) 
+        _listView = new ListView(getActivity()) {
+          setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+          val adapter = new ArtistListAdapter(getActivity())
+          setAdapter(adapter) 
+        }
         _listView
       }
 
@@ -84,7 +74,7 @@ class ArtistSelectionFragment extends Fragment {
 
   private def setArtistMap(artistMap: ArtistMap): Unit = {
     withAdapter(adapter => {
-      adapter.setArtistList(artistMap.toList)
+      adapter.setArtistMap(artistMap)
     })
   }
 
@@ -92,7 +82,8 @@ class ArtistSelectionFragment extends Fragment {
     withAdapter(adapter => {
       adapter.setArtistTupleOp(artistTupleOp)
       if (artistTupleOp != None) {
-        _listView.setSelectionFromTop(selectedPosition, 0)
+        val pos = adapter.artistTuplePosition
+        _listView.setSelectionFromTop(pos, 0)
       }
     })
   }

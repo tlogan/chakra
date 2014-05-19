@@ -7,8 +7,16 @@ import android.widget.Toast
 
 class ArtistListAdapter(activity: Activity) extends BaseAdapter {
 
-  private var _artistList: List[(String, AlbumMap)] = List() 
   private var _artistTupleOp: Option[(String, AlbumMap)] = None 
+  private var _artistMap: ArtistMap = new ArtistMap() 
+  private var _artistList: List[(String, AlbumMap)] = _artistMap.toList
+  private var _positionMap: Map[(String, AlbumMap), Int] = _artistMap.zipWithIndex
+
+  def artistTuplePosition: Int = _artistTupleOp match {
+    case Some(artistTuple) =>
+      _positionMap(artistTuple)
+    case None => 0
+  }
 
   private var _playmap: Map[Track, List[Int]] = HashMap() 
   private var _trackOption: Option[Track] = None 
@@ -25,7 +33,11 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
     val artist = artistTuple._1
     val albumMap = artistTuple._2
     val imTxLayout = {
-      new ImageTextLayout(activity, artist, albumMap.size + " Albums", "time", DKGRAY) 
+      new ImageTextLayout(activity, artist, albumMap.size + " Albums", "time", DKGRAY) {
+        setOnTextLayoutClick(view => {
+          mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
+        })
+      }
     }
 
     _artistTupleOp match {
@@ -60,8 +72,10 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
 
   }
 
-  def setArtistList(artistList: List[(String, AlbumMap)]): Unit = {
-    _artistList = artistList
+  def setArtistMap(artistMap: ArtistMap): Unit = {
+    _artistMap = artistMap
+    _artistList = _artistMap.toList 
+    _positionMap = _artistMap.zipWithIndex
     this.notifyDataSetChanged()
   }
 
