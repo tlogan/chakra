@@ -10,22 +10,6 @@ class ImageTextLayout(
     color: Int 
 ) extends LinearLayout(context) {
 
-  var squareLayout: View = _
-  var verticalLayout: LinearLayout = _
-  var mainTextView: TextView = _
-  var secondTextView: TextView = _
-  var thirdTextView: TextView = _
-
-  setOrientation(HORIZONTAL)
-  setBackgroundColor(BLACK)
-  addView {
-    squareLayout = new View(context) {
-      setBackgroundColor(WHITE)
-      setLayoutParams(new LLLayoutParams(94, 94))
-    }
-    squareLayout
-  }
-
   val textColor = color match {
     case BLACK => WHITE
     case DKGRAY => GRAY
@@ -33,44 +17,47 @@ class ImageTextLayout(
     case BLUE => WHITE
   }
 
-  addView {
-    verticalLayout = new LinearLayout(context) {
-      setOrientation(VERTICAL)
-      setBackgroundColor(color)
-      setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-      addView {
-        mainTextView = new TextView(context) {
-          setText(mainText)
-          setTextSize(20)
-          setPadding(10, 2, 10, 3)
-          setTextColor(WHITE)
-        }
-        mainTextView
-      }
-
-      addView {
-        secondTextView = new TextView(context) {
-          setText(secondText)
-          setTextSize(14)
-          setPadding(10, 0, 10, 0)
-          setTextColor(textColor)
-        }
-        secondTextView
-      }
-
-      addView {
-        thirdTextView = new TextView(context) {
-          setText(thirdText)
-          setTextSize(14)
-          setPadding(10, 0, 10, 0)
-          setTextColor(textColor)
-        }
-        thirdTextView
-      }
-
-    }
-    verticalLayout
+  val imageLayout: View = new View(context) {
+    setBackgroundColor(WHITE)
+    setLayoutParams(new LLLayoutParams(94, 94))
   }
+
+  val mainTextView: TextView = new TextView(context) {
+    setText(mainText)
+    setTextSize(20)
+    setPadding(10, 2, 10, 3)
+    setTextColor(WHITE)
+  }
+
+  var secondTextView: TextView = new TextView(context) {
+    setText(secondText)
+    setTextSize(14)
+    setPadding(10, 0, 10, 0)
+    setTextColor(textColor)
+  }
+
+  var thirdTextView: TextView = new TextView(context) {
+    setText(thirdText)
+    setTextSize(14)
+    setPadding(10, 0, 10, 0)
+    setTextColor(textColor)
+  }
+
+  val textLayout: LinearLayout = new LinearLayout(context) {
+    setOrientation(VERTICAL)
+    setBackgroundColor(color)
+    setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+
+    addView(mainTextView)
+    addView(secondTextView)
+    addView(thirdTextView)
+  }
+
+  setOrientation(HORIZONTAL)
+  setBackgroundColor(BLACK)
+
+  addView(imageLayout)
+  addView(textLayout)
 
   def setTexts(mainText: String, secondText: String, thirdText: String): Unit = {
     mainTextView.setText(mainText)
@@ -79,10 +66,7 @@ class ImageTextLayout(
   }
 
   def setOnTextLayoutClick(f: View => Unit): Unit = {
-    verticalLayout.setOnClick(f)
+    textLayout.setOnClick(f)
   }
-
-
-
 
 }

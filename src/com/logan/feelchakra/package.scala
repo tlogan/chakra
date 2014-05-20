@@ -36,7 +36,13 @@ package com.logan {
     val RichMediaPlayer = guava.scalaandroid.RichMediaPlayer
     type RichMediaPlayer = guava.scalaandroid.RichMediaPlayer
 
+    type SimpleOnGestureListener = android.view.GestureDetector.SimpleOnGestureListener
+    type GestureDetector = android.view.GestureDetector
 
+    val ACTION_DOWN = android.view.MotionEvent.ACTION_DOWN
+    val ACTION_UP = android.view.MotionEvent.ACTION_UP
+    val ACTION_MOVE = android.view.MotionEvent.ACTION_MOVE
+    type MotionEvent = android.view.MotionEvent
 
     type LayoutInflater = android.view.LayoutInflater
     type Menu = android.view.Menu
@@ -53,8 +59,12 @@ package com.logan {
     type AdapterViewClick = android.widget.AdapterView.OnItemClickListener
     type ViewClick = android.view.View.OnClickListener
     type BaseAdapter = android.widget.BaseAdapter
+
+    val GTOP = android.view.Gravity.TOP
+    type RelativeLayout = android.widget.RelativeLayout
     type LinearLayout = android.widget.LinearLayout
     type LLLayoutParams = android.widget.LinearLayout.LayoutParams
+    type RLLayoutParams = android.widget.RelativeLayout.LayoutParams
     type VGLayoutParams = android.view.ViewGroup.LayoutParams
     type LVLayoutParams = android.widget.AbsListView.LayoutParams
     val MATCH_PARENT = android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -157,6 +167,7 @@ package com.logan {
       android.net.wifi.p2p.WifiP2pManager.DnsSdTxtRecordListener
 
     type Color = android.graphics.Color
+    val TRANSPARENT = android.graphics.Color.TRANSPARENT
     val YELLOW = android.graphics.Color.YELLOW
     val BLUE = android.graphics.Color.BLUE
     val BLACK = android.graphics.Color.BLACK

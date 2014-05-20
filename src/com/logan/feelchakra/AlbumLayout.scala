@@ -1,4 +1,7 @@
 package com.logan.feelchakra
+
+import android.util.Log
+import android.widget.Toast
 import RichListView.listView2RichListView
 import RichView.view2RichView
 
@@ -16,65 +19,35 @@ class AlbumLayout(
     DKGRAY
 ) {
 
-  verticalLayout.setOnLongClick(view => {
+  val that = this
+
+  textLayout.addView {
+    new View(context) {
+      setLayoutParams(new LLLayoutParams(MATCH_PARENT, 8))
+    }
+  }
+
+  textLayout.setOnLongClick(view => {
     trackList.foreach(track => {
       mainActorRef ! MainActor.AddPlaylistTrack(track)
     })
     true 
   })
 
-  verticalLayout.addView {
-    new View(context) {
-      setLayoutParams(new LLLayoutParams(MATCH_PARENT, 8))
-    }
-  }
 
   trackList.toIterator.zipWithIndex.foreach(pair => {
     val track = pair._1
     val trackNum = pair._2 + 1
 
-    verticalLayout.addView {
-      val trackLL = new LinearLayout(context) {
-        setOrientation(VERTICAL)
-        setPadding(10, 12, 10, 12)
-
-        addView {
-          new TextView(context) {
-            setText(trackNum + ". " + track.title)
-            setTextSize(18)
-            setTextColor(WHITE)
-          }
-        }
-
-        playmap.get(track) match {
-          case Some(posList) =>
-            trackOption match {
-              case Some(currentTrack) if (currentTrack == track) =>
-                setBackgroundColor(BLUE) 
-              case _ => setBackgroundColor(GRAY) 
-            }
-            addView {
-              new TextView(context) {
-                setText(posList.mkString(", "))
-                setTextSize(14)
-                setTextColor(LTGRAY)
-              }
-            }
-          case None =>
-            setBackgroundColor(DKGRAY) 
-        }
-
-        
-      }
-      trackLL.setOnClick(view => {
-        mainActorRef ! MainActor.AddPlaylistTrack(track)
-      })
-
-      trackLL
+    val current = trackOption match {
+      case Some(currentTrack) if (currentTrack == track) => true
+      case _ => false 
     }
 
+    textLayout.addView(new SlidingTrackLayout(context, track, trackNum, playmap.get(track), current)) 
+
     if (trackNum != trackList.size) {
-      verticalLayout.addView {
+      textLayout.addView {
         new View(context) {
           setBackgroundColor(LTGRAY)
           val lp = new LLLayoutParams(MATCH_PARENT, 1)
