@@ -39,6 +39,7 @@ package com.logan {
     type SimpleOnGestureListener = android.view.GestureDetector.SimpleOnGestureListener
     type GestureDetector = android.view.GestureDetector
 
+    val ACTION_CANCEL = android.view.MotionEvent.ACTION_CANCEL
     val ACTION_DOWN = android.view.MotionEvent.ACTION_DOWN
     val ACTION_UP = android.view.MotionEvent.ACTION_UP
     val ACTION_MOVE = android.view.MotionEvent.ACTION_MOVE

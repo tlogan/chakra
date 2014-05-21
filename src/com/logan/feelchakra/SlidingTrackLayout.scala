@@ -42,42 +42,76 @@ class SlidingTrackLayout(
 
   }
 
-  var downX = 0
-  var upX = 0
+  var startX = 0 
+  var endX = 0 
   var diffX = 0
+  val velMs = 2 
+  val finalX = 900
+  def duration = (finalX - diffX)/velMs
+
+  val gestureDetector = new GestureDetector(context, new SimpleOnGestureListener {
+    override def onDown(e: MotionEvent): Boolean = {
+      val startX = e.getX().toInt
+      Log.d("chakra", "onDown " + startX)
+      true
+    }
+
+    override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
+      startX = e1.getX().toInt
+      endX = e2.getX().toInt
+      diffX = endX - startX
+      if (diffX > 0) {
+        slideView.setX(diffX)
+      }
+      true
+    }
+
+    override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
+      Log.d("chakra", "onFling")
+      startX = e1.getX().toInt
+      Log.d("chakra", "onFling e1 " + startX)
+      endX = e2.getX().toInt
+      Log.d("chakra", "onFling e2 " + endX)
+      diffX = endX - startX
+      Log.d("chakra", "onFling diff " + diffX)
+      Log.d("chakra", "onFling velX " + velX)
+
+
+      if (velX > 0) {
+        slideView.animate()
+          .x(finalX)
+          .setDuration(duration)
+      }
+
+      true
+    }
+  })
+
 
   trackTextLayout.setOnTouch((view, event) => {
-    event.getAction() match {
-      case ACTION_DOWN => 
-        downX = event.getX().toInt
-        Log.d("chakra", "action down " + downX)
-        true
-      case ACTION_MOVE => 
-        upX = event.getX().toInt
-        Log.d("chakra", "action move " + upX)
-        diffX = upX - downX
-        if (diffX > 0) {
-          val lp = new RLLayoutParams(MATCH_PARENT, 80)
-          lp.setMargins(diffX, 0, 0, 0)
-          slideView.setLayoutParams(lp)
-        }
-        true
-      case ACTION_UP =>
-        Log.d("chakra", "action up " + diffX)
-        if (diffX > 100) {
-          mainActorRef ! MainActor.AddPlaylistTrack(track)
-        }
-        downX = 0
-        upX = 0
-        diffX = 0
-        val lp = new RLLayoutParams(MATCH_PARENT, 80)
-        lp.setMargins(0, 0, 0, 0)
-        slideView.setLayoutParams(lp)
-        true
-      case _ =>
-        false
-    }
-    
+
+    if (!gestureDetector.onTouchEvent(event)) {
+      event.getAction() match {
+        case ACTION_UP => 
+          Log.d("chakra", "action up " + diffX)
+          if (diffX > 300) {
+            slideView.animate()
+              .x(finalX)
+              .setDuration(duration)
+          } else {
+            slideView.animate()
+              .x(0)
+              .setDuration(diffX/velMs)
+          }
+          true
+        case ACTION_CANCEL => 
+          slideView.setX(0)
+          true
+        case _ =>
+          false
+      }
+    } else true 
+
   })
 
   posListOp match {
