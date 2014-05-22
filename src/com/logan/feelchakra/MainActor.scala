@@ -25,6 +25,7 @@ object MainActor {
   case class AddPlaylistTrack(track: Track) 
   case class AddAndPlayTrack(track: Track) 
   case object FlipPlayer
+  case class SetPlayerOpen(playerOpen: Boolean) 
   case class AddStation(station: Station)
   case class CommitStation(device: WifiP2pDevice)
   case class RequestStation(station: Station)
@@ -145,6 +146,9 @@ class MainActor extends Actor {
 
     case FlipPlayer =>
       localManager = localManager.flipPlayer()
+
+    case SetPlayerOpen(playerOpen) =>
+      localManager = localManager.setPlayerOpen(playerOpen)
 
     case ChangeTrackByIndex(trackIndex) => 
       val current = localManager.optionByIndex(trackIndex)

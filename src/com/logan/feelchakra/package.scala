@@ -56,6 +56,7 @@ package com.logan {
     val START_STICKY = android.app.Service.START_STICKY
     type View = android.view.View
     val GONE = android.view.View.GONE
+    val VISIBLE = android.view.View.VISIBLE
     type TextView = android.widget.TextView
     type FrameLayout = android.widget.FrameLayout
     type ListView = android.widget.ListView

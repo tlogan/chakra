@@ -23,6 +23,7 @@ class MainActivity extends Activity {
   private val stationSelectionFragment = new StationSelectionFragment
 
   private var _selectionList: List[Selection] = List() 
+  var _playerOpen: Boolean = false
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
@@ -33,6 +34,7 @@ class MainActivity extends Activity {
           that.createSelectionTabs(selectionList)
           true
         case OnPlayerOpenChanged(playerOpen) => 
+          _playerOpen = playerOpen
           that.setPlayerVisibility(playerOpen)
           true
         case OnSelectionChanged(selection) => 
@@ -66,15 +68,27 @@ class MainActivity extends Activity {
     val gestureDetector = new GestureDetector(that, new SimpleOnGestureListener {
 
       override def onDown(e: MotionEvent): Boolean = {
-        true
+
+        val touchStartY = e.getY().toInt
+        if (!_playerOpen && touchStartY > frameDivideY) {
+          true
+        } else if (_playerOpen && touchStartY < 100) {
+          true
+        } else {
+          false
+        }
+
       }
 
       override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
-        val touchStartY = e1.getY().toInt
-        val totalDispY = e2.getY().toInt - touchStartY 
+        val totalDispY = e2.getY().toInt - e1.getY().toInt 
 
-        if (touchStartY > frameDivideY && totalDispY < 0) {
+        if (totalDispY < 0) {
           val offset = frameDivideY + totalDispY 
+          playerFrame.setY(offset)
+        } else  {
+          selectionFrame.setVisibility(VISIBLE)
+          val offset = totalDispY 
           playerFrame.setY(offset)
         }
         true
@@ -87,21 +101,22 @@ class MainActivity extends Activity {
             .setDuration(playerFrame.getY().toInt/velMs)
             .setListener(new AnimatorListenerAdapter() {
               override def onAnimationEnd(animator: Animator): Unit = {
-                mainActorRef ! MainActor.FlipPlayer
+                mainActorRef ! MainActor.SetPlayerOpen(true)
               }
             })
         } else {
           playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - getY().toInt)/velMs)
-            .setListener(null)
+            .setListener(new AnimatorListenerAdapter() {
+              override def onAnimationEnd(animator: Animator): Unit = {
+                mainActorRef ! MainActor.SetPlayerOpen(false)
+              }
+            })
         }
         true
       }
     })
 
     this.setOnTouch((view, event) => {
-
-      Log.d("chakra", "touch detected")
-
       if (!gestureDetector.onTouchEvent(event)) {
         event.getAction() match {
           case ACTION_UP => 
@@ -111,12 +126,16 @@ class MainActivity extends Activity {
                 .setDuration((playerFrame.getY().toInt)/velMs)
                 .setListener(new AnimatorListenerAdapter() {
                   override def onAnimationEnd(animator: Animator): Unit = {
-                    mainActorRef ! MainActor.FlipPlayer
+                    mainActorRef ! MainActor.SetPlayerOpen(true)
                   }
                 })
             } else {
               playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - getY().toInt)/velMs)
-                .setListener(null)
+                .setListener(new AnimatorListenerAdapter() {
+                  override def onAnimationEnd(animator: Animator): Unit = {
+                    mainActorRef ! MainActor.SetPlayerOpen(false)
+                  }
+                })
             }
             true
           case ACTION_CANCEL => 
@@ -204,7 +223,9 @@ class MainActivity extends Activity {
     if (playerOpen) {
       Log.d("chakra", "Player Opened!!")
       playerFrame.setY(0)
+      selectionFrame.setVisibility(GONE)
     } else {
+      selectionFrame.setVisibility(VISIBLE)
       playerFrame.setY(frameDivideY)
     }
   }

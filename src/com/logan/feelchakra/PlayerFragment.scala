@@ -76,15 +76,7 @@ class PlayerFragment extends Fragment {
 
       addView {
         _playerView = new ImageTextLayout(getActivity, "", "", "", BLACK)
-
-        /*
-        _playerView.setOnClick(view => {
-          mainActorRef ! MainActor.FlipPlayer
-        })
-        */
-
         _playerView
-
       }
 
       addView {
