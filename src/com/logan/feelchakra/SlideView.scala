@@ -11,9 +11,6 @@ class SlideView(context: Context, computeFinalX: => Int, onSlideEnd: () => Unit)
   lazy val finalX = computeFinalX 
 
   def slideForward(): Unit = {
-
-    Log.d("chakra", "final X: " + finalX)
-    Log.d("chakra", "getX: " + getX())
     animate()
       .x(finalX)
       .setDuration((finalX - getX().toInt)/velMs)

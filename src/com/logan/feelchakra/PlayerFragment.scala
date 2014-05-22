@@ -1,5 +1,7 @@
 package com.logan.feelchakra
 
+import android.util.Log
+import android.widget.Toast
 
 class PlayerFragment extends Fragment {
 
@@ -39,20 +41,6 @@ class PlayerFragment extends Fragment {
     }
   }
 
-  private def resizePlaylistView(playerOpen: Boolean): Unit = {
-
-    if (playerOpen) {
-      _playlistView.setLayoutParams {
-        new LLLayoutParams(MATCH_PARENT, 0, 6)
-      }
-    } else {
-      _playlistView.setLayoutParams {
-        new LLLayoutParams(MATCH_PARENT, 0, 0)
-      }
-    }
-
-  }
-
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._ 
@@ -63,13 +51,20 @@ class PlayerFragment extends Fragment {
           that.populatePlaylistView(playlist); true
         case OnLocalTrackOptionChanged(trackOption) => 
           that.setTrackOption(trackOption); true
-        case OnPlayerOpenChanged(playerOpen) => 
-          that.resizePlaylistView(playerOpen); true
         case _ => false
       }
      false
     }
   })
+
+  private def withMainActivity(f: MainActivity => Unit): Unit = {
+    getActivity() match {
+      case activity: MainActivity => {
+        f(activity)
+      }
+      case _ => Log.d("chakra", "PlayerFragment: MainActivity missing")
+    } 
+  }
 
   override def onCreate(savedState: Bundle): Unit = {
     super.onCreate(savedState)
@@ -81,9 +76,13 @@ class PlayerFragment extends Fragment {
 
       addView {
         _playerView = new ImageTextLayout(getActivity, "", "", "", BLACK)
-        _playerView.setOnClick(
-          view => { mainActorRef ! MainActor.FlipPlayer }
-        )
+
+        /*
+        _playerView.setOnClick(view => {
+          mainActorRef ! MainActor.FlipPlayer
+        })
+        */
+
         _playerView
 
       }
@@ -92,7 +91,7 @@ class PlayerFragment extends Fragment {
         _playlistView = new ListView(getActivity()) {
           setBackgroundColor(BLACK)
           setLayoutParams(
-            new LLLayoutParams(MATCH_PARENT, 0, 0)
+            new LLLayoutParams(MATCH_PARENT, MATCH_PARENT)
           ) 
         }
         val adapter = new PlaylistAdapter(getActivity())

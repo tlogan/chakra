@@ -20,9 +20,6 @@ class SlidingTrackLayout(
     setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
     setPadding(10, 12, 10, 12)
     setBackgroundColor(TRANSPARENT)
-    this.setOnClick(view => {
-      mainActorRef ! MainActor.AddPlaylistTrack(track)
-    })
     
 
     addView {
@@ -50,14 +47,20 @@ class SlidingTrackLayout(
   }
 
   val gestureDetector = new GestureDetector(context, new SimpleOnGestureListener {
+
     override def onDown(e: MotionEvent): Boolean = {
       true
     }
 
+    override def onSingleTapUp(e: MotionEvent): Boolean = {
+      mainActorRef ! MainActor.AddPlaylistTrack(track)
+      true
+    }
+
     override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
-      val newX = e2.getX().toInt - e1.getX().toInt 
-      if (newX > 0) {
-        slideView.setX(newX)
+      val totalDispX = e2.getX().toInt - e1.getX().toInt 
+      if (totalDispX > 0) {
+        slideView.setX(totalDispX)
       }
       true
     }

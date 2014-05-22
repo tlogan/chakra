@@ -1,5 +1,11 @@
 package com.logan.feelchakra
 
+import android.util.Log
+import android.widget.Toast
+
+import RichView.view2RichView
+import RichListView.listView2RichListView
+
 object MainActivity {
    
    val selectionFrameId = 23;
@@ -9,8 +15,6 @@ object MainActivity {
 
 class MainActivity extends Activity {
 
-  private var _selectionFrame: FrameLayout = _
-  private var _playerFrame: FrameLayout = _
   private val that = this
 
   private val albumSelectionFragment =  new AlbumSelectionFragment
@@ -39,36 +43,106 @@ class MainActivity extends Activity {
     }
   })
 
+  lazy val frameDivideY = getResources().getDisplayMetrics().heightPixels - 200
+  val velMs = 2
+
+  lazy val selectionFrame = new FrameLayout(that) {
+    setId(MainActivity.selectionFrameId)
+    setLayoutParams {
+      new RLLayoutParams(MATCH_PARENT, frameDivideY)
+    }
+  } 
+
+  lazy val playerFrame = new FrameLayout(that) {
+    setId(MainActivity.playerFrameId)
+    setLayoutParams {
+      new RLLayoutParams(MATCH_PARENT, MATCH_PARENT)
+    }
+  }
+
+
+  lazy val contentView: RelativeLayout = new RelativeLayout(this) {
+
+    val gestureDetector = new GestureDetector(that, new SimpleOnGestureListener {
+
+      override def onDown(e: MotionEvent): Boolean = {
+        true
+      }
+
+      override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
+        val touchStartY = e1.getY().toInt
+        val totalDispY = e2.getY().toInt - touchStartY 
+
+        if (touchStartY > frameDivideY && totalDispY < 0) {
+          val offset = frameDivideY + totalDispY 
+          playerFrame.setY(offset)
+        }
+        true
+      }
+
+      override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
+        if (velY < 0) {
+          playerFrame.animate()
+            .y(0)
+            .setDuration(playerFrame.getY().toInt/velMs)
+            .setListener(new AnimatorListenerAdapter() {
+              override def onAnimationEnd(animator: Animator): Unit = {
+                mainActorRef ! MainActor.FlipPlayer
+              }
+            })
+        } else {
+          playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - getY().toInt)/velMs)
+            .setListener(null)
+        }
+        true
+      }
+    })
+
+    this.setOnTouch((view, event) => {
+
+      Log.d("chakra", "touch detected")
+
+      if (!gestureDetector.onTouchEvent(event)) {
+        event.getAction() match {
+          case ACTION_UP => 
+            if (playerFrame.getY() < frameDivideY / 2) {
+              playerFrame.animate()
+                .y(0)
+                .setDuration((playerFrame.getY().toInt)/velMs)
+                .setListener(new AnimatorListenerAdapter() {
+                  override def onAnimationEnd(animator: Animator): Unit = {
+                    mainActorRef ! MainActor.FlipPlayer
+                  }
+                })
+            } else {
+              playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - getY().toInt)/velMs)
+                .setListener(null)
+            }
+            true
+          case ACTION_CANCEL => 
+            true
+          case _ =>
+            false
+        }
+      } else true 
+
+    })
+
+    addView { 
+      selectionFrame
+    }
+    addView(playerFrame)
+    bringChildToFront(playerFrame)
+  }
+
   
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
 
-
-    setContentView {
-      new LinearLayout(this) {
-        setOrientation(VERTICAL)
-        addView {
-          _selectionFrame = new FrameLayout(that) {
-            setId(MainActivity.selectionFrameId)
-            setLayoutParams {
-              new LLLayoutParams(MATCH_PARENT, 0, 6)
-            }
-            
-          }; _selectionFrame
-        }
-        addView {
-          _playerFrame = new FrameLayout(that) {
-            setId(MainActivity.playerFrameId)
-            setLayoutParams {
-              new LLLayoutParams(MATCH_PARENT, 0, 1)
-            }
-          }; _playerFrame
-        }
-      }
-    }
+    setContentView(contentView)
 
     val playerFragTrans = getFragmentManager().beginTransaction()
-    playerFragTrans.replace(_playerFrame.getId(), new PlayerFragment).commit()
+    playerFragTrans.replace(playerFrame.getId(), new PlayerFragment).commit()
 
     val playerServiceIntent = new Intent(this, classOf[PlayerService])
     startService(playerServiceIntent);
@@ -125,15 +199,13 @@ class MainActivity extends Activity {
 
   }
 
+
   private def setPlayerVisibility(playerOpen: Boolean): Unit = {
     if (playerOpen) {
-      _selectionFrame.setLayoutParams {
-        new LLLayoutParams(MATCH_PARENT, 0, 0)
-      }
+      Log.d("chakra", "Player Opened!!")
+      playerFrame.setY(0)
     } else {
-      _selectionFrame.setLayoutParams {
-        new LLLayoutParams(MATCH_PARENT, 0, 6)
-      }
+      playerFrame.setY(frameDivideY)
     }
   }
 
@@ -143,21 +215,17 @@ class MainActivity extends Activity {
 
     selection match {
       case ArtistSelection => 
-        transaction.replace(_selectionFrame.getId(), artistSelectionFragment)
+        transaction.replace(selectionFrame.getId(), artistSelectionFragment)
       case AlbumSelection => 
-        transaction.replace(_selectionFrame.getId(), albumSelectionFragment)
+        transaction.replace(selectionFrame.getId(), albumSelectionFragment)
       case TrackSelection => 
-        transaction.replace(_selectionFrame.getId(), trackSelectionFragment)
+        transaction.replace(selectionFrame.getId(), trackSelectionFragment)
       case StationSelection =>
-        transaction.replace(_selectionFrame.getId(), stationSelectionFragment)
+        transaction.replace(selectionFrame.getId(), stationSelectionFragment)
     }
 
     transaction.commit()
-
-
     
   }
-
-
 
 }
