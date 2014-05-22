@@ -36,6 +36,9 @@ package com.logan {
     val RichMediaPlayer = guava.scalaandroid.RichMediaPlayer
     type RichMediaPlayer = guava.scalaandroid.RichMediaPlayer
 
+    type Animator = android.animation.Animator
+    type AnimatorListenerAdapter = android.animation.AnimatorListenerAdapter
+
     type SimpleOnGestureListener = android.view.GestureDetector.SimpleOnGestureListener
     type GestureDetector = android.view.GestureDetector
 

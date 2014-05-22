@@ -13,18 +13,11 @@ class SlidingTrackLayout(
     current: Boolean
 ) extends RelativeLayout(context) {
 
-  val slideView = new View(context) {
-    setBackgroundColor(DKGRAY)
-    setLayoutParams(new RLLayoutParams(MATCH_PARENT, 80))
-  }
-  val veiledView = new View(context) {
-    setBackgroundColor(BLUE)
-    setLayoutParams(new RLLayoutParams(MATCH_PARENT, 80))
-  }
+  val height = 80 
 
   val trackTextLayout = new LinearLayout(context) {
     setOrientation(VERTICAL)
-    setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
     setPadding(10, 12, 10, 12)
     setBackgroundColor(TRANSPARENT)
     this.setOnClick(view => {
@@ -42,12 +35,27 @@ class SlidingTrackLayout(
 
   }
 
+  val slideView = new View(context) {
+    setBackgroundColor(DKGRAY)
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
+  }
+  val veiledView = new View(context) {
+    setBackgroundColor(BLUE)
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
+  }
+
+  addView(trackTextLayout)
+  addView(veiledView)
+  addView(slideView)
+  bringChildToFront(trackTextLayout)
+
+
   var startX = 0 
   var endX = 0 
   var diffX = 0
-  val velMs = 2 
-  val finalX = 900
-  def duration = (finalX - diffX)/velMs
+  val velMs = 1 
+
+  lazy val finalX = trackTextLayout.getWidth() 
 
   val gestureDetector = new GestureDetector(context, new SimpleOnGestureListener {
     override def onDown(e: MotionEvent): Boolean = {
@@ -67,20 +75,19 @@ class SlidingTrackLayout(
     }
 
     override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
-      Log.d("chakra", "onFling")
       startX = e1.getX().toInt
-      Log.d("chakra", "onFling e1 " + startX)
       endX = e2.getX().toInt
-      Log.d("chakra", "onFling e2 " + endX)
       diffX = endX - startX
-      Log.d("chakra", "onFling diff " + diffX)
-      Log.d("chakra", "onFling velX " + velX)
-
 
       if (velX > 0) {
         slideView.animate()
           .x(finalX)
-          .setDuration(duration)
+          .setDuration((finalX - diffX)/velMs)
+          .setListener(new AnimatorListenerAdapter() {
+            override def onAnimationEnd(animator: Animator): Unit = {
+              mainActorRef !  MainActor.AddAndPlayTrack(track)
+            }
+          })
       }
 
       true
@@ -94,10 +101,15 @@ class SlidingTrackLayout(
       event.getAction() match {
         case ACTION_UP => 
           Log.d("chakra", "action up " + diffX)
-          if (diffX > 300) {
+          if (diffX > finalX * 2/3) {
             slideView.animate()
               .x(finalX)
-              .setDuration(duration)
+              .setDuration((finalX - diffX)/velMs)
+              .setListener(new AnimatorListenerAdapter() {
+                override def onAnimationEnd(animator: Animator): Unit = {
+                  mainActorRef !  MainActor.AddAndPlayTrack(track)
+                }
+              })
           } else {
             slideView.animate()
               .x(0)
@@ -131,9 +143,5 @@ class SlidingTrackLayout(
   }
 
 
-  addView(trackTextLayout)
-  addView(veiledView)
-  addView(slideView)
-  bringChildToFront(trackTextLayout)
 
 }

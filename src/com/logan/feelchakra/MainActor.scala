@@ -23,6 +23,7 @@ object MainActor {
   case object EndLocalAudioBuffer
 
   case class AddPlaylistTrack(track: Track) 
+  case class AddAndPlayTrack(track: Track) 
   case object FlipPlayer
   case class AddStation(station: Station)
   case class CommitStation(device: WifiP2pDevice)
@@ -174,6 +175,17 @@ class MainActor extends Actor {
       } else {
         localManager = localManager.addPlaylistTrack(track)
       }
+
+    case AddAndPlayTrack(track) =>
+        
+        val newIndex = localManager.playlist.size
+        localManager = localManager.addPlaylistTrack(track).setCurrentIndex(newIndex)
+
+        if (stationManager.currentOp == None) {
+          notifyWriters(ListenerWriter.WriteTrackOp(Some(track)))
+          notifyWriters(ListenerWriter.WritePlayState(Playing(Platform.currentTime)))
+          localManager = localManager.setStartPos(0).setPlaying(true)
+        }
 
     case AddStation(station) =>
       stationManager = stationManager.stageStation(station)
