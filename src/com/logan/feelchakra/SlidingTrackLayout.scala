@@ -35,89 +35,50 @@ class SlidingTrackLayout(
 
   }
 
-  val slideView = new View(context) {
+  val slideView = new SlideView(
+    context, 
+    trackTextLayout.getWidth(),  
+    () => mainActorRef !  MainActor.AddAndPlayTrack(track)
+  ) {
     setBackgroundColor(DKGRAY)
     setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
   }
+
   val veiledView = new View(context) {
     setBackgroundColor(BLUE)
     setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
   }
 
-  addView(trackTextLayout)
-  addView(veiledView)
-  addView(slideView)
-  bringChildToFront(trackTextLayout)
-
-
-  var startX = 0 
-  var endX = 0 
-  var diffX = 0
-  val velMs = 1 
-
-  lazy val finalX = trackTextLayout.getWidth() 
-
   val gestureDetector = new GestureDetector(context, new SimpleOnGestureListener {
     override def onDown(e: MotionEvent): Boolean = {
-      val startX = e.getX().toInt
-      Log.d("chakra", "onDown " + startX)
       true
     }
 
     override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
-      startX = e1.getX().toInt
-      endX = e2.getX().toInt
-      diffX = endX - startX
-      if (diffX > 0) {
-        slideView.setX(diffX)
+      val newX = e2.getX().toInt - e1.getX().toInt 
+      if (newX > 0) {
+        slideView.setX(newX)
       }
       true
     }
 
     override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
-      startX = e1.getX().toInt
-      endX = e2.getX().toInt
-      diffX = endX - startX
-
       if (velX > 0) {
-        slideView.animate()
-          .x(finalX)
-          .setDuration((finalX - diffX)/velMs)
-          .setListener(new AnimatorListenerAdapter() {
-            override def onAnimationEnd(animator: Animator): Unit = {
-              mainActorRef !  MainActor.AddAndPlayTrack(track)
-            }
-          })
+        slideView.slideForward()
       }
-
       true
     }
   })
-
 
   trackTextLayout.setOnTouch((view, event) => {
 
     if (!gestureDetector.onTouchEvent(event)) {
       event.getAction() match {
         case ACTION_UP => 
-          Log.d("chakra", "action up " + diffX)
-          if (diffX > finalX * 2/3) {
-            slideView.animate()
-              .x(finalX)
-              .setDuration((finalX - diffX)/velMs)
-              .setListener(new AnimatorListenerAdapter() {
-                override def onAnimationEnd(animator: Animator): Unit = {
-                  mainActorRef !  MainActor.AddAndPlayTrack(track)
-                }
-              })
-          } else {
-            slideView.animate()
-              .x(0)
-              .setDuration(diffX/velMs)
-          }
+          slideView.slide()
           true
         case ACTION_CANCEL => 
-          slideView.setX(0)
+          slideView.slide()
           true
         case _ =>
           false
@@ -142,6 +103,9 @@ class SlidingTrackLayout(
       slideView.setBackgroundColor(DKGRAY) 
   }
 
-
+  addView(trackTextLayout)
+  addView(veiledView)
+  addView(slideView)
+  bringChildToFront(trackTextLayout)
 
 }
