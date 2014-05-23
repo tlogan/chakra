@@ -26,7 +26,7 @@ trait HorizontalSlideView {
   }
 
   def slideLeft(): Unit = {
-    animate().x(0).setDuration(getX().toInt/velMs)
+    animate().x(left).setDuration(getX().toInt/velMs)
       .x(left)
       .setDuration((getX().toInt - left)/velMs)
       .setListener(new AnimatorListenerAdapter() {

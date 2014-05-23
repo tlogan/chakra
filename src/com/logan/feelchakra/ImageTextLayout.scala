@@ -15,6 +15,7 @@ class ImageTextLayout(
     case DKGRAY => GRAY
     case GRAY => LTGRAY
     case BLUE => WHITE
+    case _ => WHITE
   }
 
   val imageLayout: View = new View(context) {
