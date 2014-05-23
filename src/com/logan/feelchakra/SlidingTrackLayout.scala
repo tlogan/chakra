@@ -68,6 +68,8 @@ class SlidingTrackLayout(
     override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
       if (velX > 0) {
         slideView.slideForward()
+      } else {
+        slideView.slideBack()
       }
       true
     }

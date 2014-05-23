@@ -82,14 +82,12 @@ class MainActivity extends Activity {
 
       override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
         val totalDispY = e2.getY().toInt - e1.getY().toInt 
-
+        val offset = if (_playerOpen) totalDispY else totalDispY + frameDivideY 
         if (totalDispY < 0) {
-          val offset = frameDivideY + totalDispY 
-          playerFrame.setY(offset)
-        } else  {
+          playerFrame.setY(Math.max(offset, 0))
+        } else {
           selectionFrame.setVisibility(VISIBLE)
-          val offset = totalDispY 
-          playerFrame.setY(offset)
+          playerFrame.setY(Math.min(offset, frameDivideY))
         }
         true
       }
@@ -105,7 +103,7 @@ class MainActivity extends Activity {
               }
             })
         } else {
-          playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - getY().toInt)/velMs)
+          playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - playerFrame.getY().toInt)/velMs)
             .setListener(new AnimatorListenerAdapter() {
               override def onAnimationEnd(animator: Animator): Unit = {
                 mainActorRef ! MainActor.SetPlayerOpen(false)
@@ -130,7 +128,7 @@ class MainActivity extends Activity {
                   }
                 })
             } else {
-              playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - getY().toInt)/velMs)
+              playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - playerFrame.getY().toInt)/velMs)
                 .setListener(new AnimatorListenerAdapter() {
                   override def onAnimationEnd(animator: Animator): Unit = {
                     mainActorRef ! MainActor.SetPlayerOpen(false)
