@@ -32,11 +32,13 @@ class SlidingTrackLayout(
 
   }
 
-  val slideView = new SlideView(
-    context, 
-    trackTextLayout.getWidth(),  
-    () => mainActorRef !  MainActor.AddAndPlayTrack(track)
-  ) {
+  val slideView = new View(context) with HorizontalSlideView {
+    override val velMs = 2
+    override val left = 0
+    override lazy val right = trackTextLayout.getWidth() 
+    override def onSlideLeftEnd() = {} 
+    override def onSlideRightEnd() = mainActorRef !  MainActor.AddAndPlayTrack(track)
+
     setBackgroundColor(DKGRAY)
     setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
   }
@@ -67,9 +69,9 @@ class SlidingTrackLayout(
 
     override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
       if (velX > 0) {
-        slideView.slideForward()
+        slideView.slideRight()
       } else {
-        slideView.slideBack()
+        slideView.slideLeft()
       }
       true
     }

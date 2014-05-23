@@ -46,7 +46,6 @@ class MainActivity extends Activity {
   })
 
   lazy val frameDivideY = getResources().getDisplayMetrics().heightPixels - 200
-  val velMs = 2
 
   lazy val selectionFrame = new FrameLayout(that) {
     setId(MainActivity.selectionFrameId)
@@ -55,7 +54,14 @@ class MainActivity extends Activity {
     }
   } 
 
-  lazy val playerFrame = new FrameLayout(that) {
+  lazy val playerFrame = new FrameLayout(that) with VerticalSlideView {
+    
+    override val velMs = 2
+    override val topY = 0
+    override lazy val bottomY = frameDivideY
+    override def onSlideUpEnd() = mainActorRef ! MainActor.SetPlayerOpen(true)
+    override def onSlideDownEnd() = mainActorRef ! MainActor.SetPlayerOpen(false)
+
     setId(MainActivity.playerFrameId)
     setLayoutParams {
       new RLLayoutParams(MATCH_PARENT, MATCH_PARENT)
@@ -70,7 +76,7 @@ class MainActivity extends Activity {
       override def onDown(e: MotionEvent): Boolean = {
 
         val touchStartY = e.getY().toInt
-        if (!_playerOpen && touchStartY > frameDivideY) {
+        if (!_playerOpen && touchStartY > playerFrame.bottomY) {
           true
         } else if (_playerOpen && touchStartY < 100) {
           true
@@ -82,33 +88,21 @@ class MainActivity extends Activity {
 
       override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
         val totalDispY = e2.getY().toInt - e1.getY().toInt 
-        val offset = if (_playerOpen) totalDispY else totalDispY + frameDivideY 
+        val offset = if (_playerOpen) totalDispY else totalDispY + playerFrame.bottomY 
         if (totalDispY < 0) {
           playerFrame.setY(Math.max(offset, 0))
         } else {
           selectionFrame.setVisibility(VISIBLE)
-          playerFrame.setY(Math.min(offset, frameDivideY))
+          playerFrame.setY(Math.min(offset, playerFrame.bottomY))
         }
         true
       }
 
       override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
         if (velY < 0) {
-          playerFrame.animate()
-            .y(0)
-            .setDuration(playerFrame.getY().toInt/velMs)
-            .setListener(new AnimatorListenerAdapter() {
-              override def onAnimationEnd(animator: Animator): Unit = {
-                mainActorRef ! MainActor.SetPlayerOpen(true)
-              }
-            })
+          playerFrame.slideUp()
         } else {
-          playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - playerFrame.getY().toInt)/velMs)
-            .setListener(new AnimatorListenerAdapter() {
-              override def onAnimationEnd(animator: Animator): Unit = {
-                mainActorRef ! MainActor.SetPlayerOpen(false)
-              }
-            })
+          playerFrame.slideDown()
         }
         true
       }
@@ -118,23 +112,7 @@ class MainActivity extends Activity {
       if (!gestureDetector.onTouchEvent(event)) {
         event.getAction() match {
           case ACTION_UP => 
-            if (playerFrame.getY() < frameDivideY / 2) {
-              playerFrame.animate()
-                .y(0)
-                .setDuration((playerFrame.getY().toInt)/velMs)
-                .setListener(new AnimatorListenerAdapter() {
-                  override def onAnimationEnd(animator: Animator): Unit = {
-                    mainActorRef ! MainActor.SetPlayerOpen(true)
-                  }
-                })
-            } else {
-              playerFrame.animate().y(frameDivideY).setDuration((frameDivideY - playerFrame.getY().toInt)/velMs)
-                .setListener(new AnimatorListenerAdapter() {
-                  override def onAnimationEnd(animator: Animator): Unit = {
-                    mainActorRef ! MainActor.SetPlayerOpen(false)
-                  }
-                })
-            }
+            playerFrame.slide()
             true
           case ACTION_CANCEL => 
             true
@@ -220,11 +198,11 @@ class MainActivity extends Activity {
   private def setPlayerVisibility(playerOpen: Boolean): Unit = {
     if (playerOpen) {
       Log.d("chakra", "Player Opened!!")
-      playerFrame.setY(0)
+      playerFrame.moveTop()
       selectionFrame.setVisibility(GONE)
     } else {
       selectionFrame.setVisibility(VISIBLE)
-      playerFrame.setY(frameDivideY)
+      playerFrame.moveBottom()
     }
   }
 
