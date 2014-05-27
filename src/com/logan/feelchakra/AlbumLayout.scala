@@ -44,7 +44,7 @@ class AlbumLayout(
       case _ => false 
     }
 
-    textLayout.addView(new SlidingTrackLayout(context, track, trackNum, playmap.get(track), current)) 
+    textLayout.addView(new AlbumTrackLayout(context, track, trackNum, playmap.get(track), current)) 
 
     if (trackNum != trackList.size) {
       textLayout.addView {

@@ -1,29 +1,33 @@
 package com.logan.feelchakra
 
-class TrackLayout(context: Context) extends LinearLayout(context) {
+import android.util.Log
+import android.widget.Toast
+import RichListView.listView2RichListView
+import RichView.view2RichView
 
-   setOrientation(VERTICAL)
-   setLayoutParams {
-     new LLLayoutParams(MATCH_PARENT, 0, 1)
-   }
+class TrackLayout(
+    context: Context,
+    track: Track,
+    playmap: Map[Track, List[Int]],
+    trackOption: Option[Track] 
+) extends SlidingTrackLayout(
+  context,
+  track,
+  new TextLayout(context, track.title, track.artist, track.album) {
+    setBackgroundColor(TRANSPARENT)
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+  }
+) {
 
-   def setTrackOption(trackOption: Option[Track]): Unit = {
-     removeAllViews()
-     trackOption match {
-       case Some(track) =>
-         //update the track info
-         List(track.title, track.album, track.artist) foreach {
-           (term: String) => { 
-             addView {
-               new TextView(context) {
-                 setText(term)
-               }
-             }
-           } 
-         }
-       case None => {}
-     }
-   }
-
+  val color = playmap.get(track) match {
+    case Some(posList) => 
+      trackOption match {
+        case Some(currentTrack) if (currentTrack == track) =>
+          BLUE 
+        case _ => GRAY 
+      }
+    case None => DKGRAY 
+  }
+  slideView.setBackgroundColor(color)
 
 }

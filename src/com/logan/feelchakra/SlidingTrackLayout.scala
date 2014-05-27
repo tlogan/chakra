@@ -8,29 +8,10 @@ import RichView.view2RichView
 class SlidingTrackLayout(
     context: Context, 
     track: Track,
-    trackNum: Int,
-    posListOp: Option[List[Int]],
-    current: Boolean
+    val trackTextLayout: ViewGroup 
 ) extends RelativeLayout(context) {
 
-  val height = 80 
-
-  val trackTextLayout = new LinearLayout(context) {
-    setOrientation(VERTICAL)
-    setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
-    setPadding(10, 12, 10, 12)
-    setBackgroundColor(TRANSPARENT)
-    
-
-    addView {
-      new TextView(context) {
-        setText(trackNum + ". " + track.title)
-        setTextSize(18)
-        setTextColor(WHITE)
-      }
-    }
-
-  }
+  lazy val height = 100 
 
   val slideView = new View(context) with HorizontalSlideView {
     override val velMs = 2
@@ -48,36 +29,16 @@ class SlidingTrackLayout(
     setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
   }
 
-  val gestureDetector = new GestureDetector(context, new SimpleOnGestureListener {
-
-    override def onDown(e: MotionEvent): Boolean = {
-      true
-    }
+  val gestureDetector = new GestureDetector(context, new HorizontalSlideListener(slideView) {
 
     override def onSingleTapUp(e: MotionEvent): Boolean = {
       mainActorRef ! MainActor.AddPlaylistTrack(track)
       true
     }
 
-    override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
-      val totalDispX = e2.getX().toInt - e1.getX().toInt 
-      if (totalDispX > 0) {
-        slideView.setX(totalDispX)
-      }
-      true
-    }
-
-    override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
-      if (velX > 0) {
-        slideView.slideRight()
-      } else {
-        slideView.slideLeft()
-      }
-      true
-    }
   })
 
-  trackTextLayout.setOnTouch((view, event) => {
+  this.setOnTouch((view, event) => {
 
     if (!gestureDetector.onTouchEvent(event)) {
       event.getAction() match {
@@ -93,22 +54,6 @@ class SlidingTrackLayout(
     } else true 
 
   })
-
-  posListOp match {
-    case Some(posList) =>
-      if (current) {
-        slideView.setBackgroundColor(BLUE) 
-      } else slideView.setBackgroundColor(GRAY) 
-      trackTextLayout.addView {
-        new TextView(context) {
-          setText(posList.mkString(", "))
-          setTextSize(14)
-          setTextColor(LTGRAY)
-        }
-      }
-    case None =>
-      slideView.setBackgroundColor(DKGRAY) 
-  }
 
   addView(trackTextLayout)
   addView(veiledView)
