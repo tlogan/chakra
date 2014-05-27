@@ -11,23 +11,24 @@ class AlbumLayout(
     trackList: List[Track],
     playmap: Map[Track, List[Int]],
     trackOption: Option[Track]
-) extends ImageTextLayout(
+) extends TextLayout(
     context, 
     album, 
     trackList.size + " Tracks", 
-    "time",
-    DKGRAY
+    "time"
 ) {
 
   val that = this
 
-  textLayout.addView {
+  setBackgroundColor(DKGRAY)
+
+  addView {
     new View(context) {
       setLayoutParams(new LLLayoutParams(MATCH_PARENT, 8))
     }
   }
 
-  textLayout.setOnLongClick(view => {
+  this.setOnLongClick(view => {
     trackList.foreach(track => {
       mainActorRef ! MainActor.AddPlaylistTrack(track)
     })
@@ -44,10 +45,10 @@ class AlbumLayout(
       case _ => false 
     }
 
-    textLayout.addView(new AlbumTrackLayout(context, track, trackNum, playmap.get(track), current)) 
+    addView(new AlbumTrackLayout(context, track, trackNum, playmap.get(track), current)) 
 
     if (trackNum != trackList.size) {
-      textLayout.addView {
+      addView {
         new View(context) {
           setBackgroundColor(LTGRAY)
           val lp = new LLLayoutParams(MATCH_PARENT, 1)

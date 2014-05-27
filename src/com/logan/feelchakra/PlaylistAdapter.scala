@@ -23,7 +23,9 @@ class PlaylistAdapter(activity: Activity) extends BaseAdapter {
       val color = if (getItemId(position) < _trackIndex) {
         DKGRAY 
       } else GRAY 
-      new ImageTextLayout(activity, track.title, track.album, track.artist, color)
+      new ImageSplitLayout(activity, new TextLayout(activity, track.title, track.album, track.artist)) {
+        setBackgroundColor(color)
+      }
     }
 
   }

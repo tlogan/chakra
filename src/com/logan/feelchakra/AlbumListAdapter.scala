@@ -3,6 +3,9 @@ package com.logan.feelchakra
 import android.util.Log
 import android.widget.Toast
 
+import RichListView.listView2RichListView
+import RichView.view2RichView
+
 class AlbumListAdapter(activity: Activity) extends BaseAdapter {
 
   private var _albumTupleOp: Option[(String, List[Track])] = None 
@@ -33,16 +36,20 @@ class AlbumListAdapter(activity: Activity) extends BaseAdapter {
     val album = albumTuple._1
     val trackList = albumTuple._2
 
-    val layout = _albumTupleOp match {
+    val rightLayout = _albumTupleOp match {
       case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
         new AlbumLayout(activity, album, trackList, _playmap, _trackOption) 
       case _ =>
-        new ImageTextLayout(activity, album, trackList.size + " Tracks", "time", DKGRAY)
+        new TextLayout(activity, album, trackList.size + " Tracks", "time") {
+          setBackgroundColor(DKGRAY)
+        }
     }
-    layout.setOnTextLayoutClick(view => {
+
+    rightLayout.setOnClick(view => {
       mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
     })
-    layout
+
+    new ImageSplitLayout(activity, rightLayout)
   }
 
   def setAlbumMap(albumMap: AlbumMap): Unit = {

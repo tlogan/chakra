@@ -9,6 +9,8 @@ class ImageSplitLayout(context: Context, rightLayout: View) extends LinearLayout
     setLayoutParams(new LLLayoutParams(94, 94))
   }
 
+  rightLayout.setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+
   setOrientation(HORIZONTAL)
   setBackgroundColor(BLACK)
   addView(imageLayout)

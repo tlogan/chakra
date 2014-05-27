@@ -3,19 +3,42 @@ package com.logan.feelchakra
 import android.util.Log
 import android.widget.Toast
 
+import RichView.view2RichView
+import RichListView.listView2RichListView
+
 class PlayerFragment extends Fragment {
 
-
   private val that = this
-  private var _playlistView: ListView = _
-  private var _playerView: ImageTextLayout = _
-  private var _adapter: PlaylistAdapter = _
 
-  import RichView.view2RichView
-  import RichListView.listView2RichListView
+  private lazy val adapter: PlaylistAdapter = new PlaylistAdapter(getActivity())
+
+  private lazy val playlistView: ListView = new ListView(getActivity()) {
+    setBackgroundColor(BLACK)
+    setLayoutParams(
+      new LLLayoutParams(MATCH_PARENT, MATCH_PARENT)
+    ) 
+
+    setAdapter(adapter)
+    this.setOnItemClick( 
+      (parent: AdapterView[_], view: View, position: Int, id: Long) => {
+        val trackIndex = adapter.getItemId(position)
+        mainActorRef ! MainActor.ChangeTrackByIndex(trackIndex.toInt) 
+      }
+    )
+  }
+
+  private lazy val playerTextLayout: TextLayout = new TextLayout(getActivity(), "", "", "")
+  private lazy val playerLayout: ImageSplitLayout = new ImageSplitLayout(getActivity(), playerTextLayout) 
+
+  private lazy val verticalLayout = new LinearLayout(getActivity()) {
+    setOrientation(VERTICAL)
+    addView(playerLayout)
+    addView(playlistView)
+  }
+
 
   private def setPlaylistCurrentTrack(trackIndex: Int): Unit = {
-    _playlistView.getAdapter() match {
+    playlistView.getAdapter() match {
       case adapter: PlaylistAdapter => {
         adapter.setTrackIndex(trackIndex)
       }
@@ -24,7 +47,7 @@ class PlayerFragment extends Fragment {
   }
 
   private def populatePlaylistView(playlist: List[Track]): Unit = {
-    _playlistView.getAdapter() match {
+    playlistView.getAdapter() match {
       case adapter: PlaylistAdapter => {
         adapter.setPlaylist(playlist)
       }
@@ -35,9 +58,9 @@ class PlayerFragment extends Fragment {
   private def setTrackOption(trackOption: Option[Track]): Unit = {
     trackOption match {
       case Some(track) =>
-        _playerView.setTexts(track.title, track.artist, track.album)
+        playerTextLayout.setTexts(track.title, track.artist, track.album)
       case _ => 
-        _playerView.setTexts("", "", "")
+        playerTextLayout.setTexts("", "", "")
     }
   }
 
@@ -71,33 +94,6 @@ class PlayerFragment extends Fragment {
   }
 
   override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
-    val verticalLayout = new LinearLayout(getActivity()) {
-      setOrientation(VERTICAL)
-
-      addView {
-        _playerView = new ImageTextLayout(getActivity, "", "", "", BLACK)
-        _playerView
-      }
-
-      addView {
-        _playlistView = new ListView(getActivity()) {
-          setBackgroundColor(BLACK)
-          setLayoutParams(
-            new LLLayoutParams(MATCH_PARENT, MATCH_PARENT)
-          ) 
-        }
-        val adapter = new PlaylistAdapter(getActivity())
-        _playlistView.setAdapter(adapter)
-        _playlistView.setOnItemClick( 
-          (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-            val trackIndex = adapter.getItemId(position)
-            mainActorRef ! MainActor.ChangeTrackByIndex(trackIndex.toInt) 
-          }
-        ); _playlistView 
-      }
-
-    }
-
     mainActorRef ! MainActor.Subscribe(this.toString, handler) 
     verticalLayout
   }

@@ -32,13 +32,12 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
     val artistTuple = getItem(position)
     val artist = artistTuple._1
     val albumMap = artistTuple._2
-    val imTxLayout = {
-      new ImageTextLayout(activity, artist, albumMap.size + " Albums", "time", DKGRAY) {
-        setOnTextLayoutClick(view => {
-          mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
-        })
-      }
-    }
+    val imTxLayout = new ImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
+      setBackgroundColor(DKGRAY)
+      this.setOnClick(view => {
+        mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
+      })
+    })
 
     _artistTupleOp match {
       case Some(openArtistTuple) if (artistTuple == openArtistTuple) => 
@@ -61,7 +60,7 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
             }
 
             addView {
-              new AlbumLayout(activity, album, trackList, _playmap, _trackOption)
+              new ImageSplitLayout(activity, new AlbumLayout(activity, album, trackList, _playmap, _trackOption))
             }
 
           })
