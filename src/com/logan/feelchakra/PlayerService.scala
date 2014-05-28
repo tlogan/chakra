@@ -86,6 +86,8 @@ class PlayerService extends Service {
             _playState match {
               case NotPlaying => _mediaPlayer.pause()
               case Playing(startTime) => 
+                 Log.d("chakra", "on remote playstate current time: " + Platform.currentTime)
+                 Log.d("chakra", "on remote playstate starttime: " + startTime)
                 _mediaPlayer.seekTo(_startPos + (Platform.currentTime - startTime).toInt)
                 _mediaPlayer.start() 
             }
@@ -362,6 +364,8 @@ class PlayerService extends Service {
       _playState match {
         case NotPlaying => _mediaPlayer.pause()
         case Playing(startTime) => 
+           Log.d("chakra", "on remote playstate current time: " + Platform.currentTime)
+           Log.d("chakra", "on remote playstate starttime: " + startTime)
           _mediaPlayer.seekTo(_startPos + (Platform.currentTime - startTime).toInt)
           _mediaPlayer.start() 
       }

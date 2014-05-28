@@ -22,8 +22,10 @@ class StationReader(socket: Socket, writer: ActorRef) extends SocketReader(socke
   val receiveReadMessages: PartialFunction[Any, Unit] = {
 
     case TrackMessage =>
+      Log.d("chakra", "reading track")
       readTrack()
     case PlayStateMessage =>
+      Log.d("chakra", "reading playstate")
       readPlayState()
     case AudioBufferMessage =>
       readAudioBuffer()
@@ -53,20 +55,20 @@ class StationReader(socket: Socket, writer: ActorRef) extends SocketReader(socke
     //read the track path
     val bufferSize = dataInput.readInt()
     val audioBuffer = new Array[Byte](bufferSize)
-    socketInput.read(audioBuffer)
+    socketInput.read(audioBuffer, 0, bufferSize)
 
     mainActorRef ! MainActor.AddStationAudioBuffer(audioBuffer)
-
   }
 
   @throws(classOf[IOException])
   def readPlayState(): Unit = {
     Log.d("chakra", "reading playState ")
-    val startTime = dataInput.readLong()
-    val playState = if (startTime > 0) {
+    val foreignStartTime = dataInput.readLong()
+    val playState = if (foreignStartTime > 0) {
+      val localStartTime = foreignStartTime + meanTimeDiff
 
       Log.d("chakra", "reading playState with meanTimeDiff: " + meanTimeDiff)
-      Playing(startTime + meanTimeDiff)
+      Playing(localStartTime)
     } else {
       NotPlaying
     }

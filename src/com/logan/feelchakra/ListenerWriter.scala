@@ -73,41 +73,6 @@ class ListenerWriter extends Actor with SocketWriter {
 
   }
 
-  def writeAudioBuffer(audioBuffer: Array[Byte]): Unit = {
-    try {
-
-      //write messageType 
-      dataOutput.writeInt(StationReader.AudioBufferMessage)
-      dataOutput.flush()
-
-      //write buffer 
-      dataOutput.writeInt(audioBuffer.length)
-      dataOutput.flush()
-      socketOutput.write(audioBuffer)
-
-    } catch {
-      case e: IOException => 
-        //Log.d("chakra", "error writing audioBuffer")
-        //e.printStackTrace()
-    }
-  }
-
-  def writeAudioDone(): Unit = {
-    Log.d("chakra", "write audio done")
-
-    try {
-
-      //write messageType 
-      dataOutput.writeInt(StationReader.AudioDoneMessage)
-      dataOutput.flush()
-
-    } catch {
-      case e: IOException => 
-        Log.d("chakra", "error writing audio done")
-        e.printStackTrace()
-    }
-  }
-
   def writePlayState(playState: PlayState): Unit = {
     Log.d("chakra", "write play state")
 
@@ -130,5 +95,41 @@ class ListenerWriter extends Actor with SocketWriter {
         Log.d("chakra", "error writing audioPlayState")
     }
   }
+
+  def writeAudioBuffer(audioBuffer: Array[Byte]): Unit = {
+    try {
+
+      //write messageType 
+      dataOutput.writeInt(StationReader.AudioBufferMessage)
+      dataOutput.flush()
+
+      //write buffer 
+      dataOutput.writeInt(audioBuffer.length)
+      dataOutput.flush()
+      socketOutput.write(audioBuffer, 0, audioBuffer.length)
+
+    } catch {
+      case e: IOException => 
+        Log.d("chakra", "error writing audioBuffer")
+        e.printStackTrace()
+    }
+  }
+
+  def writeAudioDone(): Unit = {
+    Log.d("chakra", "write audio done")
+
+    try {
+
+      //write messageType 
+      dataOutput.writeInt(StationReader.AudioDoneMessage)
+      dataOutput.flush()
+
+    } catch {
+      case e: IOException => 
+        Log.d("chakra", "error writing audio done")
+        e.printStackTrace()
+    }
+  }
+
 
 }

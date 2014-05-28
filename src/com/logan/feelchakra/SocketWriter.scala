@@ -5,11 +5,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object SocketWriter {
 
-  case object WriteSyncResult 
+  case class WriteSyncResponse(syncRequestReadTime: Long)
   case class WriteTimeDiff(timeDiff: Int) 
-  case class SetSyncResultReadTime(syncResultReadTime: Long)
-  case class SetSyncResult(syncResult: Long)
-  case class GetLocalTimeDiff
+  case class GetSyncRequestWriteTime
 
 }
 
@@ -24,29 +22,20 @@ trait SocketWriter {
   var dataOutput: DataOutputStream = _
 
   var syncRequestWriteTime: Long = 0
-  var syncResultReadTime: Long = 0 
-  var syncResult: Long = 0 
-
-  def localTimeDiff = ((syncResultReadTime + syncRequestWriteTime)/2 - syncResult).toInt
 
   val receiveWriteSync: Receive = {
 
-    case WriteSyncResult =>
-      writeSyncResult()
+    case WriteSyncResponse(syncRequestReadTime) =>
+      Log.d("chakra", "writing sync response")
+      writeSyncResponse(syncRequestReadTime)
 
     case WriteTimeDiff(timeDiff) =>
+      Log.d("chakra", "writing time diff")
       writeTimeDiff(timeDiff)
 
-    case SetSyncResultReadTime(syncResultReadTime) =>
-      this.syncResultReadTime = syncResultReadTime
-
-    case SetSyncResult(syncResult) =>
-      this.syncResult = syncResult
-      self ! WriteTimeDiff(localTimeDiff)
-      Log.d("chakra", "Local Time Diff: " + localTimeDiff)
-
-    case GetLocalTimeDiff =>
-      sender ! localTimeDiff
+    case GetSyncRequestWriteTime =>
+      Log.d("chakra", "getting syncRequestWriteTime")
+      sender ! syncRequestWriteTime
 
   }
 
@@ -60,9 +49,9 @@ trait SocketWriter {
     Log.d("chakra", "writing sync request")
     try {
       //write messageType 
+      syncRequestWriteTime = Platform.currentTime
       dataOutput.writeInt(SocketReader.SyncRequestMessage)
       dataOutput.flush()
-      syncRequestWriteTime = Platform.currentTime
     } catch {
       case e: IOException => 
         Log.d("chakra", "error writing sync request")
@@ -70,18 +59,22 @@ trait SocketWriter {
     }
   }
 
-
-  def writeSyncResult(): Unit = {
+  def writeSyncResponse(syncRequestReadTime: Long): Unit = {
 
     Log.d("chakra", "writing sync result")
     try {
       //write messageType 
-      dataOutput.writeInt(SocketReader.SyncResultMessage)
+      dataOutput.writeInt(SocketReader.SyncResponseMessage)
+      dataOutput.flush()
+
+      //write the request read time 
+      dataOutput.writeLong(syncRequestReadTime)
       dataOutput.flush()
 
       //write the current time 
       dataOutput.writeLong(Platform.currentTime)
       dataOutput.flush()
+
     } catch {
       case e: IOException => 
         Log.d("chakra", "error writing sync result")

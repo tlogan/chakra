@@ -21,6 +21,7 @@ class StationWriter extends Actor with SocketWriter {
   def receive = {
 
     case SetSocket(socket) => 
+      Log.d("chakra", "setting socket in station writer")
       setSocket(socket)
       writeSyncRequest()
       context.become(receiveWriteSync)

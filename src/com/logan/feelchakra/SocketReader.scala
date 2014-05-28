@@ -8,7 +8,7 @@ import akka.util.Timeout
 object SocketReader {
 
   val SyncRequestMessage = 50 
-  val SyncResultMessage = 60 
+  val SyncResponseMessage = 60 
   val TimeDiffMessage = 70 
 
 
@@ -20,9 +20,21 @@ abstract class SocketReader(socket: Socket, writerRef: ActorRef) {
 
   implicit val timeout = Timeout(5000)
 
-  var localTimeDiff: Int = 0
+  var syncRequestWriteTime: Long = 0
+
+  var syncRequestReadTime: Long = 0
+  var syncResponseWriteTime: Long = 0 
+
+  var syncResponseReadTime: Long = 0 
+
+  def localTimeDiff = (
+    (syncResponseReadTime + syncRequestWriteTime - syncResponseWriteTime - syncRequestReadTime)
+    /2
+  ).toInt
+
   var foreignTimeDiff: Int = 0
-  def meanTimeDiff = (localTimeDiff - foreignTimeDiff)/2
+
+  def meanTimeDiff = if (foreignTimeDiff != 0) localTimeDiff - foreignTimeDiff/2 else localTimeDiff
 
   var socketInput: InputStream = socket.getInputStream()
   var dataInput: DataInputStream = new DataInputStream(socketInput)
@@ -34,7 +46,7 @@ abstract class SocketReader(socket: Socket, writerRef: ActorRef) {
       if (receive.isDefinedAt(messageType)) {
         receive(messageType)
       } else {
-        Log.d("chakra", "read problem: not defined at " + messageType)
+        //Log.d("chakra", "read problem: not defined at " + messageType)
       }
 
     } onComplete {
@@ -60,11 +72,11 @@ abstract class SocketReader(socket: Socket, writerRef: ActorRef) {
 
   val receiveReadSync: PartialFunction[Any, Unit] = {
 
-    case SyncResultMessage =>
-      readSyncResult()
+    case SyncResponseMessage =>
+      readSyncResponse()
 
     case SyncRequestMessage =>
-      writerRef ! SocketWriter.WriteSyncResult
+      writerRef ! SocketWriter.WriteSyncResponse(Platform.currentTime)
 
     case TimeDiffMessage =>
       readTimeDiff()
@@ -72,18 +84,26 @@ abstract class SocketReader(socket: Socket, writerRef: ActorRef) {
   }
 
   @throws(classOf[IOException])
-  def readSyncResult(): Unit = {
+  def readSyncResponse(): Unit = {
     Log.d("chakra", "reading sync result")
 
-    val syncResultReadTime = Platform.currentTime
-    writerRef ! SocketWriter.SetSyncResultReadTime(syncResultReadTime)
-    val syncResult = dataInput.readLong()
-    writerRef ! SocketWriter.SetSyncResult(syncResult)
-    val f = writerRef ? SocketWriter.GetLocalTimeDiff
+    this.syncResponseReadTime = Platform.currentTime
+
+    this.syncRequestReadTime = dataInput.readLong()
+
+    this.syncResponseWriteTime = dataInput.readLong()
+
+    val f = writerRef ? SocketWriter.GetSyncRequestWriteTime
     f.onComplete {
-      case Success(localTimeDiff: Int) => 
-        Log.d("chakra", "setting localTimeDiff in reader")
-        this.localTimeDiff = localTimeDiff
+      case Success(syncRequestWriteTime: Long) => 
+        this.syncRequestWriteTime = syncRequestWriteTime
+
+        Log.d("chakra", "t0 " + syncRequestWriteTime)
+        Log.d("chakra", "t1 " + syncRequestReadTime)
+        Log.d("chakra", "t2 " + syncResponseWriteTime)
+        Log.d("chakra", "t3 " + syncResponseReadTime)
+        Log.d("chakra", "LocalTimeDiff: " + localTimeDiff)
+        writerRef ! SocketWriter.WriteTimeDiff(localTimeDiff)
 
       case Failure(e) =>
         Log.d("chakra", "failed asking for localTimeDiff: " + e.getMessage)
@@ -95,8 +115,9 @@ abstract class SocketReader(socket: Socket, writerRef: ActorRef) {
 
   @throws(classOf[IOException])
   def readTimeDiff(): Unit = {
-    Log.d("chakra", "reading time diff")
+    Log.d("chakra", "reading foreign time diff")
     foreignTimeDiff = dataInput.readInt()
     Log.d("chakra", "foreign time diff: " + foreignTimeDiff)
   }
+
 }
