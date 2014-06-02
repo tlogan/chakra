@@ -18,13 +18,14 @@ import SocketWriter._
 
 class StationWriter extends Actor with SocketWriter {
 
-  def receive = {
+  def receive = receiveSocket orElse receiveWriteSync
+
+  def receiveSocket: Receive = {
 
     case SetSocket(socket) => 
       Log.d("chakra", "setting socket in station writer")
       setSocket(socket)
       writeSyncRequest()
-      context.become(receiveWriteSync)
 
   }
 

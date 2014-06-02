@@ -12,17 +12,19 @@ object AudioReader {
 
           val file = new File(path)
           val fileInput = new BufferedInputStream(new FileInputStream(file))
-          val audioBuffer = new Array[Byte](1024)
+          val maxLen = 1024 
+          val audioBuffer = new Array[Byte](maxLen)
           var streamAlive = true
 
           while (streamAlive) {
-            val len = fileInput.read(audioBuffer)
+            val len = fileInput.read(audioBuffer, 0, maxLen)
             if (len != -1) {
               observer.onNext(audioBuffer.slice(0, len))
             } else {
               streamAlive = false
             }
           }
+
           observer.onCompleted()
 
         } catch {

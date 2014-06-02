@@ -46,7 +46,7 @@ abstract class SocketReader(socket: Socket, writerRef: ActorRef) {
       if (receive.isDefinedAt(messageType)) {
         receive(messageType)
       } else {
-        //Log.d("chakra", "read problem: not defined at " + messageType)
+        Log.d("chakra", "read problem: not defined at " + messageType)
       }
 
     } onComplete {

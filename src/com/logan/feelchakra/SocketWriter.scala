@@ -35,7 +35,7 @@ trait SocketWriter {
 
     case GetSyncRequestWriteTime =>
       Log.d("chakra", "getting syncRequestWriteTime")
-      sender ! syncRequestWriteTime
+      sender() ! syncRequestWriteTime
 
   }
 
@@ -60,8 +60,6 @@ trait SocketWriter {
   }
 
   def writeSyncResponse(syncRequestReadTime: Long): Unit = {
-
-    Log.d("chakra", "writing sync result")
     try {
       //write messageType 
       dataOutput.writeInt(SocketReader.SyncResponseMessage)

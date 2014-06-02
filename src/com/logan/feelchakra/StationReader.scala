@@ -55,9 +55,19 @@ class StationReader(socket: Socket, writer: ActorRef) extends SocketReader(socke
     //read the track path
     val bufferSize = dataInput.readInt()
     val audioBuffer = new Array[Byte](bufferSize)
-    socketInput.read(audioBuffer, 0, bufferSize)
 
-    mainActorRef ! MainActor.AddStationAudioBuffer(audioBuffer)
+    var bytesRemaining = bufferSize
+    while (bytesRemaining > 0) {
+      val bytesRead = socketInput.read(audioBuffer, 0, math.min(bufferSize, bytesRemaining))
+      if (bytesRead != -1) {
+        mainActorRef ! MainActor.AddStationAudioBuffer(audioBuffer.slice(0, bytesRead))
+        bytesRemaining = bytesRemaining - bytesRead
+      } else {
+        bytesRemaining = 0 
+      }
+    }
+
+
   }
 
   @throws(classOf[IOException])
