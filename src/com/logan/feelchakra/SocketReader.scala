@@ -34,7 +34,7 @@ abstract class SocketReader(socket: Socket, writerRef: ActorRef) {
 
   var foreignTimeDiff: Int = 0
 
-  def meanTimeDiff = if (foreignTimeDiff != 0) localTimeDiff - foreignTimeDiff/2 else localTimeDiff
+  def meanTimeDiff = if (foreignTimeDiff != 0) (localTimeDiff - foreignTimeDiff)/2 else localTimeDiff
 
   var socketInput: InputStream = socket.getInputStream()
   var dataInput: DataInputStream = new DataInputStream(socketInput)
