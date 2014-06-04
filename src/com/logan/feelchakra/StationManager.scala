@@ -74,20 +74,14 @@ case class StationManager(
   def commitTrack(originPath: String): StationManager = {
     trackAudioMap.get(originPath) match {
       case Some(trackAudio) =>
-        Log.d("chakra", "commit track: has trackAudio: " + originPath)
         val track = trackAudio._1
-        Log.d("chakra", "commit track: has track: " + track.path)
         trackOriginPathOp match {
           case Some(trackOriginPath) if trackOriginPath == originPath =>
             mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(Some(track)))
-            Log.d("chakra", "commit track: has current track: " + track.path)
-          case _ => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(None))
-            Log.d("chakra", "commit track: no current track: " + track.path)
+          case _ => 
         }
         this.copy(trackMap = trackMap.+(originPath -> track))
-      case None => 
-        Log.d("chakra", "commit track: not in audio map: " + originPath)
-        this
+      case None => this
     }
 
   }

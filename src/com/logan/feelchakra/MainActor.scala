@@ -165,8 +165,8 @@ class MainActor extends Actor {
     case AddPlaylistTrack(track) =>
       if (localManager.playlist.size == 0) {
         addPlaylistTrack(track)
-        //localManager = localManager.setCurrentIndex(0)
-        //playTrack(track)
+        localManager = localManager.setCurrentIndex(0)
+        playTrack(track)
       } else {
         addPlaylistTrack(track)
       }
