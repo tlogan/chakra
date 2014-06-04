@@ -15,9 +15,12 @@ object StationReader {
 import StationReader._
 import SocketReader._
 
-class StationReader(socket: Socket, writer: ActorRef) extends SocketReader(socket, writer) {
+class StationReader(socket: Socket, writer: ActorRef) 
+  extends SocketReader(socket, writer) 
+  with SyncServerReader 
+{
 
-  override def receive = receiveReadMessages orElse receiveReadSync
+  override def receive = receiveReadMessages orElse receiveReadSyncResponse
 
   val receiveReadMessages: PartialFunction[Any, Unit] = {
 
@@ -75,9 +78,9 @@ class StationReader(socket: Socket, writer: ActorRef) extends SocketReader(socke
     Log.d("chakra", "reading playState ")
     val foreignStartTime = dataInput.readLong()
     val playState = if (foreignStartTime > 0) {
-      val localStartTime = foreignStartTime + meanTimeDiff
+      val localStartTime = foreignStartTime + timeDiff
 
-      Log.d("chakra", "reading playState with meanTimeDiff: " + meanTimeDiff)
+      Log.d("chakra", "reading playState with timeDiff: " + timeDiff)
       Playing(localStartTime)
     } else {
       NotPlaying

@@ -10,8 +10,11 @@ object ListenerReader {
 import ListenerReader._
 import SocketReader._
 
-class ListenerReader(socket: Socket, writer: ActorRef) extends SocketReader(socket, writer) {
+class ListenerReader(socket: Socket, writer: ActorRef) 
+  extends SocketReader(socket, writer) 
+  with SyncClientReader
+{
 
-  override def receive = receiveReadSync
+  override def receive = receiveReadSyncRequest
   
 }

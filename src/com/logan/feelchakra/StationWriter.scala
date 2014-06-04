@@ -16,9 +16,9 @@ object StationWriter {
 import StationWriter._
 import SocketWriter._
 
-class StationWriter extends Actor with SocketWriter {
+class StationWriter extends Actor with SocketWriter with SyncServerWriter {
 
-  def receive = receiveSocket orElse receiveWriteSync
+  def receive = receiveSocket orElse receiveGetSyncRequest
 
   def receiveSocket: Receive = {
 

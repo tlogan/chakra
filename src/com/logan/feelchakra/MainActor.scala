@@ -34,6 +34,8 @@ object MainActor {
   case class ConnectStation(remoteHost: String)
   case class ChangeStationMessenger(socket: Socket)
 
+  case class WriteListenerPlayState(playState: PlayState) 
+
   case class SetLocalAddress(localAddress: InetSocketAddress)
   case class AddListenerWriter(remote: InetSocketAddress, socket: Socket)
 
@@ -157,8 +159,10 @@ class MainActor extends Actor {
       localManager = localManager.setStartPos(0).setPlaying(true)
       if (stationManager.currentOp == None) {
         notifyWriters(ListenerWriter.WriteTrackOp(current))
-        notifyWriters(ListenerWriter.WritePlayState(Playing(Platform.currentTime)))
       }
+
+    case WriteListenerPlayState(playState) => 
+      notifyWriters(ListenerWriter.WritePlayState(playState))
 
     case AddLocalAudioBuffer(audioBuffer) =>
       notifyWriters(ListenerWriter.WriteAudioBuffer(audioBuffer))

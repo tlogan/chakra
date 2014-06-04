@@ -20,16 +20,15 @@ object ListenerWriter {
 import ListenerWriter._
 import SocketWriter._
 
-class ListenerWriter extends Actor with SocketWriter {
+class ListenerWriter extends Actor with SocketWriter with SyncClientWriter {
 
-  def receive = receiveWrite orElse receiveWriteSync
+  def receive = receiveWrite orElse receiveWriteSyncResponse
 
   def receiveWrite: Receive = {
 
     case SetSocket(socket) =>
       setSocket(socket)
       Log.d("chakra", "setting socket in ListenerWriter")
-      writeSyncRequest()
 
     case WriteTrackOp(trackOp) =>
       writeTrack(trackOp)

@@ -56,6 +56,7 @@ class PlayerService extends Service {
           if (_prepared) {
             if (_playing) { 
               _mediaPlayer.start() 
+              mainActorRef ! MainActor.WriteListenerPlayState(Playing(Platform.currentTime))
             } else _mediaPlayer.pause()
           }
           true
@@ -342,6 +343,7 @@ class PlayerService extends Service {
       if (_playing) {
         mp.seekTo(_startPos)
         mp.start()
+        mainActorRef ! MainActor.WriteListenerPlayState(Playing(Platform.currentTime))
       }
     })
 
