@@ -11,8 +11,11 @@ object ListenerWriter {
 
   case class SetSocket(socket: Socket)
   case class WriteTrackOp(trackOp: Option[Track]) 
-  case class WriteAudioBuffer(audioBuffer: Array[Byte]) 
-  case object WriteAudioDone 
+  case class WriteAudioBuffer(path: String, audioBuffer: Array[Byte]) 
+  case class WriteAudioDone(path: String)
+
+
+  case class WriteCurrentTrackPath(path: String)
   case class WritePlayState(playState: PlayState) 
 
 }
@@ -33,11 +36,14 @@ class ListenerWriter extends Actor with SocketWriter with SyncClientWriter {
     case WriteTrackOp(trackOp) =>
       writeTrack(trackOp)
 
-    case WriteAudioBuffer(audioBuffer) =>
-      writeAudioBuffer(audioBuffer)
+    case WriteAudioBuffer(path, audioBuffer) =>
+      writeAudioBuffer(path, audioBuffer)
 
-    case WriteAudioDone =>
-      writeAudioDone()
+    case WriteAudioDone(path) =>
+      writeAudioDone(path)
+
+    case WriteCurrentTrackPath(path) =>
+      writeCurrentTrackPath(path)
 
     case WritePlayState(playState) =>
       writePlayState(playState)
@@ -68,6 +74,25 @@ class ListenerWriter extends Actor with SocketWriter with SyncClientWriter {
 
   }
 
+  def writeCurrentTrackPath(path: String): Unit = {
+    Log.d("chakra", "write current track path")
+
+    try {
+      //write messageType 
+      dataOutput.writeInt(StationReader.TrackPathMessage)
+      dataOutput.flush()
+
+      //write data
+      dataOutput.writeInt(path.length())
+      dataOutput.flush()
+      socketOutput.write(path.getBytes())
+
+    } catch {
+      case e: IOException => 
+        Log.d("chakra", "error writing audioPlayState")
+    }
+  }
+
   def writePlayState(playState: PlayState): Unit = {
     Log.d("chakra", "write play state")
 
@@ -91,12 +116,17 @@ class ListenerWriter extends Actor with SocketWriter with SyncClientWriter {
     }
   }
 
-  def writeAudioBuffer(audioBuffer: Array[Byte]): Unit = {
+  def writeAudioBuffer(path: String, audioBuffer: Array[Byte]): Unit = {
     try {
 
       //write messageType 
       dataOutput.writeInt(StationReader.AudioBufferMessage)
       dataOutput.flush()
+
+      //write data
+      dataOutput.writeInt(path.length())
+      dataOutput.flush()
+      socketOutput.write(path.getBytes())
 
       //write buffer 
       dataOutput.writeInt(audioBuffer.length)
@@ -110,7 +140,7 @@ class ListenerWriter extends Actor with SocketWriter with SyncClientWriter {
     }
   }
 
-  def writeAudioDone(): Unit = {
+  def writeAudioDone(path: String): Unit = {
     Log.d("chakra", "write audio done")
 
     try {
@@ -118,6 +148,11 @@ class ListenerWriter extends Actor with SocketWriter with SyncClientWriter {
       //write messageType 
       dataOutput.writeInt(StationReader.AudioDoneMessage)
       dataOutput.flush()
+
+      //write data
+      dataOutput.writeInt(path.length())
+      dataOutput.flush()
+      socketOutput.write(path.getBytes())
 
     } catch {
       case e: IOException => 

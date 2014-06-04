@@ -7,6 +7,7 @@ object StationReader {
 
   val TrackMessage = 10
   val PlayStateMessage = 20
+  val TrackPathMessage = 27 
   val AudioBufferMessage = 33 
   val AudioDoneMessage = 40 
 
@@ -27,13 +28,16 @@ class StationReader(socket: Socket, writer: ActorRef)
     case TrackMessage =>
       Log.d("chakra", "reading track")
       readTrack()
+    case TrackPathMessage =>
+      Log.d("chakra", "reading current track path")
+      readTrackPath()
     case PlayStateMessage =>
       Log.d("chakra", "reading playstate")
       readPlayState()
     case AudioBufferMessage =>
       readAudioBuffer()
     case AudioDoneMessage =>
-      mainActorRef ! MainActor.EndStationAudioBuffer
+      readAudioBufferDone()
 
   }
 
@@ -48,7 +52,7 @@ class StationReader(socket: Socket, writer: ActorRef)
     val path = new String(trackPathBuffer, 0, trackPathSize)
     val track = Track(path, "", "", "")
 
-    mainActorRef ! MainActor.SetStationTrack(track)
+    mainActorRef ! MainActor.AddStationTrack(track)
 
   }
 
@@ -56,6 +60,12 @@ class StationReader(socket: Socket, writer: ActorRef)
   def readAudioBuffer(): Unit = {
 
     //read the track path
+    val trackPathSize = dataInput.readInt()
+    val trackPathBuffer = new Array[Byte](trackPathSize)
+    socketInput.read(trackPathBuffer)
+    val path = new String(trackPathBuffer, 0, trackPathSize)
+
+    //read the audio 
     val bufferSize = dataInput.readInt()
     val audioBuffer = new Array[Byte](bufferSize)
 
@@ -63,13 +73,40 @@ class StationReader(socket: Socket, writer: ActorRef)
     while (bytesRemaining > 0) {
       val bytesRead = socketInput.read(audioBuffer, 0, math.min(bufferSize, bytesRemaining))
       if (bytesRead != -1) {
-        mainActorRef ! MainActor.AddStationAudioBuffer(audioBuffer.slice(0, bytesRead))
+        mainActorRef ! MainActor.AddStationAudioBuffer(path, audioBuffer.slice(0, bytesRead))
         bytesRemaining = bytesRemaining - bytesRead
       } else {
         bytesRemaining = 0 
       }
     }
 
+
+  }
+
+  @throws(classOf[IOException])
+  def readAudioBufferDone(): Unit = {
+
+    Log.d("chakra", "reading audio done")
+
+    //read the track path
+    val trackPathSize = dataInput.readInt()
+    val trackPathBuffer = new Array[Byte](trackPathSize)
+    socketInput.read(trackPathBuffer)
+    val path = new String(trackPathBuffer, 0, trackPathSize)
+    mainActorRef ! MainActor.EndStationAudioBuffer(path)
+
+  }
+
+  @throws(classOf[IOException])
+  def readTrackPath(): Unit = {
+    Log.d("chakra", "reading track ")
+
+    //read the track path
+    val trackPathSize = dataInput.readInt()
+    val trackPathBuffer = new Array[Byte](trackPathSize)
+    socketInput.read(trackPathBuffer)
+    val path = new String(trackPathBuffer, 0, trackPathSize)
+    mainActorRef ! MainActor.ChangeStationTrackByOriginPath(path)
 
   }
 

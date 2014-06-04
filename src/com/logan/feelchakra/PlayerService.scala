@@ -71,8 +71,6 @@ class PlayerService extends Service {
         case OnStationTrackOpChanged(trackOp) =>
           _mediaPlayer.reset()
           _prepared = false
-          true
-        case OnStationAudioBufferDone(trackOp) =>
           trackOp match {
             case Some(track) =>
               _mediaPlayer.setDataSource(track.path)

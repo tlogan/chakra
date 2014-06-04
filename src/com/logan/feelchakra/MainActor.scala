@@ -19,8 +19,6 @@ object MainActor {
   case class SetSelection(selection: Selection) 
 
   case class ChangeTrackByIndex(trackIndex: Int)
-  case class AddLocalAudioBuffer(audioBuffer: Array[Byte])
-  case object EndLocalAudioBuffer
 
   case class AddPlaylistTrack(track: Track) 
   case class AddAndPlayTrack(track: Track) 
@@ -42,9 +40,11 @@ object MainActor {
   case object Advertise
   case object Discover 
 
-  case class SetStationTrack(track: Track)
-  case class AddStationAudioBuffer(audioBuffer: Array[Byte])
-  case object EndStationAudioBuffer
+  case class ChangeStationTrackByOriginPath(originPath: String)
+  case class AddStationTrack(track: Track)
+
+  case class AddStationAudioBuffer(path: String, audioBuffer: Array[Byte])
+  case class EndStationAudioBuffer(path: String)
   case class SetStationPlayState(playState: PlayState)
 
   case class SelectArtistTuple(artistTuple: (String, AlbumMap)) 
@@ -79,8 +79,6 @@ class MainActor extends Actor {
       mes.writerRef.!(message)
     })
   }
-
-  private var fileOutputOp: Option[BufferedOutputStream] = None 
 
   def receive = {
 
@@ -154,46 +152,31 @@ class MainActor extends Actor {
 
     case ChangeTrackByIndex(trackIndex) => 
       val current = localManager.optionByIndex(trackIndex)
-      val next = localManager.optionByIndex(trackIndex + 1)
       localManager = localManager.setCurrentIndex(trackIndex)
-      localManager = localManager.setStartPos(0).setPlaying(true)
-      if (stationManager.currentOp == None) {
-        notifyWriters(ListenerWriter.WriteTrackOp(current))
+      current match {
+        case Some(track) =>
+          playTrack(track)
+        case None =>
       }
 
     case WriteListenerPlayState(playState) => 
       notifyWriters(ListenerWriter.WritePlayState(playState))
 
-    case AddLocalAudioBuffer(audioBuffer) =>
-      notifyWriters(ListenerWriter.WriteAudioBuffer(audioBuffer))
-
-    case EndLocalAudioBuffer =>
-      notifyWriters(ListenerWriter.WriteAudioDone)
-      Log.d("chakra", "Audio Done")
-
     case AddPlaylistTrack(track) =>
       if (localManager.playlist.size == 0) {
-        if (stationManager.currentOp == None) {
-          notifyWriters(ListenerWriter.WriteTrackOp(Some(track)))
-          notifyWriters(ListenerWriter.WritePlayState(Playing(Platform.currentTime)))
-        }
-        localManager = localManager.addPlaylistTrack(track).setCurrentIndex(0)
-        localManager = localManager.setStartPos(0).setPlaying(true)
-
+        addPlaylistTrack(track)
+        //localManager = localManager.setCurrentIndex(0)
+        //playTrack(track)
       } else {
-        localManager = localManager.addPlaylistTrack(track)
+        addPlaylistTrack(track)
       }
 
     case AddAndPlayTrack(track) =>
-        
-        val newIndex = localManager.playlist.size
-        localManager = localManager.addPlaylistTrack(track).setCurrentIndex(newIndex)
-
-        if (stationManager.currentOp == None) {
-          notifyWriters(ListenerWriter.WriteTrackOp(Some(track)))
-          notifyWriters(ListenerWriter.WritePlayState(Playing(Platform.currentTime)))
-          localManager = localManager.setStartPos(0).setPlaying(true)
-        }
+      val newIndex = localManager.playlist.size
+      addPlaylistTrack(track)
+      localManager = localManager.setCurrentIndex(newIndex)
+      playTrack(track)
+ 
 
     case AddStation(station) =>
       stationManager = stationManager.stageStation(station)
@@ -250,36 +233,35 @@ class MainActor extends Actor {
       reader.read()
       stationMessengerOp = Some(Messenger(writerRef, reader))
 
-    case SetStationTrack(track) =>
-      Log.d("chakra", "SetStationTrack: " + track)
+    case ChangeStationTrackByOriginPath(originPath) =>
+      stationManager = stationManager.setTrackOriginPathOp(Some(originPath))
 
-      fileOutputOp match {
-        case None =>
-        case Some(fileOutput) => fileOutput.close()
-      }
-
+    case AddStationTrack(track) =>
+      Log.d("chakra", "AddStationTrack: " + track)
       val name = "chakra" + Platform.currentTime 
       val file = java.io.File.createTempFile(name, null, cacheDir)
       val remoteTrack = track.copy(path = file.getAbsolutePath())
       val fileOutput = new BufferedOutputStream(new FileOutputStream(file))
-      fileOutputOp = Some(fileOutput)
-      stationManager = stationManager.setTrackOp(Some(remoteTrack))
+      stationManager = stationManager.addTrackAudio(track.path, remoteTrack, fileOutput)
 
-    case AddStationAudioBuffer(audioBuffer) =>
-      fileOutputOp match {
-        case None =>
-        case Some(fileOutput) => fileOutput.write(audioBuffer)
+    case AddStationAudioBuffer(path, audioBuffer) =>
+      stationManager.trackAudioMap.get(path) match {
+        case None => Log.d("chakra", "error: trackAudio missing: " + path)
+          Log.d("chakra", "trackAudio keys: " + stationManager.trackAudioMap.keys)
+        case Some(trackAudio) => trackAudio._2.write(audioBuffer)
       }
 
-    case EndStationAudioBuffer =>
-      Log.d("chakra", "end station")
-      fileOutputOp match {
-        case None =>
-        case Some(fileOutput) => 
-          fileOutput.close()
-          mainActorRef ! NotifyHandlers(OnStationAudioBufferDone(stationManager.trackOp))
+    case EndStationAudioBuffer(path) =>
+      Log.d("chakra", "end station: " + path)
+      stationManager.trackAudioMap.get(path) match {
+        case None => Log.d("chakra", "error: trackAudio missing")
+        case Some(trackAudio) => trackAudio._2.close()
+          Log.d("chakra", "trackAudio keys: " + stationManager.trackAudioMap.keys)
+          Log.d("chakra", "PRE")
+          stationManager = stationManager.commitTrack(path)
+          Log.d("chakra", "POST")
+          Log.d("chakra", "trackMap keys: " + stationManager.trackMap.keys)
       }
-      fileOutputOp = None
 
     case SetStationPlayState(playState) =>
       Log.d("chakra", "set station playstate: " + playState)
@@ -301,6 +283,24 @@ class MainActor extends Actor {
           localManager.setAlbumTupleOp(Some(albumTuple))
       }
 
+  }
+
+  private def addPlaylistTrack(track: Track): Unit = {
+    localManager = localManager.addPlaylistTrack(track)
+    notifyWriters(ListenerWriter.WriteTrackOp(Some(track)))
+    AudioReader(track.path).subscribe(
+      audioBuffer => notifyWriters(ListenerWriter.WriteAudioBuffer(track.path, audioBuffer)),
+      t => {},
+      () => notifyWriters(ListenerWriter.WriteAudioDone(track.path))
+    )
+  }
+
+  private def playTrack(track: Track): Unit = {
+    localManager = localManager.setStartPos(0)
+    if (stationManager.currentOp == None) {
+      localManager = localManager.setPlaying(true)
+      notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
+    }
   }
 
   private def notifyHandlers(uis: Map[String, Handler], response: OnChange): Unit = {

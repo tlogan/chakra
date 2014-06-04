@@ -26,20 +26,8 @@ case class LocalManager(
 
   def setCurrentIndex(index: Int): LocalManager = {
     mainActorRef ! NotifyHandlers(OnTrackIndexChanged(index))
-
     val trackOption = optionByIndex(index)
     mainActorRef ! NotifyHandlers(OnLocalTrackOptionChanged(trackOption))
-    trackOption match {
-      case None => {} 
-      case Some(track) =>
-        AudioReader(track.path).subscribe(
-          audioBuffer => { mainActorRef ! AddLocalAudioBuffer(audioBuffer) },
-          t => {  },
-          () => { mainActorRef ! EndLocalAudioBuffer }
-        )
-    }
-
-
     copy(currentIndex = index)
   }
    

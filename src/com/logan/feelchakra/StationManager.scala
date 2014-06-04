@@ -6,7 +6,9 @@ case class StationManager(
   map: Map[String, Station],
   stagedMap: Map[String, Station],
   currentOp: Option[Station],
-  trackOp: Option[Track],
+  trackOriginPathOp: Option[String],
+  trackMap: Map[String, Track],
+  trackAudioMap: Map[String, (Track, OutputStream)],
   playState: PlayState,
   discovering: Boolean,
   advertising: Boolean
@@ -17,6 +19,8 @@ case class StationManager(
     HashMap[String, Station](),
     None,
     None,
+    HashMap[String, Track](),
+    HashMap[String, (Track, OutputStream)](),
     NotPlaying,
     false, 
     false
@@ -24,6 +28,11 @@ case class StationManager(
 
   import MainActor._
   import UI._
+
+  def trackOp: Option[Track] = trackOriginPathOp match {
+    case Some(path) => trackMap.get(path)
+    case None => None
+  }
 
   def stageStation(station: Station): StationManager = {
     val newStagedMap = stagedMap.+(station.device.deviceAddress -> station)
@@ -48,9 +57,43 @@ case class StationManager(
     this.copy(currentOp = stationOp)
   }
 
-  def setTrackOp(trackOp: Option[Track]): StationManager = {
-    mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(trackOp))
-    this.copy(trackOp = trackOp)
+  def setTrackOriginPathOp(trackOriginPathOp: Option[String]): StationManager = {
+
+    trackOriginPathOp match {
+      case Some(trackOriginPath) =>
+        trackMap.get(trackOriginPath) match {
+          case Some(track) => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(Some(track)))
+          case None => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(None))
+        }
+      case None => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(None))
+    }
+
+    this.copy(trackOriginPathOp = trackOriginPathOp)
+  }
+
+  def commitTrack(originPath: String): StationManager = {
+    trackAudioMap.get(originPath) match {
+      case Some(trackAudio) =>
+        Log.d("chakra", "commit track: has trackAudio: " + originPath)
+        val track = trackAudio._1
+        Log.d("chakra", "commit track: has track: " + track.path)
+        trackOriginPathOp match {
+          case Some(trackOriginPath) if trackOriginPath == originPath =>
+            mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(Some(track)))
+            Log.d("chakra", "commit track: has current track: " + track.path)
+          case _ => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(None))
+            Log.d("chakra", "commit track: no current track: " + track.path)
+        }
+        this.copy(trackMap = trackMap.+(originPath -> track))
+      case None => 
+        Log.d("chakra", "commit track: not in audio map: " + originPath)
+        this
+    }
+
+  }
+
+  def addTrackAudio(originPath: String, track: Track, fileOutput: OutputStream): StationManager = {
+    this.copy(trackAudioMap = trackAudioMap.+(originPath -> (track, fileOutput)))
   }
 
   def setPlayState(playState: PlayState): StationManager = {
