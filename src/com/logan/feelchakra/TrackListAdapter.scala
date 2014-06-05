@@ -5,6 +5,7 @@ import android.widget.Toast
 
 import RichListView.listView2RichListView
 import RichView.view2RichView
+import RichContext.context2RichContext
 
 class TrackListAdapter(activity: Activity) extends BaseAdapter {
 
@@ -23,7 +24,9 @@ class TrackListAdapter(activity: Activity) extends BaseAdapter {
 
     val track = getItem(position)
 
-    new ImageSplitLayout(activity, new TrackLayout(activity, track, _playmap, _trackOption))
+    new ImageSplitLayout(activity, new TrackLayout(activity, track, _playmap, _trackOption){
+      setLayoutParams(new LLLayoutParams(MATCH_PARENT, activity.dp(64)))
+    })
 
   }
 

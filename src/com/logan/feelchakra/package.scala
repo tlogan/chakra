@@ -30,6 +30,9 @@ package com.logan {
     val RichListView = guava.scalaandroid.RichListView
     type RichListView = guava.scalaandroid.RichListView
 
+    val RichContext = guava.scalaandroid.RichContext
+    type RichContext = guava.scalaandroid.RichContext
+
     val RichMenuItem = guava.scalaandroid.RichMenuItem
     type RichMenuItem = guava.scalaandroid.RichMenuItem
 

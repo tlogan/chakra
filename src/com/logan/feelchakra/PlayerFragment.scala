@@ -5,6 +5,7 @@ import android.widget.Toast
 
 import RichView.view2RichView
 import RichListView.listView2RichListView
+import RichContext.context2RichContext
 
 class PlayerFragment extends Fragment {
 
@@ -29,9 +30,10 @@ class PlayerFragment extends Fragment {
 
   private lazy val playerTextLayout: TextLayout = new TextLayout(getActivity(), "", "", "") {
     setBackgroundColor(DKBLUE)
+    setLayoutParams(new LLLayoutParams(MATCH_PARENT, getActivity().dp(64)))
   }
   private lazy val playerLayout: ImageSplitLayout = new ImageSplitLayout(getActivity(), playerTextLayout) {
-    setPadding(0, 16, 0, 16)
+    setPadding(0, getActivity().dp(16), 0, getActivity().dp(16))
   }
 
   private lazy val verticalLayout = new LinearLayout(getActivity()) {

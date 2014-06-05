@@ -4,6 +4,7 @@ import android.util.Log
 import android.widget.Toast
 import RichListView.listView2RichListView
 import RichView.view2RichView
+import RichContext.context2RichContext
 
 class AlbumLayout(
     context: Context, 
@@ -24,7 +25,7 @@ class AlbumLayout(
 
   addView {
     new View(context) {
-      setLayoutParams(new LLLayoutParams(MATCH_PARENT, 8))
+      setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(4)))
     }
   }
 
@@ -52,7 +53,7 @@ class AlbumLayout(
         new View(context) {
           setBackgroundColor(LTGRAY)
           val lp = new LLLayoutParams(MATCH_PARENT, 1)
-          lp.setMargins(16, 0, 16, 0)
+          lp.setMargins(context.dp(8), 0, context.dp(8), 0)
           setLayoutParams(lp)
         }
       }

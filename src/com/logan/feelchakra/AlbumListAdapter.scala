@@ -5,6 +5,7 @@ import android.widget.Toast
 
 import RichListView.listView2RichListView
 import RichView.view2RichView
+import RichContext.context2RichContext
 
 class AlbumListAdapter(activity: Activity) extends BaseAdapter {
 
@@ -41,6 +42,7 @@ class AlbumListAdapter(activity: Activity) extends BaseAdapter {
         new AlbumLayout(activity, album, trackList, _playmap, _trackOption) 
       case _ =>
         new TextLayout(activity, album, trackList.size + " Tracks", "time") {
+          setLayoutParams(new LLLayoutParams(MATCH_PARENT, activity.dp(64)))
           setBackgroundColor(DKGRAY)
         }
     }

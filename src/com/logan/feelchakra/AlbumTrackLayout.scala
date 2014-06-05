@@ -4,6 +4,7 @@ import android.util.Log
 import android.widget.Toast
 import RichListView.listView2RichListView
 import RichView.view2RichView
+import RichContext.context2RichContext
 
 class AlbumTrackLayout(
     context: Context, 
@@ -17,12 +18,12 @@ class AlbumTrackLayout(
   new LinearLayout(context) {
     setOrientation(VERTICAL)
     setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-    setPadding(10, 12, 10, 12)
+    setPadding(context.dp(4), context.dp(6), context.dp(4), context.dp(6))
     setBackgroundColor(TRANSPARENT)
     addView {
       new TextView(context) {
         setText(trackNum + ". " + track.title)
-        setTextSize(18)
+        setTextSize(context.sp(10))
         setTextColor(WHITE)
       }
     }
@@ -37,7 +38,7 @@ class AlbumTrackLayout(
       trackTextLayout.addView {
         new TextView(context) {
           setText(posList.mkString(", "))
-          setTextSize(14)
+          setTextSize(context.sp(8))
           setTextColor(LTGRAY)
         }
       }

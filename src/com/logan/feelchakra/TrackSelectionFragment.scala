@@ -1,8 +1,8 @@
 package com.logan.feelchakra
 
 import RichListView.listView2RichListView
+import RichContext.context2RichContext
 import android.util.Log
-
 import android.widget.Toast
 
 class TrackSelectionFragment extends Fragment {
@@ -42,7 +42,7 @@ class TrackSelectionFragment extends Fragment {
           val adapter = new TrackListAdapter(getActivity())
           this.setAdapter(adapter) 
           setDivider(new ColorDrawable(BLACK))
-          setDividerHeight(6)
+          setDividerHeight(getActivity().dp(6))
           this.setOnItemClick( 
             (parent: AdapterView[_], view: View, position: Int, id: Long) => {
               val track =  adapter.getItem(position)

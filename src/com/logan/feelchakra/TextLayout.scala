@@ -1,6 +1,7 @@
 package com.logan.feelchakra
 import RichListView.listView2RichListView
 import RichView.view2RichView
+import RichContext.context2RichContext
 
 class TextLayout(
     context: Context, 
@@ -11,22 +12,22 @@ class TextLayout(
 
   val mainTextView: TextView = new TextView(context) {
     setText(mainText)
-    setTextSize(20)
-    setPadding(10, 2, 10, 3)
+    setTextSize(context.sp(12))
+    setPadding(context.dp(4), context.dp(1), context.dp(4), context.dp(1))
     setTextColor(WHITE)
   }
 
   var secondTextView: TextView = new TextView(context) {
     setText(secondText)
-    setTextSize(14)
-    setPadding(10, 0, 10, 0)
+    setTextSize(context.sp(8))
+    setPadding(context.dp(4), 0, context.dp(4), 0)
     setTextColor(WHITE)
   }
 
   var thirdTextView: TextView = new TextView(context) {
     setText(thirdText)
-    setTextSize(14)
-    setPadding(10, 0, 10, 0)
+    setTextSize(context.sp(8))
+    setPadding(context.dp(4), 0, context.dp(4), 0)
     setTextColor(WHITE)
   }
 

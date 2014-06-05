@@ -1,6 +1,7 @@
 package com.logan.feelchakra
 
 import RichListView.listView2RichListView
+import RichContext.context2RichContext
 import android.util.Log
 import android.widget.Toast
 
@@ -47,7 +48,7 @@ class AlbumSelectionFragment extends Fragment {
           val adapter = new AlbumListAdapter(getActivity())
           this.setAdapter(adapter) 
           setDivider(new ColorDrawable(BLACK))
-          setDividerHeight(6)
+          setDividerHeight(getActivity().dp(6))
         }
         _listView
       }

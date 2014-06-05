@@ -4,6 +4,7 @@ import android.util.Log
 import android.widget.Toast
 import RichListView.listView2RichListView
 import RichView.view2RichView
+import RichContext.context2RichContext
 
 class SlidingTrackLayout(
     context: Context, 
@@ -11,7 +12,7 @@ class SlidingTrackLayout(
     val trackTextLayout: ViewGroup 
 ) extends RelativeLayout(context) {
 
-  lazy val height = 100 
+  lazy val height = context.dp(64) 
 
   val slideView = new View(context) with HorizontalSlideView {
     override val velMs = 2

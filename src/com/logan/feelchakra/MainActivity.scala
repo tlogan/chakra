@@ -6,6 +6,7 @@ import android.widget.Toast
 import RichView.view2RichView
 import RichListView.listView2RichListView
 import RichMenuItem.menuItem2RichMenuItem
+import RichContext.context2RichContext
 
 object MainActivity {
    
@@ -27,7 +28,7 @@ class MainActivity extends Activity {
 
   var _playerOpen: Boolean = false
 
-  lazy val frameDivideY = getResources().getDisplayMetrics().heightPixels - 200
+  lazy val frameDivideY = getResources().getDisplayMetrics().heightPixels - this.dp(200)
 
   lazy val selectionFrame = new FrameLayout(that) {
     setId(MainActivity.selectionFrameId)

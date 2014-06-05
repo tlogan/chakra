@@ -4,6 +4,7 @@ import android.util.Log
 import android.widget.Toast
 import RichListView.listView2RichListView
 import RichView.view2RichView
+import RichContext.context2RichContext
 
 class TrackLayout(
     context: Context,
@@ -15,7 +16,7 @@ class TrackLayout(
   track,
   new TextLayout(context, track.title, track.artist, track.album) {
     setBackgroundColor(TRANSPARENT)
-    setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+    setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(64)))
   }
 ) {
 

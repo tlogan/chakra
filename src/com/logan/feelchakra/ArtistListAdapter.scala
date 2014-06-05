@@ -4,6 +4,7 @@ import RichListView.listView2RichListView
 import RichView.view2RichView
 import android.util.Log
 import android.widget.Toast
+import RichContext.context2RichContext
 
 class ArtistListAdapter(activity: Activity) extends BaseAdapter {
 
@@ -34,6 +35,7 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
     val albumMap = artistTuple._2
     val imTxLayout = new ImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
       setBackgroundColor(DKGRAY)
+      setLayoutParams(new LLLayoutParams(MATCH_PARENT, activity.dp(64)))
       this.setOnClick(view => {
         mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
       })
