@@ -5,6 +5,7 @@ import android.widget.Toast
 
 import RichView.view2RichView
 import RichListView.listView2RichListView
+import RichMenuItem.menuItem2RichMenuItem
 
 object MainActivity {
    
@@ -22,28 +23,9 @@ class MainActivity extends Activity {
   private val trackSelectionFragment =  new TrackSelectionFragment
   private val stationSelectionFragment = new StationSelectionFragment
 
-  private var _selectionList: List[Selection] = List() 
-  var _playerOpen: Boolean = false
+  private var menu: Menu = _ 
 
-  private val handler = new Handler(new HandlerCallback() {
-    override def handleMessage(msg: Message): Boolean = {
-      import UI._
-      msg.obj match {
-        case OnSelectionListChanged(selectionList) => 
-          _selectionList = selectionList
-          that.createSelectionTabs(selectionList)
-          true
-        case OnPlayerOpenChanged(playerOpen) => 
-          _playerOpen = playerOpen
-          that.setPlayerVisibility(playerOpen)
-          true
-        case OnSelectionChanged(selection) => 
-          replaceSelectionFragment(selection)
-          true
-        case _ => false
-      }
-    }
-  })
+  var _playerOpen: Boolean = false
 
   lazy val frameDivideY = getResources().getDisplayMetrics().heightPixels - 200
 
@@ -130,10 +112,12 @@ class MainActivity extends Activity {
     bringChildToFront(playerFrame)
   }
 
-  
   override def onCreate(savedInstanceState: Bundle): Unit = {
-    super.onCreate(savedInstanceState)
 
+    getActionBar().hide()
+    getActionBar().setDisplayShowHomeEnabled(false)
+    getActionBar().setDisplayShowTitleEnabled(false)
+    super.onCreate(savedInstanceState)
     setContentView(contentView)
 
     val playerFragTrans = getFragmentManager().beginTransaction()
@@ -142,20 +126,16 @@ class MainActivity extends Activity {
     val playerServiceIntent = new Intent(this, classOf[PlayerService])
     startService(playerServiceIntent);
 
-    mainActorRef ! MainActor.Subscribe(this.toString, handler)
     mainActorRef ! MainActor.SetDatabase(new Database(this))
     mainActorRef ! MainActor.SetCacheDir(getCacheDir())
 
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean  = {
-    //getMenuInflater().inflate(R.menu.selection, menu);
-
+    this.menu = menu
+    mainActorRef ! MainActor.Subscribe(this.toString, handler)
+    getActionBar().show()
     super.onCreateOptionsMenu(menu)
-  }
-
-  override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    false
   }
 
   override def onDestroy(): Unit = {
@@ -165,32 +145,40 @@ class MainActivity extends Activity {
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
 
-  private def createSelectionTabs(selectionList: List[Selection]): Unit = {
-
-    that.getActionBar().setNavigationMode(NAVIGATION_MODE_TABS)
-    that.getActionBar().setDisplayShowTitleEnabled(false)
-    that.getActionBar().setDisplayShowHomeEnabled(false)
-    that.getActionBar().removeAllTabs()
-
-    selectionList foreach { selection => 
-      val tabListener = new TabListener() {
-        override def onTabSelected(tab: Tab, ft: FragmentTransaction): Unit = {
-          mainActorRef ! MainActor.SetSelection(selection)
-        }
-
-        override def onTabUnselected(tab: Tab, ft: FragmentTransaction): Unit = {
-        }
-
-        override def onTabReselected(tab: Tab, ft: FragmentTransaction): Unit = {
-        }
+  private val handler = new Handler(new HandlerCallback() {
+    override def handleMessage(msg: Message): Boolean = {
+      import UI._
+      msg.obj match {
+        case OnSelectionListChanged(selectionList) => 
+          that.setSelectionList(selectionList)
+          true
+        case OnPlayerOpenChanged(playerOpen) => 
+          _playerOpen = playerOpen
+          that.setPlayerVisibility(playerOpen)
+          true
+        case OnSelectionChanged(selection) => 
+          replaceSelectionFragment(selection)
+          true
+        case _ => false
       }
-
-      val tab = that.getActionBar().newTab().setText(selection.label).setTabListener(tabListener)
-
-      that.getActionBar().addTab(tab)
     }
-    that.getActionBar().setSelectedNavigationItem(1)
+  })
 
+
+  
+
+  private def setSelectionList(selectionList: List[Selection]): Unit = {
+
+    selectionList.zipWithIndex foreach { pair => 
+      val selection = pair._1
+      val index = pair._2
+      val item = menu.add(0, index, 0, selection.label)
+      item.setShowAsAction(SHOW_AS_ACTION_ALWAYS)
+      item.setOnClick(it => {
+        mainActorRef ! MainActor.SetSelection(selection)
+        true
+      })
+    }
 
   }
 

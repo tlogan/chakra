@@ -95,6 +95,7 @@ class MainActor extends Actor {
 
       List(
         OnSelectionListChanged(selectionManager.list),
+        OnSelectionChanged(selectionManager.current),
         OnPlayerOpenChanged(localManager.playerOpen),
 
         OnStationOptionChanged(stationManager.currentOp),

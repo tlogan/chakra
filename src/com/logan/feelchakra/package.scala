@@ -30,6 +30,10 @@ package com.logan {
     val RichListView = guava.scalaandroid.RichListView
     type RichListView = guava.scalaandroid.RichListView
 
+    val RichMenuItem = guava.scalaandroid.RichMenuItem
+    type RichMenuItem = guava.scalaandroid.RichMenuItem
+
+
     val RichView = guava.scalaandroid.RichView
     type RichView = guava.scalaandroid.RichView
 
@@ -51,6 +55,8 @@ package com.logan {
     type LayoutInflater = android.view.LayoutInflater
     type Menu = android.view.Menu
     type MenuItem = android.view.MenuItem
+    val SHOW_AS_ACTION_ALWAYS =  android.view.MenuItem.SHOW_AS_ACTION_ALWAYS
+
     type Fragment = android.app.Fragment
     type Service = android.app.Service
     val START_STICKY = android.app.Service.START_STICKY
@@ -107,6 +113,7 @@ package com.logan {
     type Activity = android.app.Activity
     type Actionbar = android.app.ActionBar
     val NAVIGATION_MODE_TABS = android.app.ActionBar.NAVIGATION_MODE_TABS
+    val NAVIGATION_MODE_STANDARD = android.app.ActionBar.NAVIGATION_MODE_STANDARD
 
     type TabListener = android.app.ActionBar.TabListener
     type Tab = android.app.ActionBar.Tab
