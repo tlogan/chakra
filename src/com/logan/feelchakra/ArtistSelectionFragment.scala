@@ -47,6 +47,8 @@ class ArtistSelectionFragment extends Fragment {
           setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
           val adapter = new ArtistListAdapter(getActivity())
           setAdapter(adapter) 
+          setDivider(new ColorDrawable(BLACK))
+          setDividerHeight(6)
         }
         _listView
       }

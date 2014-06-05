@@ -181,11 +181,13 @@ package com.logan {
     type Color = android.graphics.Color
     val TRANSPARENT = android.graphics.Color.TRANSPARENT
     val YELLOW = android.graphics.Color.YELLOW
-    val BLUE = android.graphics.Color.BLUE
+    val BLUE = android.graphics.Color.parseColor("#0099ff")
+    val DKBLUE = android.graphics.Color.parseColor("#0033ff")
     val BLACK = android.graphics.Color.BLACK
-    val DKGRAY = android.graphics.Color.DKGRAY
-    val LTGRAY = android.graphics.Color.LTGRAY
-    val GRAY = android.graphics.Color.GRAY
+    val DKGRAY = android.graphics.Color.parseColor("#333333")
+    val LDKGRAY = android.graphics.Color.parseColor("#666666")
+    val GRAY = android.graphics.Color.parseColor("#999999")
+    val LTGRAY = android.graphics.Color.parseColor("#cccccc")
     val WHITE = android.graphics.Color.WHITE
     type MediaStore = android.provider.MediaStore 
     val AUDIO_URI = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
@@ -194,6 +196,7 @@ package com.logan {
     val ALBUM = android.provider.MediaStore.Audio.AudioColumns.ALBUM
     val ARTIST = android.provider.MediaStore.Audio.AudioColumns.ARTIST
 
+    type ColorDrawable = android.graphics.drawable.ColorDrawable
 
     type Table = guava.scalaandroid.Table
 

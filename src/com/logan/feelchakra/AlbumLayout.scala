@@ -20,7 +20,7 @@ class AlbumLayout(
 
   val that = this
 
-  setBackgroundColor(DKGRAY)
+  setBackgroundColor(LDKGRAY)
 
   addView {
     new View(context) {
@@ -52,7 +52,7 @@ class AlbumLayout(
         new View(context) {
           setBackgroundColor(LTGRAY)
           val lp = new LLLayoutParams(MATCH_PARENT, 1)
-          lp.setMargins(10, 0, 10, 0)
+          lp.setMargins(16, 0, 16, 0)
           setLayoutParams(lp)
         }
       }

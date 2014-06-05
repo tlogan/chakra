@@ -46,6 +46,8 @@ class AlbumSelectionFragment extends Fragment {
         _listView = new ListView(getActivity()) {
           val adapter = new AlbumListAdapter(getActivity())
           this.setAdapter(adapter) 
+          setDivider(new ColorDrawable(BLACK))
+          setDividerHeight(6)
         }
         _listView
       }

@@ -42,7 +42,7 @@ class AlbumTrackLayout(
         }
       }
     case None =>
-      slideView.setBackgroundColor(DKGRAY) 
+      slideView.setBackgroundColor(LDKGRAY) 
   }
 
 }

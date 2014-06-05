@@ -41,6 +41,8 @@ class TrackSelectionFragment extends Fragment {
         _listView = new ListView(getActivity()) {
           val adapter = new TrackListAdapter(getActivity())
           this.setAdapter(adapter) 
+          setDivider(new ColorDrawable(BLACK))
+          setDividerHeight(6)
           this.setOnItemClick( 
             (parent: AdapterView[_], view: View, position: Int, id: Long) => {
               val track =  adapter.getItem(position)

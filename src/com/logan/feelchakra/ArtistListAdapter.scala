@@ -43,9 +43,15 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
       case Some(openArtistTuple) if (artistTuple == openArtistTuple) => 
         new LinearLayout(activity) {
           setOrientation(VERTICAL)
-          setBackgroundColor(DKGRAY)
+          setBackgroundColor(GRAY)
           setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
+          val imTxLayout = new ImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
+            setBackgroundColor(LDKGRAY)
+            this.setOnClick(view => {
+              mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
+            })
+          })
           addView(imTxLayout)
 
           albumMap.foreach(albumTuple => {
@@ -54,7 +60,7 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
 
             addView {
               new View(activity) {
-                setBackgroundColor(BLACK)
+                setBackgroundColor(LTGRAY)
                 setLayoutParams(new LLLayoutParams(MATCH_PARENT, 2))
               }
             }
@@ -66,7 +72,13 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
           })
 
         }
-      case _ => imTxLayout
+      case _ =>
+        new ImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
+          setBackgroundColor(DKGRAY)
+          this.setOnClick(view => {
+            mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
+          })
+        })
     }
 
   }

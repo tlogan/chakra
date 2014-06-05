@@ -27,8 +27,12 @@ class PlayerFragment extends Fragment {
     )
   }
 
-  private lazy val playerTextLayout: TextLayout = new TextLayout(getActivity(), "", "", "")
-  private lazy val playerLayout: ImageSplitLayout = new ImageSplitLayout(getActivity(), playerTextLayout) 
+  private lazy val playerTextLayout: TextLayout = new TextLayout(getActivity(), "", "", "") {
+    setBackgroundColor(DKBLUE)
+  }
+  private lazy val playerLayout: ImageSplitLayout = new ImageSplitLayout(getActivity(), playerTextLayout) {
+    setPadding(0, 16, 0, 16)
+  }
 
   private lazy val verticalLayout = new LinearLayout(getActivity()) {
     setOrientation(VERTICAL)
