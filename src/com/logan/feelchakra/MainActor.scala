@@ -246,23 +246,14 @@ class MainActor extends Actor {
       stationManager = stationManager.addTrackAudio(track.path, remoteTrack, fileOutput)
 
     case AddStationAudioBuffer(path, audioBuffer) =>
-      stationManager.trackAudioMap.get(path) match {
-        case None => Log.d("chakra", "error: trackAudio missing: " + path)
-          Log.d("chakra", "trackAudio keys: " + stationManager.trackAudioMap.keys)
-        case Some(trackAudio) => trackAudio._2.write(audioBuffer)
-      }
+      val trackAudio = stationManager.trackAudioMap(path)
+      trackAudio._2.write(audioBuffer)
 
     case EndStationAudioBuffer(path) =>
       Log.d("chakra", "end station: " + path)
-      stationManager.trackAudioMap.get(path) match {
-        case None => Log.d("chakra", "error: trackAudio missing")
-        case Some(trackAudio) => trackAudio._2.close()
-          Log.d("chakra", "trackAudio keys: " + stationManager.trackAudioMap.keys)
-          Log.d("chakra", "PRE")
-          stationManager = stationManager.commitTrack(path)
-          Log.d("chakra", "POST")
-          Log.d("chakra", "trackMap keys: " + stationManager.trackMap.keys)
-      }
+      val trackAudio = stationManager.trackAudioMap(path)
+      trackAudio._2.close()
+      stationManager = stationManager.commitTrack(path)
 
     case SetStationPlayState(playState) =>
       Log.d("chakra", "set station playstate: " + playState)

@@ -105,6 +105,7 @@ package com.logan {
     type List[A] = scala.collection.immutable.List[A]
 
     type IOException = java.io.IOException
+    type EOFException = java.io.EOFException
 
     val Success = scala.util.Success
     type Success[+T] = scala.util.Success[T]

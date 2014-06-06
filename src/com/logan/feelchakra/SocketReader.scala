@@ -18,11 +18,12 @@ abstract class SocketReader(socket: Socket, val writerRef: ActorRef) {
   def read(): Unit = {
     val f = Future {
       val messageType = dataInput.readInt()
-
-      if (receive.isDefinedAt(messageType)) {
+      try {
         receive(messageType)
-      } else {
-        Log.d("chakra", "read problem: not defined at " + messageType)
+      } catch {
+        case e: Throwable => 
+          Log.d("chakra", "error reading message: " + messageType)
+          throw e
       }
 
     } onComplete {
@@ -30,12 +31,13 @@ abstract class SocketReader(socket: Socket, val writerRef: ActorRef) {
       case Failure(e) => 
         try {
           socketInput.close()
-          Log.d("chakra", "read fail, closing socket")
-          e.printStackTrace()
         } catch {
           case e: IOException => 
             Log.d("chakra", "error closing socket")
             e.printStackTrace()
+        } finally {
+          Log.d("chakra", "error reading")
+          throw e
         }
     }
 
