@@ -10,27 +10,21 @@ class PlaylistAdapter(activity: Activity) extends BaseAdapter {
   override def getItem(position: Int): Track = _playlist(getItemId(position).toInt)
 
   override def getItemId(position: Int): Long = {
-    if (_trackIndex < 0 || position < _trackIndex) position else {
+    val itemId = if (_trackIndex < 0 || position < _trackIndex) position else {
       position + 1
     }
+    assert(itemId != _trackIndex)
+    itemId
   }
 
   override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
 
     val track = getItem(position)
-
-    if (getItemId(position) == _trackIndex) {
-      //ERROR
-      new LinearLayout(activity) {
-        setVisibility(GONE)
-      }
-    } else {
-      val color = if (getItemId(position) < _trackIndex) {
-        DKGRAY 
-      } else GRAY 
-      new ImageSplitLayout(activity, new TextLayout(activity, track.title, track.album, track.artist)) {
-        setBackgroundColor(color)
-      }
+    val color = if (getItemId(position) < _trackIndex) {
+      DKGRAY 
+    } else GRAY 
+    new ImageSplitLayout(activity, new TextLayout(activity, track.title, track.album, track.artist)) {
+      setBackgroundColor(color)
     }
 
   }
