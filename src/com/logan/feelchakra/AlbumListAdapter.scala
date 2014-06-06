@@ -37,21 +37,24 @@ class AlbumListAdapter(activity: Activity) extends BaseAdapter {
     val album = albumTuple._1
     val trackList = albumTuple._2
 
-    val rightLayout = _albumTupleOp match {
+    _albumTupleOp match {
       case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
-        new AlbumLayout(activity, album, trackList, _playmap, _trackOption) 
+        new ImageSplitLayout(activity, new AlbumLayout(activity, album, trackList, _playmap, _trackOption) {
+          this.setOnClick(view => {
+            mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
+          })
+        })
       case _ =>
-        new TextLayout(activity, album, trackList.size + " Tracks", "time") {
+        new MainImageSplitLayout(activity, new TextLayout(activity, album, trackList.size + " Tracks", "time") {
           setLayoutParams(new LLLayoutParams(MATCH_PARENT, activity.dp(64)))
           setBackgroundColor(DKGRAY)
-        }
+          this.setOnClick(view => {
+            mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
+          })
+        })
     }
 
-    rightLayout.setOnClick(view => {
-      mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
-    })
 
-    new MainImageSplitLayout(activity, rightLayout)
   }
 
   def setAlbumMap(albumMap: AlbumMap): Unit = {
