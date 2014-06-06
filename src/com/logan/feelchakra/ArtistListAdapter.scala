@@ -33,13 +33,6 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
     val artistTuple = getItem(position)
     val artist = artistTuple._1
     val albumMap = artistTuple._2
-    val imTxLayout = new ImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
-      setBackgroundColor(DKGRAY)
-      setLayoutParams(new LLLayoutParams(MATCH_PARENT, activity.dp(64)))
-      this.setOnClick(view => {
-        mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
-      })
-    })
 
     _artistTupleOp match {
       case Some(openArtistTuple) if (artistTuple == openArtistTuple) => 
@@ -48,7 +41,7 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
           setBackgroundColor(GRAY)
           setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
-          val imTxLayout = new ImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
+          val imTxLayout = new MainImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
             setBackgroundColor(LDKGRAY)
             this.setOnClick(view => {
               mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
@@ -75,7 +68,7 @@ class ArtistListAdapter(activity: Activity) extends BaseAdapter {
 
         }
       case _ =>
-        new ImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
+        new MainImageSplitLayout(activity, new TextLayout(activity, artist, albumMap.size + " Albums", "time") {
           setBackgroundColor(DKGRAY)
           this.setOnClick(view => {
             mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 

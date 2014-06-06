@@ -24,9 +24,7 @@ class TrackListAdapter(activity: Activity) extends BaseAdapter {
 
     val track = getItem(position)
 
-    new ImageSplitLayout(activity, new TrackLayout(activity, track, _playmap, _trackOption){
-      setLayoutParams(new LLLayoutParams(MATCH_PARENT, activity.dp(64)))
-    })
+    new MainImageSplitLayout(activity, new TrackLayout(activity, track, _playmap, _trackOption))
 
   }
 

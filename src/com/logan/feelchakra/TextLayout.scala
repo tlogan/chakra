@@ -10,26 +10,11 @@ class TextLayout(
     thirdText: String
 ) extends LinearLayout(context) {
 
-  val mainTextView: TextView = new TextView(context) {
-    setText(mainText)
-    setTextSize(context.sp(12))
-    setPadding(context.dp(4), context.dp(1), context.dp(4), context.dp(1))
-    setTextColor(WHITE)
-  }
+  val mainTextView: TextView = new MajorTextView(context, mainText)
 
-  var secondTextView: TextView = new TextView(context) {
-    setText(secondText)
-    setTextSize(context.sp(8))
-    setPadding(context.dp(4), 0, context.dp(4), 0)
-    setTextColor(WHITE)
-  }
+  var secondTextView: TextView = new MinorTextView(context, secondText)
 
-  var thirdTextView: TextView = new TextView(context) {
-    setText(thirdText)
-    setTextSize(context.sp(8))
-    setPadding(context.dp(4), 0, context.dp(4), 0)
-    setTextColor(WHITE)
-  }
+  var thirdTextView: TextView = new MinorTextView(context, thirdText)
 
   def setTexts(mainText: String, secondText: String, thirdText: String): Unit = {
     mainTextView.setText(mainText)

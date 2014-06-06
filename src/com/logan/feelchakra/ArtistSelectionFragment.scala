@@ -44,12 +44,9 @@ class ArtistSelectionFragment extends Fragment {
 
       setOrientation(VERTICAL)
       addView {
-        _listView = new ListView(getActivity()) {
+
+        _listView = new MainListView(getActivity(), new ArtistListAdapter(getActivity())) {
           setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
-          val adapter = new ArtistListAdapter(getActivity())
-          setAdapter(adapter) 
-          setDivider(new ColorDrawable(BLACK))
-          setDividerHeight(getActivity().dp(6))
         }
         _listView
       }

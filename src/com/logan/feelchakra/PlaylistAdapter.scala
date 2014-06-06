@@ -5,17 +5,22 @@ class PlaylistAdapter(activity: Activity) extends BaseAdapter {
   private var _playlist: List[Track] = List() 
   private var _trackIndex: Int = -1 
 
-  override def getCount(): Int = _playlist.size
+  override def getCount(): Int = if (_trackIndex < 0) _playlist.size else _playlist.size - 1
 
   override def getItem(position: Int): Track = _playlist(getItemId(position).toInt)
 
-  override def getItemId(position: Int): Long = position 
+  override def getItemId(position: Int): Long = {
+    if (_trackIndex < 0 || position < _trackIndex) position else {
+      position + 1
+    }
+  }
 
   override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
 
     val track = getItem(position)
 
     if (getItemId(position) == _trackIndex) {
+      //ERROR
       new LinearLayout(activity) {
         setVisibility(GONE)
       }

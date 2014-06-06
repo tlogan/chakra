@@ -38,15 +38,13 @@ class TrackSelectionFragment extends Fragment {
     _verticalLayout = new LinearLayout(getActivity()) {
       setOrientation(VERTICAL)
       addView {
-        _listView = new ListView(getActivity()) {
-          val adapter = new TrackListAdapter(getActivity())
-          this.setAdapter(adapter) 
-          setDivider(new ColorDrawable(BLACK))
-          setDividerHeight(getActivity().dp(6))
+        _listView = new MainListView(getActivity(), new TrackListAdapter(getActivity())) {
           this.setOnItemClick( 
             (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-              val track =  adapter.getItem(position)
-              mainActorRef ! MainActor.AddPlaylistTrack(track) 
+              withAdapter(adapter => {
+                val track =  adapter.getItem(position)
+                mainActorRef ! MainActor.AddPlaylistTrack(track) 
+              })
             }
           ) 
         }

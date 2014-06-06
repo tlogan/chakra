@@ -13,26 +13,35 @@ class PlayerFragment extends Fragment {
 
   private lazy val adapter: PlaylistAdapter = new PlaylistAdapter(getActivity())
 
-  private lazy val playlistView: ListView = new ListView(getActivity()) {
-    setBackgroundColor(BLACK)
+  private lazy val playlistView: ListView = new MainListView(getActivity(), adapter) {
+
     setLayoutParams(
       new LLLayoutParams(MATCH_PARENT, MATCH_PARENT)
     ) 
-
-    setAdapter(adapter)
     this.setOnItemClick( 
       (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-        val trackIndex = adapter.getItemId(position)
-        mainActorRef ! MainActor.ChangeTrackByIndex(trackIndex.toInt) 
+        withAdapter(adapter => {
+          val trackIndex = adapter.getItemId(position)
+          mainActorRef ! MainActor.ChangeTrackByIndex(trackIndex.toInt) 
+        })
       }
     )
   }
 
+  private def withAdapter(f: PlaylistAdapter => Unit): Unit = {
+    playlistView.getAdapter() match {
+      case adapter: PlaylistAdapter => {
+        f(adapter)
+      }
+      case _ => Log.d("chakra", "PlaylistAdapter missing")
+    } 
+  }
+
   private lazy val playerTextLayout: TextLayout = new TextLayout(getActivity(), "", "", "") {
     setBackgroundColor(DKBLUE)
-    setLayoutParams(new LLLayoutParams(MATCH_PARENT, getActivity().dp(64)))
   }
-  private lazy val playerLayout: ImageSplitLayout = new ImageSplitLayout(getActivity(), playerTextLayout) {
+
+  private lazy val playerLayout: ImageSplitLayout = new MainImageSplitLayout(getActivity(), playerTextLayout) {
     setPadding(0, getActivity().dp(16), 0, getActivity().dp(16))
   }
 

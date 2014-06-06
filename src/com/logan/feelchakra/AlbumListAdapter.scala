@@ -51,7 +51,7 @@ class AlbumListAdapter(activity: Activity) extends BaseAdapter {
       mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
     })
 
-    new ImageSplitLayout(activity, rightLayout)
+    new MainImageSplitLayout(activity, rightLayout)
   }
 
   def setAlbumMap(albumMap: AlbumMap): Unit = {
