@@ -17,7 +17,6 @@ class AlbumTrackLayout(
   track,
   new LinearLayout(context) {
     setOrientation(VERTICAL)
-    setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
     setPadding(context.dp(4), context.dp(6), context.dp(4), context.dp(6))
     setBackgroundColor(TRANSPARENT)
     addView {

@@ -16,7 +16,6 @@ class TrackLayout(
   track,
   new TextLayout(context, track.title, track.artist, track.album) {
     setBackgroundColor(TRANSPARENT)
-    setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(64)))
   }
 ) {
 

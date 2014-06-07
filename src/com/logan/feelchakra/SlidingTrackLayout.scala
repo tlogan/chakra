@@ -12,8 +12,6 @@ class SlidingTrackLayout(
     val trackTextLayout: ViewGroup 
 ) extends RelativeLayout(context) {
 
-  lazy val height = context.dp(64) 
-
   val slideView = new View(context) with HorizontalSlideView {
     override val velMs = 2
     override val left = 0
@@ -22,12 +20,12 @@ class SlidingTrackLayout(
     override def onSlideRightEnd() = mainActorRef !  MainActor.AddAndPlayTrack(track)
 
     setBackgroundColor(DKGRAY)
-    setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, MATCH_PARENT))
   }
 
   val veiledView = new View(context) {
     setBackgroundColor(BLUE)
-    setLayoutParams(new RLLayoutParams(MATCH_PARENT, height))
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, MATCH_PARENT))
   }
 
   val gestureDetector = new GestureDetector(context, new HorizontalSlideListener(slideView) {

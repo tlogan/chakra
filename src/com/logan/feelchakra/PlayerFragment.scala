@@ -39,9 +39,14 @@ class PlayerFragment extends Fragment {
 
   private lazy val playerTextLayout: TextLayout = new TextLayout(getActivity(), "", "", "") {
     setBackgroundColor(DKBLUE)
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
   }
 
-  private lazy val playerLayout: ImageSplitLayout = new MainImageSplitLayout(getActivity(), playerTextLayout) {
+  private lazy val playerProgressView = new RelativeLayout(getActivity()) {
+    addView(playerTextLayout)
+  }
+
+  private lazy val playerLayout: ImageSplitLayout = new MainImageSplitLayout(getActivity(), playerProgressView) {
     setPadding(0, getActivity().dp(16), 0, getActivity().dp(16))
   }
 

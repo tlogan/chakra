@@ -46,7 +46,9 @@ class AlbumLayout(
       case _ => false 
     }
 
-    addView(new AlbumTrackLayout(context, track, trackNum, playmap.get(track), current)) 
+    addView(new AlbumTrackLayout(context, track, trackNum, playmap.get(track), current) {
+      setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(40)))
+    }) 
 
     if (trackNum != trackList.size) {
       addView {
