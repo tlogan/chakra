@@ -5,9 +5,9 @@ import RichContext.context2RichContext
 
 class MajorTextView(context: Context, text: String) extends TextView(context) {
 
-    setText(text)
-    setTextSize(context.sp(12))
-    setPadding(context.dp(4), context.dp(1), context.dp(4), context.dp(1))
-    setTextColor(WHITE)
+  setText(text)
+  setTextSize(18)
+  setPadding(context.dp(4), context.dp(1), context.dp(4), context.dp(1))
+  setTextColor(WHITE)
 
 }

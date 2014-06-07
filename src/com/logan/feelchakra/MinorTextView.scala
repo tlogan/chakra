@@ -6,8 +6,8 @@ import RichContext.context2RichContext
 class MinorTextView(context: Context, text: String) extends TextView(context) {
 
   setText(text)
-  setTextSize(context.sp(8))
-  setPadding(context.dp(4), 0, context.dp(4), 0)
+  setTextSize(12)
+  setPadding(context.dp(4), context.dp(1), context.dp(4), context.dp(1))
   setTextColor(WHITE)
 
 }
