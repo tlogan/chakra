@@ -337,6 +337,7 @@ class PlayerService extends Service {
   private def becomeTheStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
 
     _mediaPlayer.setOnPrepared(mp => {
+      mainActorRef ! MainActor.SetTrackDuration(mp.getDuration())
       _prepared = true
       if (_playing) {
         mp.seekTo(_startPos)

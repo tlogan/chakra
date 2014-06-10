@@ -38,11 +38,23 @@ class PlayerFragment extends Fragment {
   }
 
   private lazy val playerTextLayout: TextLayout = new TextLayout(getActivity(), "", "", "") {
-    setBackgroundColor(DKBLUE)
+    setBackgroundColor(TRANSPARENT)
     setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
   }
 
+  private lazy val backBar = new View(getActivity()) {
+    setBackgroundColor(BLUE)
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, MATCH_PARENT))
+  }
+
+  private lazy val frontBar = new View(getActivity()) {
+    setBackgroundColor(DKBLUE)
+    setLayoutParams(new RLLayoutParams(MATCH_PARENT, MATCH_PARENT))
+  }
+
   private lazy val playerProgressView = new RelativeLayout(getActivity()) {
+    addView(backBar)
+    addView(frontBar)
     addView(playerTextLayout)
   }
 
@@ -84,12 +96,34 @@ class PlayerFragment extends Fragment {
     }
   }
 
+  private var _trackDuration = -1
+  private var _playing = false 
+  private var _startPos = 0 
+
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._ 
       msg.obj match {
         case OnTrackIndexChanged(trackIndex) => 
-          that.setPlaylistCurrentTrack(trackIndex); true
+          that.setPlaylistCurrentTrack(trackIndex)
+          true
+        case OnTrackDurationChanged(duration) => 
+          _trackDuration = duration
+          if (_trackDuration >= 0 && _playing) {
+            animateProgress(_trackDuration)
+          } else stopProgress()
+          true
+        case OnLocalPlayingChanged(playing) =>
+          Log.d("chakra", "OnLocalPlayingChanged: " + playing)
+          _playing = playing
+          if (_trackDuration >= 0 && _playing) {
+            animateProgress(_trackDuration)
+          } else stopProgress()
+          true
+        case OnLocalStartPosChanged(startPos) =>
+          Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
+          _startPos = startPos 
+          true
         case OnPlaylistChanged(playlist) => 
           that.populatePlaylistView(playlist); true
         case OnLocalTrackOptionChanged(trackOption) => 
@@ -121,6 +155,24 @@ class PlayerFragment extends Fragment {
   override def onDestroy(): Unit =  {
     super.onDestroy()
     mainActorRef ! MainActor.Unsubscribe(this.toString)
+  }
+
+  def stopProgress(): Unit = {
+    frontBar.animate().cancel()
+  }
+
+  def animateProgress(duration: Int): Unit = {
+    require(duration >= 0)
+
+    val width = playerProgressView.getWidth()
+    frontBar.animate()
+      .x(width)
+      .setDuration(duration)
+      .setListener(new AnimatorListenerAdapter() {
+        override def onAnimationEnd(animator: Animator): Unit = {
+          frontBar.setX(0) 
+        }
+      })
   }
 
 }
