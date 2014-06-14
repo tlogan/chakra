@@ -200,6 +200,9 @@ package com.logan {
     val ALBUM = android.provider.MediaStore.Audio.AudioColumns.ALBUM
     val ARTIST = android.provider.MediaStore.Audio.AudioColumns.ARTIST
 
+    val smallDp = 16 
+    val medDp = 64
+
     type ColorDrawable = android.graphics.drawable.ColorDrawable
 
     type Table = guava.scalaandroid.Table

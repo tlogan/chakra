@@ -7,6 +7,6 @@ import RichContext.context2RichContext
 class MainImageSplitLayout(context: Context, rightLayout: View) 
 extends ImageSplitLayout(context, rightLayout) {
 
-  rightLayout.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(64)))
+  rightLayout.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(medDp)))
 
 }

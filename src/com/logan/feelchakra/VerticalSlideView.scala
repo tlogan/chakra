@@ -9,15 +9,15 @@ trait VerticalSlideView {
   this: View =>
 
   def velMs: Int
-  def bottomY: Int
-  def topY: Int 
+  def downY: Int
+  def upY: Int 
   def onSlideUpEnd(): Unit
   def onSlideDownEnd(): Unit
 
   def slideUp(): Unit = {
     animate()
-      .y(topY)
-      .setDuration((getY().toInt - topY)/velMs)
+      .y(upY)
+      .setDuration((getY().toInt - upY)/velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
           onSlideUpEnd()
@@ -26,7 +26,7 @@ trait VerticalSlideView {
   }
 
   def slideDown(): Unit = {
-    animate().y(bottomY).setDuration((bottomY - getY().toInt)/velMs)
+    animate().y(downY).setDuration((downY - getY().toInt)/velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
           onSlideDownEnd()
@@ -35,20 +35,30 @@ trait VerticalSlideView {
   }
 
   def slide(): Unit = {
-    if (getY() < bottomY / 2) {
+    if (getY() < (downY + upY) / 2) {
       slideUp()
     } else {
       slideDown()
     }
   }
 
-  def moveTop(): Unit = {
-    setY(topY)
+  def moveUp(): Unit = {
+    setY(upY)
   }
 
-  def moveBottom(): Unit = {
-    setY(bottomY)
+  def moveUp(offset: Int): Unit = {
+    setY(Math.max(offset, upY))
   }
+
+
+  def moveDown(): Unit = {
+    setY(downY)
+  }
+
+  def moveDown(offset: Int): Unit = {
+    setY(Math.min(offset, downY))
+  }
+
 
 
 }

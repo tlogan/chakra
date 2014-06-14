@@ -58,8 +58,8 @@ class PlayerFragment extends Fragment {
     addView(playerTextLayout)
   }
 
-  private lazy val playerLayout: ImageSplitLayout = new MainImageSplitLayout(getActivity(), playerProgressView) {
-    setPadding(0, getActivity().dp(16), 0, getActivity().dp(16))
+  private lazy val playerLayout = new MainImageSplitLayout(getActivity(), playerProgressView) {
+    setPadding(0, getActivity().dp(smallDp), 0, getActivity().dp(smallDp))
   }
 
   private lazy val verticalLayout = new LinearLayout(getActivity()) {

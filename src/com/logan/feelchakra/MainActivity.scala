@@ -19,6 +19,8 @@ class MainActivity extends Activity {
 
   private val that = this
 
+  lazy val originalBottom = contentView.getBottom() 
+
   private val albumSelectionFragment =  new AlbumSelectionFragment
   private val artistSelectionFragment =  new ArtistSelectionFragment
   private val trackSelectionFragment =  new TrackSelectionFragment
@@ -28,23 +30,21 @@ class MainActivity extends Activity {
 
   var _playerOpen: Boolean = false
 
-  lazy val frameDivideY = getResources().getDisplayMetrics().heightPixels - this.dp(200)
+  lazy val bottomHeight = this.dp(medDp) + 2 * this.dp(smallDp)
 
   lazy val selectionFrame = new FrameLayout(that) {
     setId(MainActivity.selectionFrameId)
-    setLayoutParams {
-      new RLLayoutParams(MATCH_PARENT, frameDivideY)
-    }
   } 
 
   lazy val playerFrame = new FrameLayout(that) with VerticalSlideView {
     
     override val velMs = 2
-    override val topY = 0
-    override lazy val bottomY = frameDivideY
+    override val upY = 0
+    override lazy val downY = contentView.getBottom() - bottomHeight  
     override def onSlideUpEnd() = mainActorRef ! MainActor.SetPlayerOpen(true)
     override def onSlideDownEnd() = mainActorRef ! MainActor.SetPlayerOpen(false)
 
+    setVisibility(GONE)
     setId(MainActivity.playerFrameId)
     setLayoutParams {
       new RLLayoutParams(MATCH_PARENT, MATCH_PARENT)
@@ -54,12 +54,16 @@ class MainActivity extends Activity {
 
   lazy val contentView: RelativeLayout = new RelativeLayout(this) {
 
+    setLayoutParams {
+      new VGLayoutParams(MATCH_PARENT, MATCH_PARENT)
+    }
+
     val gestureDetector = new GestureDetector(that, new SimpleOnGestureListener {
 
       override def onDown(e: MotionEvent): Boolean = {
 
         val touchStartY = e.getY().toInt
-        if (!_playerOpen && touchStartY > playerFrame.bottomY) {
+        if (!_playerOpen && touchStartY > playerFrame.downY) {
           true
         } else if (_playerOpen && touchStartY < 100) {
           true
@@ -71,12 +75,12 @@ class MainActivity extends Activity {
 
       override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
         val totalDispY = e2.getY().toInt - e1.getY().toInt 
-        val offset = if (_playerOpen) totalDispY else totalDispY + playerFrame.bottomY 
+        val offset = if (_playerOpen) totalDispY else totalDispY + playerFrame.downY 
         if (totalDispY < 0) {
-          playerFrame.setY(Math.max(offset, 0))
+          playerFrame.moveUp(offset)
         } else {
           selectionFrame.setVisibility(VISIBLE)
-          playerFrame.setY(Math.min(offset, playerFrame.bottomY))
+          playerFrame.moveDown(offset)
         }
         true
       }
@@ -106,20 +110,26 @@ class MainActivity extends Activity {
 
     })
 
-    addView { 
-      selectionFrame
-    }
-    addView(playerFrame)
-    bringChildToFront(playerFrame)
+
+    this.addOnLayoutChange((view, left, top, right, bottom, ol, ot, or, ob, remove) => {
+      selectionFrame.setBottom(bottom - bottomHeight)
+      playerFrame.setVisibility(VISIBLE)
+    })
+
   }
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
 
+    super.onCreate(savedInstanceState)
+    Toast.makeText(that, "ON CREATE", Toast.LENGTH_SHORT).show()
     getActionBar().hide()
     getActionBar().setDisplayShowHomeEnabled(false)
     getActionBar().setDisplayShowTitleEnabled(false)
-    super.onCreate(savedInstanceState)
     setContentView(contentView)
+
+    contentView.addView(selectionFrame)
+    contentView.addView(playerFrame)
+    contentView.bringChildToFront(playerFrame)
 
     val playerFragTrans = getFragmentManager().beginTransaction()
     playerFragTrans.replace(playerFrame.getId(), new PlayerFragment).commit()
@@ -127,13 +137,14 @@ class MainActivity extends Activity {
     val playerServiceIntent = new Intent(this, classOf[PlayerService])
     startService(playerServiceIntent);
 
-    mainActorRef ! MainActor.SetDatabase(new Database(this))
-    mainActorRef ! MainActor.SetCacheDir(getCacheDir())
 
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean  = {
+    Toast.makeText(that, "ON CREATE MENU", Toast.LENGTH_SHORT).show()
     this.menu = menu
+    mainActorRef ! MainActor.SetDatabase(new Database(this))
+    mainActorRef ! MainActor.SetCacheDir(getCacheDir())
     mainActorRef ! MainActor.Subscribe(this.toString, handler)
     getActionBar().show()
     super.onCreateOptionsMenu(menu)
@@ -187,11 +198,11 @@ class MainActivity extends Activity {
   private def setPlayerVisibility(playerOpen: Boolean): Unit = {
     if (playerOpen) {
       Log.d("chakra", "Player Opened!!")
-      playerFrame.moveTop()
+      playerFrame.moveUp()
       selectionFrame.setVisibility(GONE)
     } else {
       selectionFrame.setVisibility(VISIBLE)
-      playerFrame.moveBottom()
+      playerFrame.moveDown()
     }
   }
 
