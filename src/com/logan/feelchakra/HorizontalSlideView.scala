@@ -15,9 +15,17 @@ trait HorizontalSlideView {
   def onSlideLeftEnd(): Unit
 
   def slideRight(): Unit = {
+    slideRight(right)
+  }
+
+  def slideLeft(): Unit = {
+    slideLeft(left)
+  }
+
+  def slideRight(right: Int): Unit = {
     animate()
       .x(right)
-      .setDuration((right - getX().toInt)/velMs)
+      .setDuration(Math.abs(right - getX().toInt)/velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
           onSlideRightEnd()
@@ -25,10 +33,10 @@ trait HorizontalSlideView {
       })
   }
 
-  def slideLeft(): Unit = {
-    animate().x(left).setDuration(getX().toInt/velMs)
+  def slideLeft(left: Int): Unit = {
+    animate()
       .x(left)
-      .setDuration((getX().toInt - left)/velMs)
+      .setDuration(Math.abs(getX().toInt - left)/velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
           onSlideLeftEnd()

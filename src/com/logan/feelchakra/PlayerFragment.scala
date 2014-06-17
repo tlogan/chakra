@@ -58,13 +58,69 @@ class PlayerFragment extends Fragment {
     addView(playerTextLayout)
   }
 
+
+  lazy val dim = {
+    val d = new Point()
+    val display = getActivity().getWindowManager().getDefaultDisplay()
+    display.getSize(d)
+    d
+  }
+
+  lazy val prevLayout = new MainImageSplitLayout(getActivity(), new View(getActivity()) {
+    setBackgroundColor(GRAY)
+  }) {
+    setLayoutParams(new LLLayoutParams(dim.x, WRAP_CONTENT))
+  }
+
   private lazy val playerLayout = new MainImageSplitLayout(getActivity(), playerProgressView) {
+    setLayoutParams(new LLLayoutParams(dim.x, WRAP_CONTENT))
+    setId(666)
+
+  }
+
+  lazy val nextLayout = new MainImageSplitLayout(getActivity(), new View(getActivity()) {
+    setBackgroundColor(YELLOW)
+  }) {
+    setLayoutParams(new LLLayoutParams(dim.x, WRAP_CONTENT))
+  }
+
+
+  lazy val slideLayout = new LinearLayout(getActivity()) with HorizontalSlideView {
+
+    val sl = this
+    override val velMs: Int = 1
+    override lazy val left: Int = -2 * dim.x 
+    override val right: Int = 0 
+    override def onSlideRightEnd(): Unit = this.setX(-dim.x)
+    override def onSlideLeftEnd(): Unit = this.setX(-dim.x)
+    override def slide(): Unit = {
+      if (this.getX() > -dim.x / 2 ) {
+        this.slideRight()
+      } else if (this.getX() < 3 * -dim.x / 2) {
+        this.slideLeft()
+      } else if (this.getX() > -dim.x) {
+        this.slideLeft(-dim.x)
+      } else if (this.getX() < -dim.x) {
+        slideRight(-dim.x)
+      }
+    }
+
+    setOrientation(HORIZONTAL)
+    setBackgroundColor(BLACK)
     setPadding(0, getActivity().dp(smallDp), 0, getActivity().dp(smallDp))
+    setLayoutParams(new LLLayoutParams(3 * dim.x, WRAP_CONTENT))
+    addView(prevLayout)
+    addView(playerLayout)
+
+    addView(nextLayout)
+
+
   }
 
   private lazy val verticalLayout = new LinearLayout(getActivity()) {
     setOrientation(VERTICAL)
-    addView(playerLayout)
+    addView(slideLayout)
+    slideLayout.setX(-dim.x)
     addView(playlistView)
   }
 

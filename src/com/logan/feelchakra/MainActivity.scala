@@ -25,6 +25,7 @@ class MainActivity extends Activity {
   private val artistSelectionFragment =  new ArtistSelectionFragment
   private val trackSelectionFragment =  new TrackSelectionFragment
   private val stationSelectionFragment = new StationSelectionFragment
+  private val playerFragment = new PlayerFragment
 
   private var menu: Menu = _ 
 
@@ -51,12 +52,18 @@ class MainActivity extends Activity {
     }
   }
 
-
   lazy val contentView: RelativeLayout = new RelativeLayout(this) {
 
     setLayoutParams {
       new VGLayoutParams(MATCH_PARENT, MATCH_PARENT)
     }
+    
+    sealed trait MainMotion
+    case object YMotion extends MainMotion
+    case object XMotion extends MainMotion
+    case object NoMotion extends MainMotion
+
+    var motion: MainMotion = NoMotion
 
     val gestureDetector = new GestureDetector(that, new SimpleOnGestureListener {
 
@@ -73,23 +80,44 @@ class MainActivity extends Activity {
 
       }
 
-      override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
+      override def onScroll(e1: MotionEvent, e2: MotionEvent, scrollX: Float, scrollY: Float): Boolean = {
         val totalDispY = e2.getY().toInt - e1.getY().toInt 
-        val offset = if (_playerOpen) totalDispY else totalDispY + playerFrame.downY 
-        if (totalDispY < 0) {
-          playerFrame.moveUp(offset)
-        } else {
-          selectionFrame.setVisibility(VISIBLE)
-          playerFrame.moveDown(offset)
+        val totalDispX = e2.getX().toInt - e1.getX().toInt 
+
+        if (motion == YMotion || (motion == NoMotion && Math.abs(totalDispY) > Math.abs(totalDispX))) {
+          motion = YMotion
+          val offset = if (_playerOpen) totalDispY else totalDispY + playerFrame.downY 
+          if (totalDispY < 0) {
+            playerFrame.moveUp(offset)
+          } else {
+            selectionFrame.setVisibility(VISIBLE)
+            playerFrame.moveDown(offset)
+          }
+        } else if (motion == XMotion || Math.abs(totalDispY) < Math.abs(totalDispX)) {
+          motion = XMotion
+          val x = playerFragment.slideLayout.getX()
+          playerFragment.slideLayout.setX(x - scrollX)
         }
+
         true
       }
 
       override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
-        if (velY < 0) {
-          playerFrame.slideUp()
-        } else {
-          playerFrame.slideDown()
+
+        motion match {
+          case YMotion =>
+            if (velY < 0) {
+              playerFrame.slideUp()
+            } else {
+              playerFrame.slideDown()
+            }
+          case XMotion =>
+            if (velX > 0) {
+              playerFragment.slideLayout.slideRight()
+            } else {
+              playerFragment.slideLayout.slideLeft()
+            }
+          case NoMotion =>
         }
         true
       }
@@ -99,17 +127,32 @@ class MainActivity extends Activity {
       if (!gestureDetector.onTouchEvent(event)) {
         event.getAction() match {
           case ACTION_UP => 
-            playerFrame.slide()
+            motion match {
+              case YMotion =>
+                playerFrame.slide()
+              case XMotion =>
+                playerFragment.slideLayout.slide()
+              case NoMotion =>
+            }
+            motion = NoMotion
             true
           case ACTION_CANCEL => 
+            motion match {
+              case YMotion =>
+                playerFrame.slide()
+              case XMotion =>
+                playerFragment.slideLayout.slide()
+              case NoMotion =>
+            }
+            motion = NoMotion
             true
           case _ =>
+            motion = NoMotion
             false
         }
       } else true 
 
     })
-
 
     this.addOnLayoutChange((view, left, top, right, bottom, ol, ot, or, ob, remove) => {
       selectionFrame.setBottom(bottom - bottomHeight)
@@ -132,7 +175,7 @@ class MainActivity extends Activity {
     contentView.bringChildToFront(playerFrame)
 
     val playerFragTrans = getFragmentManager().beginTransaction()
-    playerFragTrans.replace(playerFrame.getId(), new PlayerFragment).commit()
+    playerFragTrans.replace(playerFrame.getId(), playerFragment).commit()
 
     val playerServiceIntent = new Intent(this, classOf[PlayerService])
     startService(playerServiceIntent);

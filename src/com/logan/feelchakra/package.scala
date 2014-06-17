@@ -76,6 +76,9 @@ package com.logan {
 
     val GTOP = android.view.Gravity.TOP
     type RelativeLayout = android.widget.RelativeLayout
+    val RIGHT_OF = android.widget.RelativeLayout.RIGHT_OF
+    val LEFT_OF = android.widget.RelativeLayout.LEFT_OF
+
     type LinearLayout = android.widget.LinearLayout
     type LLLayoutParams = android.widget.LinearLayout.LayoutParams
     type RLLayoutParams = android.widget.RelativeLayout.LayoutParams
@@ -181,6 +184,8 @@ package com.logan {
       android.net.wifi.p2p.WifiP2pManager.DnsSdServiceResponseListener
     type DnsSdTxtRecordListener = 
       android.net.wifi.p2p.WifiP2pManager.DnsSdTxtRecordListener
+
+    type Point = android.graphics.Point
 
     type Color = android.graphics.Color
     val TRANSPARENT = android.graphics.Color.TRANSPARENT
