@@ -27,8 +27,8 @@ object SlideLayout {
         t.setBackgroundColor(TRANSPARENT)
         t
       }
-      override val slideView = SlideLayout.createTrackSlideView(context, track, () => trackTextLayout.getWidth())
       override val veiledView = SlideLayout.createVeiledView(context)
+      override val slideView = Slider.createTrackSlideView(context, track, () => veiledView.getWidth())
 
     }
     SlideLayout.construct(context, view, track)
@@ -69,8 +69,8 @@ object SlideLayout {
         }
         l
       }
-      override val slideView = SlideLayout.createTrackSlideView(context, track, () => trackTextLayout.getWidth())
       override val veiledView = SlideLayout.createVeiledView(context)
+      override val slideView = Slider.createTrackSlideView(context, track, () => veiledView.getWidth())
     }
 
     SlideLayout.construct(context, view, track)
@@ -102,18 +102,6 @@ object SlideLayout {
     view
   }
 
-  def createTrackSlideView(context: Context, track: Track, width: () => Int): View with HorizontalSlideView = {
-    val view = new View(context) with HorizontalSlideView {
-      override val velMs = 2
-      override val left = 0
-      override lazy val right = width()
-      override def onSlideLeftEnd() = {} 
-      override def onSlideRightEnd() = mainActorRef !  MainActor.AddAndPlayTrack(track)
-    }
-    view.setBackgroundColor(DKGRAY)
-    view.setLayoutParams(new RLLayoutParams(MATCH_PARENT, MATCH_PARENT))
-    view
-  }
 
   def construct(context: Context, slideLayout: ViewGroup with SlideLayout, track: Track): Unit = {
 

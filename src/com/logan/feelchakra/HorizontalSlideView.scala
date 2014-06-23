@@ -18,6 +18,19 @@ trait HorizontalSlideView {
 
 object Slider {
 
+  def createTrackSlideView(context: Context, track: Track, width: () => Int): View with HorizontalSlideView = {
+    val view = new View(context) with HorizontalSlideView {
+      override val velMs = 2
+      override val left = 0
+      override lazy val right = width()
+      override def onSlideLeftEnd() = {} 
+      override def onSlideRightEnd() = mainActorRef !  MainActor.AddAndPlayTrack(track)
+    }
+    view.setBackgroundColor(DKGRAY)
+    view.setLayoutParams(new RLLayoutParams(MATCH_PARENT, MATCH_PARENT))
+    view
+  }
+
   def slideRight(view: View with HorizontalSlideView): Unit = {
     slideRight(view, view.right)
   }
