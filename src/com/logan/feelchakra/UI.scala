@@ -33,5 +33,4 @@ object UI {
   case class OnDiscoveringChanged(discovering: Boolean) extends OnChange
   case class OnAdvertisingChanged(advertising: Boolean) extends OnChange
 
-
 }

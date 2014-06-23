@@ -11,28 +11,45 @@ object StationWriter {
 
   case class SetSocket(socket: Socket)
 
+  case class GetSyncRequestWriteTime
+  case class WriteSyncRequest
+
 }
 
 import StationWriter._
-import SocketWriter._
 
-class StationWriter extends Actor with SocketWriter with SyncServerWriter {
+class StationWriter extends Actor {
 
-  def receive = receiveSocket orElse receiveGetSyncRequest
+  def receive = {
 
-  def receiveSocket: Receive = {
+    var syncRequestWriteTime: Long = 0
 
-    case SetSocket(socket) => 
-      Log.d("chakra", "setting socket in station writer")
-      setSocket(socket)
-      writeSyncRequest()
+    def writeSyncRequest(socketOutput: OutputStream,dataOutput: DataOutputStream): Unit = {
+      Log.d("chakra", "writing sync request")
+      try {
+        //write messageType 
+        syncRequestWriteTime = Platform.currentTime
+        dataOutput.writeInt(Runnable.SyncRequestMessage)
+        dataOutput.flush()
+      } catch {
+        case e: IOException => 
+          Log.d("chakra", "error writing sync request")
+          e.printStackTrace()
+      }
+    }
+
+    PartialFunction[Any, Unit] {
+      case SetSocket(socket) => 
+        Log.d("chakra", "setting socket in station writer")
+        val socketOutput = socket.getOutputStream()
+        val dataOutput = new DataOutputStream(socketOutput)
+        writeSyncRequest(socketOutput, dataOutput)
+
+      case GetSyncRequestWriteTime =>
+        Log.d("chakra", "getting syncRequestWriteTime")
+        sender() ! syncRequestWriteTime
+    }
 
   }
 
-
-
 }
-
-
-
-

@@ -3,28 +3,108 @@ import RichListView.listView2RichListView
 import RichView.view2RichView
 import RichContext.context2RichContext
 
-class TextLayout(
-    context: Context, 
-    mainText: String, 
-    secondText: String, 
-    thirdText: String
-) extends LinearLayout(context) {
+trait TextLayout {
+  this: LinearLayout => 
 
-  val mainTextView: TextView = new MajorTextView(context, mainText)
+  val mainTextView: TextView
+  val secondTextView: TextView
+  val thirdTextView: TextView
 
-  var secondTextView: TextView = new MinorTextView(context, secondText)
+}
 
-  var thirdTextView: TextView = new MinorTextView(context, thirdText)
+object TextLayout {
 
-  def setTexts(mainText: String, secondText: String, thirdText: String): Unit = {
-    mainTextView.setText(mainText)
-    secondTextView.setText(secondText)
-    thirdTextView.setText(thirdText)
+  def createTextLayout(
+      context: Context, 
+      mainText: String, 
+      secondText: String, 
+      thirdText: String
+  ): LinearLayout with TextLayout = {
+    val v = new LinearLayout(context) with TextLayout {
+      override val mainTextView: TextView = TextView.createMajor(context, mainText)
+      override val secondTextView: TextView = TextView.createMinor(context, secondText)
+      override val thirdTextView: TextView = TextView.createMinor(context, thirdText)
+    }
+    TextLayout.addTextViews(v)
+    v
   }
 
-  setOrientation(VERTICAL)
-  addView(mainTextView)
-  addView(secondTextView)
-  addView(thirdTextView)
+  def addTextViews(view: LinearLayout with TextLayout): Unit = {
+    view.setOrientation(VERTICAL)
+    view.addView(view.mainTextView)
+    view.addView(view.secondTextView)
+    view.addView(view.thirdTextView)
+  }
+
+  def setTexts(
+      textLayout: LinearLayout with TextLayout, 
+      mainText: String, 
+      secondText: String, 
+      thirdText: String
+  ): Unit = {
+    textLayout.mainTextView.setText(mainText)
+    textLayout.secondTextView.setText(secondText)
+    textLayout.thirdTextView.setText(thirdText)
+  }
+
+  def createAlbumLayout(
+      context: Context, 
+      album: String,
+      trackList: List[Track],
+      playmap: Map[Track, List[Int]],
+      trackOption: Option[Track]
+  ): LinearLayout with TextLayout = {
+
+    val v = new LinearLayout(context) with TextLayout {
+      override val mainTextView: TextView = TextView.createMajor(context, album)
+      override val secondTextView: TextView = TextView.createMinor(context, trackList.size + " Tracks")
+      override val thirdTextView: TextView = TextView.createMinor(context, "---")
+    }
+    TextLayout.addTextViews(v)
+    v.setBackgroundColor(LDKGRAY)
+    v.addView {
+      new View(context) {
+        setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(4)))
+      }
+    }
+    v.setOnLongClick(view => {
+      trackList.foreach(track => {
+        mainActorRef ! MainActor.AddPlaylistTrack(track)
+      })
+      true 
+    })
+
+
+    trackList.toIterator.zipWithIndex.foreach(pair => {
+      val track = pair._1
+      val trackNum = pair._2 + 1
+
+      val current = trackOption match {
+        case Some(currentTrack) if (currentTrack == track) => true
+        case _ => false 
+      }
+
+      v.addView {
+        val view = SlideLayout.createAlbumTrackLayout(context, track, trackNum, playmap.get(track), current)
+        view.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(40)))
+        view
+      } 
+
+      if (trackNum != trackList.size) {
+        v.addView {
+          new View(context) {
+            setBackgroundColor(LTGRAY)
+            val lp = new LLLayoutParams(MATCH_PARENT, 1)
+            lp.setMargins(context.dp(8), 0, context.dp(8), 0)
+            setLayoutParams(lp)
+          }
+        }
+      }
+    })
+
+    v
+
+  }
+
 
 }

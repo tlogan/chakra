@@ -212,8 +212,8 @@ class MainActor extends Actor {
       writerRef ! ListenerWriter.SetSocket(socket)
       writerRef ! ListenerWriter.WriteTrackOp(localManager.currentOp)
 
-      val reader = new ListenerReader(socket, writerRef)
-      reader.read()
+      val reader = Runnable.createListenerReader(socket, writerRef)
+      reader.run()
 
       val messenger = Messenger(writerRef, reader)
       messengers = messengers.+(remote -> messenger)
@@ -234,8 +234,8 @@ class MainActor extends Actor {
     case ChangeStationMessenger(socket) =>
       val writerRef = context.actorOf(StationWriter.props(), "StationWriter")
       writerRef ! StationWriter.SetSocket(socket)
-      val reader = new StationReader(socket, writerRef)
-      reader.read()
+      val reader = Runnable.createStationReader(socket, writerRef)
+      reader.run()
       stationMessengerOp = Some(Messenger(writerRef, reader))
 
     case ChangeStationTrackByOriginPath(originPath) =>

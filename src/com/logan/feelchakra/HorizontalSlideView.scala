@@ -14,43 +14,49 @@ trait HorizontalSlideView {
   def onSlideRightEnd(): Unit
   def onSlideLeftEnd(): Unit
 
-  def slideRight(): Unit = {
-    slideRight(right)
+}
+
+object Slider {
+
+  def slideRight(view: View with HorizontalSlideView): Unit = {
+    slideRight(view, view.right)
   }
 
-  def slideLeft(): Unit = {
-    slideLeft(left)
+  def slideLeft(view: View with HorizontalSlideView): Unit = {
+    slideLeft(view, view.left)
   }
 
-  def slideRight(right: Int): Unit = {
-    animate()
+  def slideRight(view: View with HorizontalSlideView, right: Int): Unit = {
+    view.animate()
       .x(right)
-      .setDuration(Math.abs(right - getX().toInt)/velMs)
+      .setDuration(Math.abs(right - view.getX().toInt)/view.velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
-          onSlideRightEnd()
+          view.onSlideRightEnd()
         }
       })
   }
 
-  def slideLeft(left: Int): Unit = {
-    animate()
+  def slideLeft(view: View with HorizontalSlideView, left: Int): Unit = {
+    view.animate()
       .x(left)
-      .setDuration(Math.abs(getX().toInt - left)/velMs)
+      .setDuration(Math.abs(view.getX().toInt - left)/view.velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
-          onSlideLeftEnd()
+          view.onSlideLeftEnd()
         }
       })
   }
 
-  def slide(): Unit = {
-    if (getX() > right / 2) {
-      slideRight()
+  def slide(view: View with HorizontalSlideView): Unit = {
+    if (view.getX() > view.right / 2) {
+      slideRight(view)
     } else {
-      slideLeft()
+      slideLeft(view)
     }
   }
 
 
 }
+
+

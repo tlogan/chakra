@@ -1,40 +1,49 @@
 package com.logan.feelchakra
 
-class StationListAdapter(activity: Activity, initialStationList: List[Station]) extends BaseAdapter {
+trait StationListAdapter {
+  this: BaseAdapter =>
 
-  private var _stationList: List[Station] = initialStationList
+  override def getItem(position: Int): Station
+  def setStationList(stationList: List[Station]): Unit
+}
 
-  override def getCount(): Int = _stationList.size
+object StationListAdapter {
 
-  override def getItem(position: Int): Station = _stationList(getItemId(position).toInt)
+  def create(context: Context): BaseAdapter with StationListAdapter = {
+    var _stationList: List[Station] = List() 
 
-  override def getItemId(position: Int): Long = position 
+    new BaseAdapter() with StationListAdapter {
 
-  override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
+      override def getCount(): Int = _stationList.size
+      override def getItem(position: Int): Station = _stationList(getItemId(position).toInt)
+      override def getItemId(position: Int): Long = position 
+      override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
 
-    val station = getItem(position)
+        val station = getItem(position)
 
-    new LinearLayout(activity) {
-      setOrientation(VERTICAL)
-      setBackgroundColor(GRAY)
-      List(station.device.deviceName, station.domain, "") foreach {
-        (text: String) => { 
-          addView {
-            new TextView(activity) {
-              setText(text)
-              setTextColor(WHITE)
-            }
+        new LinearLayout(context) {
+          setOrientation(VERTICAL)
+          setBackgroundColor(GRAY)
+          List(station.device.deviceName, station.domain, "") foreach {
+            (text: String) => { 
+              addView {
+                new TextView(context) {
+                  setText(text)
+                  setTextColor(WHITE)
+                }
+              }
+            } 
           }
-        } 
+        }
+
+
       }
+
+      override def setStationList(stationList: List[Station]): Unit = {
+        _stationList = stationList
+        this.notifyDataSetChanged()
+      }
+
     }
-
-
   }
-
-  def onStationListChanged(stationList: List[Station]): Unit = {
-    _stationList = stationList
-    this.notifyDataSetChanged()
-  }
-
 }

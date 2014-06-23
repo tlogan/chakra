@@ -4,7 +4,7 @@ import android.util.Log
 
 case class Messenger(
   writerRef: ActorRef,
-  reader: SocketReader 
+  reader: Runnable 
 ) {
 
 

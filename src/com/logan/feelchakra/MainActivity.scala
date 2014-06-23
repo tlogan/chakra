@@ -21,11 +21,42 @@ class MainActivity extends Activity {
 
   lazy val originalBottom = contentView.getBottom() 
 
-  private val albumSelectionFragment =  new AlbumSelectionFragment
-  private val artistSelectionFragment =  new ArtistSelectionFragment
-  private val trackSelectionFragment =  new TrackSelectionFragment
-  private val stationSelectionFragment = new StationSelectionFragment
-  private val playerFragment = new PlayerFragment
+  private val albumSelectionFragment =  Fragment.createAlbumSelection()
+  private val artistSelectionFragment =  Fragment.createArtistSelection()
+  private val trackSelectionFragment =  Fragment.createTrackSelection()
+  private val stationSelectionFragment = Fragment.createStationSelection()
+
+  private lazy val dim = dimension(this)
+
+  private lazy val slideLayout = {
+    val sl = new LinearLayout(this) with HorizontalSlideView {
+      override val velMs: Int = 1
+      override lazy val left: Int = -2 * dim.x 
+      override val right: Int = 0 
+      override def onSlideRightEnd(): Unit = this.setX(-dim.x)
+      override def onSlideLeftEnd(): Unit = this.setX(-dim.x)
+    }
+    sl.setOrientation(HORIZONTAL)
+    sl.setBackgroundColor(BLACK)
+    sl.setPadding(0, this.dp(smallDp), 0, this.dp(smallDp))
+    sl.setLayoutParams(new LLLayoutParams(3 * dim.x, WRAP_CONTENT))
+
+    sl
+  }
+
+  def slide(): Unit = {
+    if (slideLayout.getX() > -dim.x / 2 ) {
+      Slider.slideRight(slideLayout)
+    } else if (slideLayout.getX() < 3 * -dim.x / 2) {
+      Slider.slideLeft(slideLayout)
+    } else if (slideLayout.getX() > -dim.x) {
+      Slider.slideLeft(slideLayout, -dim.x)
+    } else if (slideLayout.getX() < -dim.x) {
+      Slider.slideRight(slideLayout, -dim.x)
+    }
+  }
+
+  private lazy val playerFragment = Fragment.createPlayer(slideLayout)
 
   private var menu: Menu = _ 
 
@@ -88,15 +119,15 @@ class MainActivity extends Activity {
           motion = YMotion
           val offset = if (_playerOpen) totalDispY else totalDispY + playerFrame.downY 
           if (totalDispY < 0) {
-            playerFrame.moveUp(offset)
+            VerticalSlideView.moveUp(playerFrame, offset)
           } else {
             selectionFrame.setVisibility(VISIBLE)
-            playerFrame.moveDown(offset)
+            VerticalSlideView.moveDown(playerFrame, offset)
           }
         } else if (motion == XMotion || Math.abs(totalDispY) < Math.abs(totalDispX)) {
           motion = XMotion
-          val x = playerFragment.slideLayout.getX()
-          playerFragment.slideLayout.setX(x - scrollX)
+          val x = slideLayout.getX()
+          slideLayout.setX(x - scrollX)
         }
 
         true
@@ -107,15 +138,15 @@ class MainActivity extends Activity {
         motion match {
           case YMotion =>
             if (velY < 0) {
-              playerFrame.slideUp()
+              VerticalSlideView.slideUp(playerFrame)
             } else {
-              playerFrame.slideDown()
+              VerticalSlideView.slideDown(playerFrame)
             }
           case XMotion =>
             if (velX > 0) {
-              playerFragment.slideLayout.slideRight()
+              Slider.slideRight(slideLayout)
             } else {
-              playerFragment.slideLayout.slideLeft()
+              Slider.slideLeft(slideLayout)
             }
           case NoMotion =>
         }
@@ -129,9 +160,9 @@ class MainActivity extends Activity {
           case ACTION_UP => 
             motion match {
               case YMotion =>
-                playerFrame.slide()
+                VerticalSlideView.slide(playerFrame)
               case XMotion =>
-                playerFragment.slideLayout.slide()
+                slide()
               case NoMotion =>
             }
             motion = NoMotion
@@ -139,9 +170,9 @@ class MainActivity extends Activity {
           case ACTION_CANCEL => 
             motion match {
               case YMotion =>
-                playerFrame.slide()
+                VerticalSlideView.slide(playerFrame)
               case XMotion =>
-                playerFragment.slideLayout.slide()
+                slide()
               case NoMotion =>
             }
             motion = NoMotion
@@ -219,9 +250,6 @@ class MainActivity extends Activity {
     }
   })
 
-
-  
-
   private def setSelectionList(selectionList: List[Selection]): Unit = {
 
     selectionList.zipWithIndex foreach { pair => 
@@ -241,11 +269,11 @@ class MainActivity extends Activity {
   private def setPlayerVisibility(playerOpen: Boolean): Unit = {
     if (playerOpen) {
       Log.d("chakra", "Player Opened!!")
-      playerFrame.moveUp()
+      VerticalSlideView.moveUp(playerFrame)
       selectionFrame.setVisibility(GONE)
     } else {
       selectionFrame.setVisibility(VISIBLE)
-      playerFrame.moveDown()
+      VerticalSlideView.moveDown(playerFrame)
     }
   }
 

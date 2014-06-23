@@ -14,51 +14,52 @@ trait VerticalSlideView {
   def onSlideUpEnd(): Unit
   def onSlideDownEnd(): Unit
 
-  def slideUp(): Unit = {
-    animate()
-      .y(upY)
-      .setDuration((getY().toInt - upY)/velMs)
+}
+
+object VerticalSlideView {
+
+  def slideUp(view: View with VerticalSlideView): Unit = {
+    view.animate()
+      .y(view.upY)
+      .setDuration((view.getY().toInt - view.upY)/view.velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
-          onSlideUpEnd()
+          view.onSlideUpEnd()
         }
       })
   }
 
-  def slideDown(): Unit = {
-    animate().y(downY).setDuration((downY - getY().toInt)/velMs)
+  def slideDown(view: View with VerticalSlideView): Unit = {
+    view.animate().y(view.downY).setDuration((view.downY - view.getY().toInt)/view.velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
-          onSlideDownEnd()
+          view.onSlideDownEnd()
         }
       })
   }
 
-  def slide(): Unit = {
-    if (getY() < (downY + upY) / 2) {
-      slideUp()
+  def slide(view: View with VerticalSlideView): Unit = {
+    if (view.getY() < (view.downY + view.upY) / 2) {
+      VerticalSlideView.slideUp(view)
     } else {
-      slideDown()
+      VerticalSlideView.slideDown(view)
     }
   }
 
-  def moveUp(): Unit = {
-    setY(upY)
+  def moveUp(view: View with VerticalSlideView): Unit = {
+    view.setY(view.upY)
   }
 
-  def moveUp(offset: Int): Unit = {
-    setY(Math.max(offset, upY))
-  }
-
-
-  def moveDown(): Unit = {
-    setY(downY)
-  }
-
-  def moveDown(offset: Int): Unit = {
-    setY(Math.min(offset, downY))
+  def moveUp(view: View with VerticalSlideView, offset: Int): Unit = {
+    view.setY(Math.max(offset, view.upY))
   }
 
 
+  def moveDown(view: View with VerticalSlideView): Unit = {
+    view.setY(view.downY)
+  }
 
+  def moveDown(view: View with VerticalSlideView, offset: Int): Unit = {
+    view.setY(Math.min(offset, view.downY))
+  }
 }

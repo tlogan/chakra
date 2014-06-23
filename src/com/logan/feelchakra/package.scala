@@ -73,6 +73,7 @@ package com.logan {
     type AdapterViewClick = android.widget.AdapterView.OnItemClickListener
     type ViewClick = android.view.View.OnClickListener
     type BaseAdapter = android.widget.BaseAdapter
+    type ListAdapter = android.widget.ListAdapter
 
     val GTOP = android.view.Gravity.TOP
     type RelativeLayout = android.widget.RelativeLayout
@@ -235,7 +236,17 @@ package com.logan {
     val ReplaySubject = rx.lang.scala.subjects.ReplaySubject
     type ReplaySubject[T] = rx.lang.scala.subjects.ReplaySubject[T]
 
+    type Runnable = java.lang.Runnable
+
     val mainActorRef = ActorSystem("actorSystem").actorOf(MainActor.props(), "mainActor")
+
+    def dimension(activity: Activity) = {
+      val d = new Point()
+      val display = activity.getWindowManager().getDefaultDisplay()
+      display.getSize(d)
+      d
+    }
+
 
   }
 }

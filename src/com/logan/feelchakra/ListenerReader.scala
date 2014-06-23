@@ -3,6 +3,8 @@ package com.logan.feelchakra
 import android.util.Log
 import scala.concurrent.ExecutionContext.Implicits.global
 
+/*
+
 object ListenerReader {
 
 }
@@ -18,3 +20,4 @@ class ListenerReader(socket: Socket, writer: ActorRef)
   override def receive = receiveReadSyncRequest
   
 }
+*/

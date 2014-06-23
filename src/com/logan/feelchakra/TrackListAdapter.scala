@@ -7,40 +7,52 @@ import RichListView.listView2RichListView
 import RichView.view2RichView
 import RichContext.context2RichContext
 
-class TrackListAdapter(activity: Activity) extends BaseAdapter {
+trait TrackListAdapter {
+  this: BaseAdapter =>
 
-  private var _trackList: List[Track] = List() 
+  override def getItem(position: Int): Track
+  def setTrackList(trackList: List[Track]): Unit
+  def setPlaymap(playmap: Map[Track, List[Int]]): Unit
+  def setTrackOption(trackOption: Option[Track]): Unit
 
-  private var _playmap: Map[Track, List[Int]] = HashMap() 
-  private var _trackOption: Option[Track] = None 
+}
 
-  override def getCount(): Int = _trackList.size
+object TrackListAdapter {
 
-  override def getItem(position: Int): Track = _trackList(getItemId(position).toInt)
+  def create(context: Context): BaseAdapter with TrackListAdapter = {
 
-  override def getItemId(position: Int): Long = position 
+    var _trackList: List[Track] = List() 
+    var _playmap: Map[Track, List[Int]] = HashMap() 
+    var _trackOption: Option[Track] = None 
 
-  override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
+    new BaseAdapter() with TrackListAdapter {
 
-    val track = getItem(position)
+      override def getCount(): Int = _trackList.size
+      override def getItem(position: Int): Track = _trackList(getItemId(position).toInt)
+      override def getItemId(position: Int): Long = position 
 
-    new MainImageSplitLayout(activity, new TrackLayout(activity, track, _playmap, _trackOption))
+      override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
+        val track = getItem(position)
+        ImageSplitLayout.createMain(context, SlideLayout.createTrackLayout(context, track, _playmap, _trackOption))
+      }
 
-  }
+      override def setTrackList(trackList: List[Track]): Unit = {
+        _trackList = trackList
+        this.notifyDataSetChanged()
+      }
 
-  def setTrackList(trackList: List[Track]): Unit = {
-    _trackList = trackList
-    this.notifyDataSetChanged()
-  }
+      override def setPlaymap(playmap: Map[Track, List[Int]]): Unit = {
+        _playmap = playmap
+        this.notifyDataSetChanged()
+      }
 
-  def setPlaymap(playmap: Map[Track, List[Int]]): Unit = {
-    _playmap = playmap
-    this.notifyDataSetChanged()
-  }
+      override def setTrackOption(trackOption: Option[Track]): Unit = {
+        _trackOption = trackOption 
+        this.notifyDataSetChanged()
+      }
 
-  def setTrackOption(trackOption: Option[Track]): Unit = {
-    _trackOption = trackOption 
-    this.notifyDataSetChanged()
+    }
+
   }
 
 }

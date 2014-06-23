@@ -7,76 +7,97 @@ import RichListView.listView2RichListView
 import RichView.view2RichView
 import RichContext.context2RichContext
 
-class AlbumListAdapter(activity: Activity) extends BaseAdapter {
+trait AlbumListAdapter {
+  this: BaseAdapter =>
 
-  private var _albumTupleOp: Option[(String, List[Track])] = None 
-  private var _albumMap: AlbumMap = new AlbumMap() 
-  private var _albumList: List[(String, List[Track])] = _albumMap.toList
-  private var _positionMap: Map[(String, List[Track]), Int] = _albumMap.zipWithIndex
+  override def getItem(position: Int): (String, List[Track])
 
-  def albumTuplePosition: Int = _albumTupleOp match {
-    case Some(albumTuple) =>
-      _positionMap(albumTuple)
-    case None => 0
-  }
+  def albumTuplePosition: Int
+  def setAlbumMap(albumMap: AlbumMap): Unit
+  def setAlbumTupleOp(albumTupleOp: Option[(String, List[Track])]): Unit
+  def setPlaymap(playmap: Map[Track, List[Int]]): Unit
+  def setTrackOption(trackOption: Option[Track]): Unit
 
-  private var _playmap: Map[Track, List[Int]] = HashMap() 
-  private var _trackOption: Option[Track] = None 
+}
 
-  override def getCount(): Int = _albumMap.size
+object AlbumListAdapter {
 
-  override def getItem(position: Int): (String, List[Track]) = {
-    _albumList(getItemId(position).toInt)
-  }
+  def create(context: Context): BaseAdapter with AlbumListAdapter = {
 
-  override def getItemId(position: Int): Long = position 
+    var _albumTupleOp: Option[(String, List[Track])] = None 
+    var _albumMap: AlbumMap = new AlbumMap() 
+    var _albumList: List[(String, List[Track])] = _albumMap.toList
+    var _positionMap: Map[(String, List[Track]), Int] = _albumMap.zipWithIndex
+    var _playmap: Map[Track, List[Int]] = HashMap() 
+    var _trackOption: Option[Track] = None 
 
-  override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
+    new BaseAdapter with AlbumListAdapter {
 
-    val albumTuple = getItem(position)
-    val album = albumTuple._1
-    val trackList = albumTuple._2
+      override def getCount(): Int = _albumMap.size
 
-    _albumTupleOp match {
-      case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
-        new ImageSplitLayout(activity, new AlbumLayout(activity, album, trackList, _playmap, _trackOption) {
-          this.setOnClick(view => {
-            mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
-          })
-        })
-      case _ =>
-        new MainImageSplitLayout(activity, new TextLayout(activity, album, trackList.size + " Tracks", "time") {
-          setLayoutParams(new LLLayoutParams(MATCH_PARENT, activity.dp(64)))
-          setBackgroundColor(DKGRAY)
-          this.setOnClick(view => {
-            mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
-          })
-        })
+      override def getItem(position: Int): (String, List[Track]) = {
+        _albumList(getItemId(position).toInt)
+      }
+
+      override def getItemId(position: Int): Long = position 
+
+      override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
+
+        val albumTuple = getItem(position)
+        val album = albumTuple._1
+        val trackList = albumTuple._2
+
+        _albumTupleOp match {
+          case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
+            ImageSplitLayout.create(context, {
+              val v = TextLayout.createAlbumLayout(context, album, trackList, _playmap, _trackOption) 
+              v.setOnClick(view => {
+                mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
+              })
+              v
+            })
+          case _ =>
+            ImageSplitLayout.createMain(context, {
+              val v = TextLayout.createTextLayout(context, album, trackList.size + " Tracks", "time") 
+              v.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(64)))
+              v.setBackgroundColor(DKGRAY)
+              v.setOnClick(view => {
+                mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
+              })
+              v
+            })
+        }
+
+      }
+
+      override def albumTuplePosition: Int = _albumTupleOp match {
+        case Some(albumTuple) =>
+          _positionMap(albumTuple)
+        case None => 0
+      }
+
+
+      override def setAlbumMap(albumMap: AlbumMap): Unit = {
+        _albumMap = albumMap
+        _albumList = _albumMap.toList 
+        _positionMap = _albumMap.zipWithIndex
+        this.notifyDataSetChanged()
+      }
+
+      override def setAlbumTupleOp(albumTupleOp: Option[(String, List[Track])]): Unit = {
+        _albumTupleOp = albumTupleOp
+        this.notifyDataSetChanged()
+      }
+
+      override def setPlaymap(playmap: Map[Track, List[Int]]): Unit = {
+        _playmap = playmap
+        this.notifyDataSetChanged()
+      }
+
+      override def setTrackOption(trackOption: Option[Track]): Unit = {
+        _trackOption = trackOption 
+        this.notifyDataSetChanged()
+      }
     }
-
-
   }
-
-  def setAlbumMap(albumMap: AlbumMap): Unit = {
-    _albumMap = albumMap
-    _albumList = _albumMap.toList 
-    _positionMap = _albumMap.zipWithIndex
-    this.notifyDataSetChanged()
-  }
-
-  def setAlbumTupleOp(albumTupleOp: Option[(String, List[Track])]): Unit = {
-    _albumTupleOp = albumTupleOp
-    this.notifyDataSetChanged()
-  }
-
-  def setPlaymap(playmap: Map[Track, List[Int]]): Unit = {
-    _playmap = playmap
-    this.notifyDataSetChanged()
-  }
-
-  def setTrackOption(trackOption: Option[Track]): Unit = {
-    _trackOption = trackOption 
-    this.notifyDataSetChanged()
-  }
-
 }
