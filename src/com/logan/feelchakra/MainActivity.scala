@@ -33,8 +33,8 @@ class MainActivity extends Activity {
       override val velMs: Int = 1
       override lazy val left: Int = -2 * dim.x 
       override val right: Int = 0 
-      override def onSlideRightEnd(): Unit = this.setX(-dim.x)
-      override def onSlideLeftEnd(): Unit = this.setX(-dim.x)
+      override def onSlideRightEnd(): Unit = mainActorRef ! MainActor.ChangeToPrevTrack
+      override def onSlideLeftEnd(): Unit = mainActorRef ! MainActor.ChangeToNextTrack
     }
     sl.setOrientation(HORIZONTAL)
     sl.setBackgroundColor(BLACK)
@@ -45,7 +45,7 @@ class MainActivity extends Activity {
   }
 
   def slide(): Unit = {
-    if (slideLayout.getX() > -dim.x / 2 ) {
+    if (_prev && slideLayout.getX() > -dim.x / 2 ) {
       Slider.slideRight(slideLayout)
     } else if (slideLayout.getX() < 3 * -dim.x / 2) {
       Slider.slideLeft(slideLayout)
@@ -126,8 +126,16 @@ class MainActivity extends Activity {
           }
         } else if (motion == XMotion || Math.abs(totalDispY) < Math.abs(totalDispX)) {
           motion = XMotion
-          val x = slideLayout.getX()
-          slideLayout.setX(x - scrollX)
+          if (_prev || _next) {
+            val x = slideLayout.getX()
+            if (!_prev) {
+              slideLayout.setX(Math.min(-dim.x, x - scrollX))
+            } else if (!_next) {
+              slideLayout.setX(Math.max(-dim.x, x - scrollX))
+            } else {
+              slideLayout.setX(x - scrollX)
+            }
+          }
         }
 
         true
@@ -143,9 +151,9 @@ class MainActivity extends Activity {
               VerticalSlideView.slideDown(playerFrame)
             }
           case XMotion =>
-            if (velX > 0) {
+            if (_prev && velX > 0) {
               Slider.slideRight(slideLayout)
-            } else {
+            } else if (_next && velX < 0) {
               Slider.slideLeft(slideLayout)
             }
           case NoMotion =>
@@ -195,7 +203,6 @@ class MainActivity extends Activity {
   override def onCreate(savedInstanceState: Bundle): Unit = {
 
     super.onCreate(savedInstanceState)
-    Toast.makeText(that, "ON CREATE", Toast.LENGTH_SHORT).show()
     getActionBar().hide()
     getActionBar().setDisplayShowHomeEnabled(false)
     getActionBar().setDisplayShowTitleEnabled(false)
@@ -215,7 +222,6 @@ class MainActivity extends Activity {
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean  = {
-    Toast.makeText(that, "ON CREATE MENU", Toast.LENGTH_SHORT).show()
     this.menu = menu
     mainActorRef ! MainActor.SetDatabase(new Database(this))
     mainActorRef ! MainActor.SetCacheDir(getCacheDir())
@@ -231,6 +237,9 @@ class MainActivity extends Activity {
     mainActorRef ! MainActor.Unsubscribe(this.toString)
   }
 
+  private var _prev = false
+  private var _next = false
+
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
@@ -244,6 +253,16 @@ class MainActivity extends Activity {
           true
         case OnSelectionChanged(selection) => 
           replaceSelectionFragment(selection)
+          true
+
+        case OnLocalTrackOptionChanged(trackOption) => 
+          slideLayout.setX(-dim.x)
+          true
+        case OnPrevTrackOptionChanged(trackOption) => 
+          _prev = trackOption != None
+          true
+        case OnNextTrackOptionChanged(trackOption) => 
+          _next = trackOption != None
           true
         case _ => false
       }

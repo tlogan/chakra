@@ -23,6 +23,7 @@ case class LocalManager(
 
   def optionByIndex(index: Int): Option[Track] = playlist.lift(index)
   def currentOp: Option[Track] = playlist.lift(currentIndex)
+  def prevOp: Option[Track] = playlist.lift(currentIndex - 1)
   def nextOp: Option[Track] = playlist.lift(currentIndex + 1)
 
   def setCurrentDuration(duration: Int): LocalManager = {
@@ -34,12 +35,17 @@ case class LocalManager(
     mainActorRef ! NotifyHandlers(OnTrackIndexChanged(index))
     val trackOption = optionByIndex(index)
     mainActorRef ! NotifyHandlers(OnLocalTrackOptionChanged(trackOption))
+    mainActorRef ! NotifyHandlers(OnPrevTrackOptionChanged(optionByIndex(index - 1)))
+    mainActorRef ! NotifyHandlers(OnNextTrackOptionChanged(optionByIndex(index + 1)))
     copy(currentIndex = index)
   }
    
   def addPlaylistTrack(track: Track): LocalManager = {
     val newPlaylist = playlist.:+(track)
     mainActorRef ! NotifyHandlers(OnPlaylistChanged(newPlaylist))
+    if (currentIndex + 1 == newPlaylist.size - 1) {
+      mainActorRef ! NotifyHandlers(OnNextTrackOptionChanged(Some(track)))
+    }
     copy(playlist = newPlaylist)
   }
 

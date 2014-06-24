@@ -18,6 +18,8 @@ object MainActor {
   case class SetTrackList(trackList: List[Track]) 
   case class SetSelection(selection: Selection) 
 
+  case object ChangeToPrevTrack
+  case object ChangeToNextTrack
   case class ChangeTrackByIndex(trackIndex: Int)
   case class SetTrackDuration(trackDuration: Int)
 
@@ -112,6 +114,9 @@ class MainActor extends Actor {
         OnPlaylistChanged(localManager.playlist),
 
         OnLocalTrackOptionChanged(localManager.currentOp),
+        OnPrevTrackOptionChanged(localManager.prevOp),
+        OnNextTrackOptionChanged(localManager.nextOp),
+
         OnLocalStartPosChanged(localManager.startPos),
         OnLocalPlayingChanged(localManager.playing)
 
@@ -152,14 +157,14 @@ class MainActor extends Actor {
     case SetPlayerOpen(playerOpen) =>
       localManager = localManager.setPlayerOpen(playerOpen)
 
+    case ChangeToPrevTrack =>
+      changeTrackByIndex(localManager.currentIndex - 1)
+
+    case ChangeToNextTrack =>
+      changeTrackByIndex(localManager.currentIndex + 1)
+
     case ChangeTrackByIndex(trackIndex) => 
-      val current = localManager.optionByIndex(trackIndex)
-      localManager = localManager.setCurrentIndex(trackIndex)
-      current match {
-        case Some(track) =>
-          playTrack(track)
-        case None =>
-      }
+      changeTrackByIndex(trackIndex)
 
     case SetTrackDuration(trackDuration) =>
       localManager = localManager.setCurrentDuration(trackDuration)
@@ -280,6 +285,16 @@ class MainActor extends Actor {
       }
 
   }
+
+  private def changeTrackByIndex(trackIndex: Int): Unit = {
+    val current = localManager.optionByIndex(trackIndex)
+    localManager = localManager.setCurrentIndex(trackIndex)
+    current match {
+      case Some(track) =>
+        playTrack(track)
+      case None =>
+    }
+  } 
 
   private def addPlaylistTrack(track: Track): Unit = {
     localManager = localManager.addPlaylistTrack(track)

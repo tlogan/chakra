@@ -250,11 +250,23 @@ object Fragment {
 
       override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
 
-        val playerTextLayout = {
+        def createCurrentTrackTextLayout() = {
           val t = TextLayout.createTextLayout(getActivity(), "", "", "") 
           t.setBackgroundColor(TRANSPARENT)
           t.setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
           t
+        }
+
+        val playerTextLayout = createCurrentTrackTextLayout()
+        val nextTextLayout = { 
+          val v = createCurrentTrackTextLayout()
+          v.setBackgroundColor(GRAY)
+          v
+        }
+        val prevTextLayout = {
+          val v = createCurrentTrackTextLayout()
+          v.setBackgroundColor(DKGRAY)
+          v
         }
 
         val backBar = new View(getActivity()) {
@@ -276,11 +288,7 @@ object Fragment {
         val width = dimension(getActivity()).x
 
         val prevLayout =  {
-          val layout = ImageSplitLayout.createMain(getActivity(), {
-            val v = new View(getActivity()) 
-            v.setBackgroundColor(GRAY)
-            v
-          })
+          val layout = ImageSplitLayout.createMain(getActivity(), prevTextLayout)
           layout.setLayoutParams(new LLLayoutParams(width, WRAP_CONTENT))
           layout
         }
@@ -292,11 +300,7 @@ object Fragment {
         }
 
         val nextLayout =  {
-          val l = ImageSplitLayout.createMain(getActivity(), {
-            val v = new View(getActivity()) 
-            v.setBackgroundColor(YELLOW)
-            v
-          })
+          val l = ImageSplitLayout.createMain(getActivity(), nextTextLayout) 
           l.setLayoutParams(new LLLayoutParams(width, WRAP_CONTENT))
           l
         }
@@ -400,6 +404,22 @@ object Fragment {
                     TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album)
                   case _ => 
                     TextLayout.setTexts(playerTextLayout, "", "", "")
+                }
+                true
+              case OnPrevTrackOptionChanged(trackOption) => 
+                trackOption match {
+                  case Some(track) =>
+                    TextLayout.setTexts(prevTextLayout, track.title, track.artist, track.album)
+                  case _ => 
+                    TextLayout.setTexts(prevTextLayout, "", "", "")
+                }
+                true
+              case OnNextTrackOptionChanged(trackOption) => 
+                trackOption match {
+                  case Some(track) =>
+                    TextLayout.setTexts(nextTextLayout, track.title, track.artist, track.album)
+                  case _ => 
+                    TextLayout.setTexts(nextTextLayout, "", "", "")
                 }
                 true
               case _ => false

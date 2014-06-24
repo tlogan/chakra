@@ -22,6 +22,10 @@ object UI {
   case class OnTrackDurationChanged(trackDuration: Int) extends OnChange
 
   case class OnLocalTrackOptionChanged(trackOption: Option[Track]) extends OnChange
+  case class OnPrevTrackOptionChanged(trackOption: Option[Track]) extends OnChange
+  case class OnNextTrackOptionChanged(trackOption: Option[Track]) extends OnChange
+
+
   case class OnLocalPlayingChanged(playing: Boolean) extends OnChange
   case class OnLocalStartPosChanged(startPos: Int) extends OnChange
 
