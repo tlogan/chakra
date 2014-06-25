@@ -336,7 +336,7 @@ object Fragment {
           frontBar.animate().cancel()
         }
 
-        def animateProgress(duration: Int): Unit = {
+        def animateProgress(duration: Long): Unit = {
           require(duration >= 0)
 
           val width = playerProgressView.getWidth()
@@ -350,7 +350,7 @@ object Fragment {
             })
         }
 
-        var _trackDuration = -1
+        var _trackDuration: Long = -1
         var _playing = false 
         var _startPos = 0 
 
@@ -368,14 +368,6 @@ object Fragment {
                 frontBar.setX(0)
                 if (trackIndex < 0) {
                   _trackDuration = -1
-                }
-                true
-              case OnTrackDurationChanged(duration) => 
-                _trackDuration = duration
-                if (_trackDuration >= 0 && _playing) {
-                  animateProgress(_trackDuration)
-                } else {
-                  stopProgress()
                 }
                 true
               case OnLocalPlayingChanged(playing) =>
@@ -401,6 +393,12 @@ object Fragment {
               case OnLocalTrackOptionChanged(trackOption) => 
                 trackOption match {
                   case Some(track) =>
+                    _trackDuration = track.duration
+                    if (_trackDuration >= 0 && _playing) {
+                      animateProgress(_trackDuration)
+                    } else {
+                      stopProgress()
+                    }
                     TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album.title)
                     ImageSplitLayout.setImageFromPath(playerLayout, track.album.coverArt)
                   case _ => 

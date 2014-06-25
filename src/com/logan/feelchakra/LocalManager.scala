@@ -4,7 +4,6 @@ import android.util.Log
 
 case class LocalManager(
   currentIndex: Int, 
-  currentDuration: Int,
   playlist: List[Track], 
   artistTupleOp: Option[(String, AlbumMap)],
   artistMap: ArtistMap,
@@ -16,7 +15,7 @@ case class LocalManager(
   startPos: Int
 ) {
 
-  def this() = this(-1, -1, List(), None, new ArtistMap(), None, AlbumMap(), List(), false, false, 0)
+  def this() = this(-1, List(), None, new ArtistMap(), None, AlbumMap(), List(), false, false, 0)
 
   import MainActor._
   import UI._
@@ -25,11 +24,6 @@ case class LocalManager(
   def currentOp: Option[Track] = playlist.lift(currentIndex)
   def prevOp: Option[Track] = playlist.lift(currentIndex - 1)
   def nextOp: Option[Track] = playlist.lift(currentIndex + 1)
-
-  def setCurrentDuration(duration: Int): LocalManager = {
-    mainActorRef ! NotifyHandlers(OnTrackDurationChanged(duration))
-    copy(currentDuration = duration)
-  }
 
   def setCurrentIndex(index: Int): LocalManager = {
     mainActorRef ! NotifyHandlers(OnTrackIndexChanged(index))

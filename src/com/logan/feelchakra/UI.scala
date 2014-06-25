@@ -19,7 +19,6 @@ object UI {
 
   case class OnPlaylistChanged(playlist: List[Track]) extends OnChange
   case class OnTrackIndexChanged(trackIndex: Int) extends OnChange
-  case class OnTrackDurationChanged(trackDuration: Int) extends OnChange
 
   case class OnLocalTrackOptionChanged(trackOption: Option[Track]) extends OnChange
   case class OnPrevTrackOptionChanged(trackOption: Option[Track]) extends OnChange

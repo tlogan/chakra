@@ -55,7 +55,7 @@ object TrackListFuture {
                   case Some(album) => album
                   case None => Album("", "")
                 }
-                trackListBuffer += Track(row(DATA), row(TITLE), album, row(ARTIST))
+                trackListBuffer += Track(row(DATA), row(TITLE), album, row(ARTIST), row(DURATION).toLong)
               },
               (e: Throwable) => Log.d("chakra", "row observable failed: " + e.getMessage),
               () => { promise.success(trackListBuffer.toList) }

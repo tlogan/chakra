@@ -143,7 +143,7 @@ object Runnable {
       val trackPathBuffer = new Array[Byte](trackPathSize)
       socketInput.read(trackPathBuffer)
       val path = new String(trackPathBuffer, 0, trackPathSize)
-      val track = Track(path, "", Album("", ""), "")
+      val track = Track(path, "", Album("", ""), "", 0)
 
       mainActorRef ! MainActor.AddStationTrack(track)
 

@@ -209,6 +209,8 @@ package com.logan {
     val DATA = android.provider.MediaStore.MediaColumns.DATA
     val TITLE = android.provider.MediaStore.MediaColumns.TITLE
 
+    val DURATION = android.provider.MediaStore.Audio.AudioColumns.DURATION
+
     val ALBUM = android.provider.MediaStore.Audio.AlbumColumns.ALBUM
     val ALBUM_KEY = android.provider.MediaStore.Audio.AlbumColumns.ALBUM_KEY
     val ALBUM_ID = android.provider.MediaStore.Audio.AlbumColumns.ALBUM_ID

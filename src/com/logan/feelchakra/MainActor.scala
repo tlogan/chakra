@@ -21,7 +21,6 @@ object MainActor {
   case object ChangeToPrevTrack
   case object ChangeToNextTrack
   case class ChangeTrackByIndex(trackIndex: Int)
-  case class SetTrackDuration(trackDuration: Int)
 
   case class AddPlaylistTrack(track: Track) 
   case class AddAndPlayTrack(track: Track) 
@@ -171,9 +170,6 @@ class MainActor extends Actor {
 
     case ChangeTrackByIndex(trackIndex) => 
       changeTrackByIndex(trackIndex)
-
-    case SetTrackDuration(trackDuration) =>
-      localManager = localManager.setCurrentDuration(trackDuration)
 
     case WriteListenerPlayState(playState) => 
       notifyWriters(ListenerWriter.WritePlayState(playState))
