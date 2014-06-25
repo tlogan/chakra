@@ -5,20 +5,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
  
 object Playmap {
 
-  def apply(playlist: List[Track]): Map[Track, List[Int]] = {
+  def apply(playlist: List[Track]): Map[Track, Int] = {
     playlist
       .toIterator
       .zipWithIndex
-      .foldLeft(new HashMap[Track, List[Int]]())((playmap, trackPair) => {
+      .foldLeft(new HashMap[Track, Int]())((playmap, trackPair) => {
         val track = trackPair._1
-        val trackNum = trackPair._2 + 1
+        val playlistPos = trackPair._2 + 1
 
-        val posList = playmap.get(track) match {
-          case Some(posList) => posList :+ trackNum
-          case None => List[Int](trackNum)
-        }
-
-        playmap + (track -> posList)
+        playmap + (track -> playlistPos)
 
       })
   }

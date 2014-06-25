@@ -12,7 +12,7 @@ trait TrackListAdapter {
 
   override def getItem(position: Int): Track
   def setTrackList(trackList: List[Track]): Unit
-  def setPlaymap(playmap: Map[Track, List[Int]]): Unit
+  def setPlaymap(playmap: Map[Track, Int]): Unit
   def setTrackOption(trackOption: Option[Track]): Unit
 
 }
@@ -22,7 +22,7 @@ object TrackListAdapter {
   def create(context: Context): BaseAdapter with TrackListAdapter = {
 
     var _trackList: List[Track] = List() 
-    var _playmap: Map[Track, List[Int]] = HashMap() 
+    var _playmap: Map[Track, Int] = HashMap() 
     var _trackOption: Option[Track] = None 
 
     new BaseAdapter() with TrackListAdapter {
@@ -41,7 +41,7 @@ object TrackListAdapter {
         this.notifyDataSetChanged()
       }
 
-      override def setPlaymap(playmap: Map[Track, List[Int]]): Unit = {
+      override def setPlaymap(playmap: Map[Track, Int]): Unit = {
         _playmap = playmap
         this.notifyDataSetChanged()
       }

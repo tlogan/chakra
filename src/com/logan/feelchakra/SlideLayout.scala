@@ -17,7 +17,7 @@ object SlideLayout {
   def createTrackLayout(
       context: Context,
       track: Track,
-      playmap: Map[Track, List[Int]],
+      playmap: Map[Track, Int],
       trackOption: Option[Track] 
   ): View with SlideLayout = { 
 
@@ -50,40 +50,24 @@ object SlideLayout {
   def createAlbumTrackLayout(
       context: Context, 
       track: Track,
-      trackNum: Int,
-      posListOp: Option[List[Int]],
-      current: Boolean
+      posOp: Option[Int],
+      textLayout: LinearLayout
   ): ViewGroup with SlideLayout = {
     val view = new RelativeLayout(context) with SlideLayout {
-      override val trackTextLayout = { 
-        val l = new LinearLayout(context)
-        l.setOrientation(VERTICAL)
-        l.setPadding(context.dp(4), context.dp(6), context.dp(4), context.dp(6))
-        l.setBackgroundColor(TRANSPARENT)
-        l.addView {
-          val v = new TextView(context)
-          v.setText(trackNum + ". " + track.title)
-          v.setTextSize(context.sp(10))
-          v.setTextColor(WHITE)
-          v
-        }
-        l
-      }
+      override val trackTextLayout = textLayout
       override val veiledView = SlideLayout.createVeiledView(context)
       override val slideView = Slider.createTrackSlideView(context, track, () => veiledView.getWidth())
     }
 
     SlideLayout.construct(context, view, track)
-    posListOp match {
-      case Some(posList) =>
-        if (current) {
-          view.slideView.setBackgroundColor(BLUE) 
-        } else {
-          view.slideView.setBackgroundColor(GRAY) 
-        }
+    posOp match {
+      case Some(pos) =>
+        view.slideView.setBackgroundColor(GRAY) 
+
+        Log.d("chakra", "playlist pos: " + pos)
         view.trackTextLayout.addView {
           val tv = new TextView(context)
-          tv.setText(posList.mkString(", "))
+          tv.setText("(" + pos + ")")
           tv.setTextSize(context.sp(8))
           tv.setTextColor(LTGRAY)
           tv

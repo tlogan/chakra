@@ -51,7 +51,7 @@ object TextLayout {
       context: Context, 
       album: String,
       trackList: List[Track],
-      playmap: Map[Track, List[Int]],
+      playmap: Map[Track, Int],
       trackOption: Option[Track]
   ): LinearLayout with TextLayout = {
 
@@ -84,10 +84,30 @@ object TextLayout {
         case _ => false 
       }
 
+      val textLayout = { 
+        val l = new LinearLayout(context)
+        l.setOrientation(VERTICAL)
+        l.setPadding(context.dp(4), context.dp(6), context.dp(4), context.dp(6))
+        l.setBackgroundColor(TRANSPARENT)
+        l.addView {
+          val v = new TextView(context)
+          v.setText(trackNum + ". " + track.title)
+          v.setTextSize(context.sp(10))
+          v.setTextColor(WHITE)
+          v
+        }
+        l
+      }
+
       v.addView {
-        val view = SlideLayout.createAlbumTrackLayout(context, track, trackNum, playmap.get(track), current)
-        view.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(40)))
-        view
+        if (current) {
+          textLayout.setBackgroundColor(BLUE)
+          textLayout
+        } else {
+          val layout = SlideLayout.createAlbumTrackLayout(context, track, playmap.get(track), textLayout)
+          layout.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(40)))
+          layout 
+        }
       } 
 
       if (trackNum != trackList.size) {
@@ -105,6 +125,7 @@ object TextLayout {
     v
 
   }
+
 
 
 }
