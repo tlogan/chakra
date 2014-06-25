@@ -5,28 +5,70 @@ import scala.concurrent.ExecutionContext.Implicits.global
  
 object TrackListFuture {
 
-  def apply(database: Database): Future[List[Track]] = {
+  private def createAlbumIdMap(database: Database): Future[Map[String, Album]] = {
 
-    val promise = Promise[List[Track]]()
-    val trackListBuffer: ListBuffer[Track] = new ListBuffer[Track]() 
-    
+    val promise = Promise[Map[String, Album]]()
+    val buffer = new scala.collection.mutable.HashMap[String, Album]() 
+
     database.query (
-      AUDIO_URI,
+      ALBUM_URI,
       null, null, null, null
     ) onComplete {
       case Success(table) => { 
-        
-        table.rowObservable subscribe ( 
+        table.rowObservable.subscribe( 
           (row) => { 
-            trackListBuffer += Track(row(DATA), row(TITLE), row(ALBUM), row(ARTIST))
+            buffer += (row(ALBUM_KEY) -> Album(row(ALBUM), row(ALBUM_ART)))
           },
-          (e: Throwable) => Log.d("chakra", "row observable failed: " + e.getMessage),
-          () => { promise.success(trackListBuffer.toList) }
+          (e: Throwable) => Log.d("chakra", "album ID row observable failed: " + ALBUM_URI + " : "+ e.getMessage),
+          () => { 
+            Log.d("chakra", "album map size: " + buffer.toMap[String, Album].size)
+            promise.success(buffer.toMap[String, Album])
+          }
         )
+
       }
 
       case Failure(t) => Log.d("chakra", "database query failed: " + t.getMessage) 
     }
+
+    promise.future
+
+  }
+
+  def apply(database: Database): Future[List[Track]] = {
+
+    val promise = Promise[List[Track]]()
+    val trackListBuffer: ListBuffer[Track] = new ListBuffer[Track]() 
+    val albumIdMapFuture = createAlbumIdMap(database)
+
+    albumIdMapFuture onComplete {
+      case Success(albumIdMap) =>
+        database.query (
+          AUDIO_URI,
+          null, null, null, null
+        ) onComplete {
+          case Success(table) => { 
+            
+            table.rowObservable.subscribe( 
+              (row) => { 
+                val album = albumIdMap.get(row(ALBUM_KEY)) match {
+                  case Some(album) => album
+                  case None => Album("", "")
+                }
+                trackListBuffer += Track(row(DATA), row(TITLE), album, row(ARTIST))
+              },
+              (e: Throwable) => Log.d("chakra", "row observable failed: " + e.getMessage),
+              () => { promise.success(trackListBuffer.toList) }
+            )
+
+          }
+
+          case Failure(t) => Log.d("chakra", "database query failed: " + t.getMessage) 
+        }
+
+      case Failure(t) => Log.d("chakra", "albumIdMapFuture failed: " + t.getMessage) 
+    }
+    
 
     promise.future
 

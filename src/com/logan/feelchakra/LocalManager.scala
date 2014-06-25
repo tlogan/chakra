@@ -8,7 +8,7 @@ case class LocalManager(
   playlist: List[Track], 
   artistTupleOp: Option[(String, AlbumMap)],
   artistMap: ArtistMap,
-  albumTupleOp: Option[(String, List[Track])],
+  albumTupleOp: Option[(Album, List[Track])],
   albumMap: AlbumMap,
   trackList: List[Track],
   playerOpen: Boolean,
@@ -16,7 +16,7 @@ case class LocalManager(
   startPos: Int
 ) {
 
-  def this() = this(-1, -1, List(), None, new ArtistMap(), None, new AlbumMap(), List(), false, false, 0)
+  def this() = this(-1, -1, List(), None, new ArtistMap(), None, AlbumMap(), List(), false, false, 0)
 
   import MainActor._
   import UI._
@@ -65,7 +65,7 @@ case class LocalManager(
     copy(artistTupleOp = artistTupleOp)
   }
 
-  def setAlbumTupleOp(albumTupleOp: Option[(String, List[Track])]): LocalManager = {
+  def setAlbumTupleOp(albumTupleOp: Option[(Album, List[Track])]): LocalManager = {
     mainActorRef ! NotifyHandlers(OnAlbumTupleOpChanged(albumTupleOp))
     copy(albumTupleOp = albumTupleOp)
   }

@@ -51,7 +51,7 @@ object MainActor {
   case class SetStationPlayState(playState: PlayState)
 
   case class SelectArtistTuple(artistTuple: (String, AlbumMap)) 
-  case class SelectAlbumTuple(albumTuple: (String, List[Track])) 
+  case class SelectAlbumTuple(albumTuple: (Album, List[Track])) 
 
 }
 

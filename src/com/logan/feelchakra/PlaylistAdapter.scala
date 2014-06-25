@@ -41,7 +41,7 @@ object PlaylistAdapter {
         } else GRAY 
 
         {
-          val layout = ImageSplitLayout.create(context, TextLayout.createTextLayout(context, track.title, track.album, track.artist))
+          val layout = ImageSplitLayout.create(context, track.album.coverArt, TextLayout.createTextLayout(context, track.title, track.album.title, track.artist))
           layout.setBackgroundColor(color)
           layout
         }

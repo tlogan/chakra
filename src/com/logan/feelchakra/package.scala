@@ -66,6 +66,9 @@ package com.logan {
     type View = android.view.View
     val GONE = android.view.View.GONE
     val VISIBLE = android.view.View.VISIBLE
+
+    type ImageView = android.widget.ImageView
+
     type TextView = android.widget.TextView
     type FrameLayout = android.widget.FrameLayout
     type ListView = android.widget.ListView
@@ -103,8 +106,8 @@ package com.logan {
     val TreeMap = scala.collection.immutable.TreeMap
     type TreeMap[A, +B] = scala.collection.immutable.TreeMap[A, B]
 
-    type ArtistMap = TreeMap[String, TreeMap[String, List[Track]]]
-    type AlbumMap = TreeMap[String, List[Track]]
+    type AlbumMap = TreeMap[Album, List[Track]]
+    type ArtistMap = TreeMap[String, AlbumMap]
 
     type List[A] = scala.collection.immutable.List[A]
 
@@ -201,15 +204,30 @@ package com.logan {
     val WHITE = android.graphics.Color.WHITE
     type MediaStore = android.provider.MediaStore 
     val AUDIO_URI = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+    val ALBUM_URI = android.provider.MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI
+
     val DATA = android.provider.MediaStore.MediaColumns.DATA
     val TITLE = android.provider.MediaStore.MediaColumns.TITLE
-    val ALBUM = android.provider.MediaStore.Audio.AudioColumns.ALBUM
-    val ARTIST = android.provider.MediaStore.Audio.AudioColumns.ARTIST
+
+    val ALBUM = android.provider.MediaStore.Audio.AlbumColumns.ALBUM
+    val ALBUM_KEY = android.provider.MediaStore.Audio.AlbumColumns.ALBUM_KEY
+    val ALBUM_ID = android.provider.MediaStore.Audio.AlbumColumns.ALBUM_ID
+    val ALBUM_ARTIST = android.provider.MediaStore.Audio.AlbumColumns.ARTIST
+    val ALBUM_ART = android.provider.MediaStore.Audio.AlbumColumns.ALBUM_ART
+    val ALBUM_NUMBER_OF_SONGS = android.provider.MediaStore.Audio.AlbumColumns.NUMBER_OF_SONGS
+
+
+    val ARTIST = android.provider.MediaStore.Audio.ArtistColumns.ARTIST
+    val ARTIST_KEY = android.provider.MediaStore.Audio.ArtistColumns.ARTIST_KEY
+    val ARTIST_NUMBER_OF_ALBUMS = android.provider.MediaStore.Audio.ArtistColumns.NUMBER_OF_ALBUMS
+    val ARTIST_NUMBER_OF_TRACKS = android.provider.MediaStore.Audio.ArtistColumns.NUMBER_OF_TRACKS
 
     val smallDp = 16 
     val medDp = 64
 
     type ColorDrawable = android.graphics.drawable.ColorDrawable
+
+    val createDrawableFromPath = android.graphics.drawable.Drawable.createFromPath _
 
     type Table = guava.scalaandroid.Table
 
@@ -235,6 +253,8 @@ package com.logan {
     type Observer[-T] = rx.lang.scala.Observer[T]
     val ReplaySubject = rx.lang.scala.subjects.ReplaySubject
     type ReplaySubject[T] = rx.lang.scala.subjects.ReplaySubject[T]
+
+    type Bitmap = android.graphics.Bitmap
 
     type Runnable = java.lang.Runnable
 

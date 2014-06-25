@@ -288,19 +288,19 @@ object Fragment {
         val width = dimension(getActivity()).x
 
         val prevLayout =  {
-          val layout = ImageSplitLayout.createMain(getActivity(), prevTextLayout)
+          val layout = ImageSplitLayout.createMain(getActivity(), "", prevTextLayout)
           layout.setLayoutParams(new LLLayoutParams(width, WRAP_CONTENT))
           layout
         }
 
         val playerLayout =  {
-          val l = ImageSplitLayout.createMain(getActivity(), playerProgressView)
+          val l = ImageSplitLayout.createMain(getActivity(), "", playerProgressView)
           l.setLayoutParams(new LLLayoutParams(width, WRAP_CONTENT))
           l
         }
 
         val nextLayout =  {
-          val l = ImageSplitLayout.createMain(getActivity(), nextTextLayout) 
+          val l = ImageSplitLayout.createMain(getActivity(), "", nextTextLayout) 
           l.setLayoutParams(new LLLayoutParams(width, WRAP_CONTENT))
           l
         }
@@ -401,25 +401,31 @@ object Fragment {
               case OnLocalTrackOptionChanged(trackOption) => 
                 trackOption match {
                   case Some(track) =>
-                    TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album)
+                    TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album.title)
+                    ImageSplitLayout.setImageFromPath(playerLayout, track.album.coverArt)
                   case _ => 
                     TextLayout.setTexts(playerTextLayout, "", "", "")
+                    ImageSplitLayout.setImageFromPath(playerLayout, "")
                 }
                 true
               case OnPrevTrackOptionChanged(trackOption) => 
                 trackOption match {
                   case Some(track) =>
-                    TextLayout.setTexts(prevTextLayout, track.title, track.artist, track.album)
+                    TextLayout.setTexts(prevTextLayout, track.title, track.artist, track.album.title)
+                    ImageSplitLayout.setImageFromPath(prevLayout, track.album.coverArt)
                   case _ => 
                     TextLayout.setTexts(prevTextLayout, "", "", "")
+                    ImageSplitLayout.setImageFromPath(prevLayout, "")
                 }
                 true
               case OnNextTrackOptionChanged(trackOption) => 
                 trackOption match {
                   case Some(track) =>
-                    TextLayout.setTexts(nextTextLayout, track.title, track.artist, track.album)
+                    TextLayout.setTexts(nextTextLayout, track.title, track.artist, track.album.title)
+                    ImageSplitLayout.setImageFromPath(nextLayout, track.album.coverArt)
                   case _ => 
                     TextLayout.setTexts(nextTextLayout, "", "", "")
+                    ImageSplitLayout.setImageFromPath(nextLayout, "")
                 }
                 true
               case _ => false

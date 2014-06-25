@@ -41,6 +41,7 @@ object ArtistListAdapter {
         val artistTuple = getItem(position)
         val artist = artistTuple._1
         val albumMap = artistTuple._2
+        val lastAlbum = albumMap.last._1
 
         _artistTupleOp match {
           case Some(openArtistTuple) if (artistTuple == openArtistTuple) => 
@@ -49,7 +50,7 @@ object ArtistListAdapter {
               setBackgroundColor(GRAY)
               setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
-              val imTxLayout = ImageSplitLayout.createMain(context, {
+              val imTxLayout = ImageSplitLayout.createMain(context, lastAlbum.coverArt, {
                 val t = TextLayout.createTextLayout(context, artist, albumMap.size + " Albums", "time") 
                 t.setBackgroundColor(LDKGRAY)
                 t.setOnClick(view => {
@@ -71,14 +72,14 @@ object ArtistListAdapter {
                 }
 
                 addView {
-                  ImageSplitLayout.create(context, TextLayout.createAlbumLayout(context, album, trackList, _playmap, _trackOption))
+                  ImageSplitLayout.create(context, album.coverArt, TextLayout.createAlbumLayout(context, album.title, trackList, _playmap, _trackOption))
                 }
 
               })
 
             }
           case _ =>
-             ImageSplitLayout.createMain(context, {
+             ImageSplitLayout.createMain(context, lastAlbum.coverArt, {
               val t = TextLayout.createTextLayout(context, artist, albumMap.size + " Albums", "time") 
               t.setBackgroundColor(DKGRAY)
               t.setOnClick(view => {

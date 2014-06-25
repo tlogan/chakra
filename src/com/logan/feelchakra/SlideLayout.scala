@@ -23,7 +23,7 @@ object SlideLayout {
 
     val view = new RelativeLayout(context) with SlideLayout {
       override val trackTextLayout = {
-        val t = TextLayout.createTextLayout(context, track.title, track.artist, track.album)
+        val t = TextLayout.createTextLayout(context, track.title, track.artist, track.album.title)
         t.setBackgroundColor(TRANSPARENT)
         t
       }
