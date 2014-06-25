@@ -33,8 +33,14 @@ class MainActivity extends Activity {
       override val velMs: Int = 1
       override lazy val left: Int = -2 * dim.x 
       override val right: Int = 0 
-      override def onSlideRightEnd(): Unit = mainActorRef ! MainActor.ChangeToPrevTrack
-      override def onSlideLeftEnd(): Unit = mainActorRef ! MainActor.ChangeToNextTrack
+      override def onSlideRightEnd(): Unit = {
+        mainActorRef ! MainActor.ChangeToPrevTrack
+        _xGestureOn = true
+      }
+      override def onSlideLeftEnd(): Unit = {
+        mainActorRef ! MainActor.ChangeToNextTrack
+        _xGestureOn = true
+      }
     }
     sl.setOrientation(HORIZONTAL)
     sl.setBackgroundColor(BLACK)
@@ -46,12 +52,16 @@ class MainActivity extends Activity {
 
   def slide(): Unit = {
     if (_prev && slideLayout.getX() > -dim.x / 2 ) {
+      _xGestureOn = false
       Slider.slideRight(slideLayout)
     } else if (slideLayout.getX() < 3 * -dim.x / 2) {
+      _xGestureOn = false
       Slider.slideLeft(slideLayout)
     } else if (slideLayout.getX() > -dim.x) {
+      _xGestureOn = false
       Slider.slideLeft(slideLayout, -dim.x)
     } else if (slideLayout.getX() < -dim.x) {
+      _xGestureOn = false
       Slider.slideRight(slideLayout, -dim.x)
     }
   }
@@ -68,13 +78,19 @@ class MainActivity extends Activity {
     setId(MainActivity.selectionFrameId)
   } 
 
+  private var _xGestureOn = true
+
   lazy val playerFrame = new FrameLayout(that) with VerticalSlideView {
     
     override val velMs = 2
     override val upY = 0
     override lazy val downY = contentView.getBottom() - bottomHeight  
-    override def onSlideUpEnd() = mainActorRef ! MainActor.SetPlayerOpen(true)
-    override def onSlideDownEnd() = mainActorRef ! MainActor.SetPlayerOpen(false)
+    override def onSlideUpEnd() = {
+      mainActorRef ! MainActor.SetPlayerOpen(true)
+    }
+    override def onSlideDownEnd() = {
+      mainActorRef ! MainActor.SetPlayerOpen(false)
+    }
 
     setVisibility(GONE)
     setId(MainActivity.playerFrameId)
@@ -126,7 +142,7 @@ class MainActivity extends Activity {
           }
         } else if (motion == XMotion || Math.abs(totalDispY) < Math.abs(totalDispX)) {
           motion = XMotion
-          if (_prev || _next) {
+          if (_xGestureOn && (_prev || _next)) {
             val x = slideLayout.getX()
             if (!_prev) {
               slideLayout.setX(Math.min(-dim.x, x - scrollX))
@@ -151,10 +167,14 @@ class MainActivity extends Activity {
               VerticalSlideView.slideDown(playerFrame)
             }
           case XMotion =>
-            if (_prev && velX > 0) {
-              Slider.slideRight(slideLayout)
-            } else if (_next && velX < 0) {
-              Slider.slideLeft(slideLayout)
+            if (_xGestureOn) {
+              if (_prev && velX > 0) {
+                _xGestureOn = false
+                Slider.slideRight(slideLayout)
+              } else if (_next && velX < 0) {
+                _xGestureOn = false
+                Slider.slideLeft(slideLayout)
+              }
             }
           case NoMotion =>
         }
@@ -186,6 +206,13 @@ class MainActivity extends Activity {
             motion = NoMotion
             true
           case _ =>
+            motion match {
+              case YMotion =>
+                VerticalSlideView.slide(playerFrame)
+              case XMotion =>
+                slide()
+              case NoMotion =>
+            }
             motion = NoMotion
             false
         }

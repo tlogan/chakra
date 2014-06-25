@@ -158,10 +158,16 @@ class MainActor extends Actor {
       localManager = localManager.setPlayerOpen(playerOpen)
 
     case ChangeToPrevTrack =>
-      changeTrackByIndex(localManager.currentIndex - 1)
+      val prevIndex = localManager.currentIndex - 1
+      if (prevIndex >= 0) {
+        changeTrackByIndex(prevIndex)
+      } 
 
     case ChangeToNextTrack =>
-      changeTrackByIndex(localManager.currentIndex + 1)
+      val nextIndex = localManager.currentIndex + 1
+      if (nextIndex < localManager.playlist.size) {
+        changeTrackByIndex(nextIndex)
+      } 
 
     case ChangeTrackByIndex(trackIndex) => 
       changeTrackByIndex(trackIndex)
