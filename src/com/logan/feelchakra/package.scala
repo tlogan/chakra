@@ -106,6 +106,9 @@ package com.logan {
     val TreeMap = scala.collection.immutable.TreeMap
     type TreeMap[A, +B] = scala.collection.immutable.TreeMap[A, B]
 
+    val TreeSet = scala.collection.immutable.TreeSet
+    type TreeSet[A] = scala.collection.immutable.TreeSet[A]
+
     type AlbumMap = TreeMap[Album, List[Track]]
     type ArtistMap = TreeMap[String, AlbumMap]
 

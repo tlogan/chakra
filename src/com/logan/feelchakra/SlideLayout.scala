@@ -17,7 +17,7 @@ object SlideLayout {
   def createTrackLayout(
       context: Context,
       track: Track,
-      playmap: Map[Track, Int],
+      playmap: Map[Track, TreeSet[Int]],
       trackOption: Option[Track] 
   ): View with SlideLayout = { 
 
@@ -50,7 +50,7 @@ object SlideLayout {
   def createAlbumTrackLayout(
       context: Context, 
       track: Track,
-      posOp: Option[Int],
+      posOp: Option[TreeSet[Int]],
       textLayout: LinearLayout
   ): ViewGroup with SlideLayout = {
     val view = new RelativeLayout(context) with SlideLayout {

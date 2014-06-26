@@ -51,7 +51,7 @@ object TextLayout {
       context: Context, 
       album: String,
       trackList: List[Track],
-      playmap: Map[Track, Int],
+      playmap: Map[Track, TreeSet[Int]],
       trackOption: Option[Track]
   ): LinearLayout with TextLayout = {
 
