@@ -111,6 +111,7 @@ class MainActor extends Actor {
 
         OnTrackIndexChanged(localManager.currentIndex),
         OnPlaylistChanged(localManager.playlist),
+        OnPlaymapChanged(Playmap(localManager.playlist, localManager.currentIndex)),
 
         OnLocalTrackOptionChanged(localManager.currentOp),
         OnPrevTrackOptionChanged(localManager.prevOp),

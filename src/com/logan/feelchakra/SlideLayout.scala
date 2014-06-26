@@ -34,14 +34,14 @@ object SlideLayout {
     SlideLayout.construct(context, view, track)
 
     val color = playmap.get(track) match {
-      case Some(posList) => 
+      case Some(posSet) => 
         trackOption match {
-          case Some(currentTrack) if (currentTrack == track) =>
-            BLUE 
-          case _ => GRAY 
+          case Some(currentTrack) if (currentTrack == track) => BLUE 
+          case _ => if (!posSet.filter(_ > 0).isEmpty) GRAY else DKGRAY 
         }
       case None => DKGRAY 
     }
+
     view.slideView.setBackgroundColor(color)
     view
 
@@ -50,7 +50,7 @@ object SlideLayout {
   def createAlbumTrackLayout(
       context: Context, 
       track: Track,
-      posOp: Option[Set[Int]],
+      posSetOp: Option[Set[Int]],
       textLayout: LinearLayout
   ): ViewGroup with SlideLayout = {
     val view = new RelativeLayout(context) with SlideLayout {
@@ -60,18 +60,22 @@ object SlideLayout {
     }
 
     SlideLayout.construct(context, view, track)
-    posOp match {
-      case Some(pos) =>
-        view.slideView.setBackgroundColor(GRAY) 
-
-        Log.d("chakra", "playlist pos: " + pos)
-        view.trackTextLayout.addView {
-          val tv = new TextView(context)
-          tv.setText("(" + pos + ")")
-          tv.setTextSize(context.sp(8))
-          tv.setTextColor(LTGRAY)
-          tv
+    posSetOp match {
+      case Some(posSet) =>
+        val upcomingPosOp = posSet.filter(_ > 0).headOption
+        val color = upcomingPosOp match {
+          case Some(pos) => 
+            view.trackTextLayout.addView {
+              val tv = new TextView(context)
+              tv.setText(pos.toString)
+              tv.setTextSize(context.sp(8))
+              tv.setTextColor(LTGRAY)
+              tv
+            }
+            GRAY
+          case _ => LDKGRAY 
         }
+        view.slideView.setBackgroundColor(color) 
       case None =>
         view.slideView.setBackgroundColor(LDKGRAY) 
     }
