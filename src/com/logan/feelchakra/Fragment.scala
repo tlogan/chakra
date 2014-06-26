@@ -61,8 +61,8 @@ object Fragment {
             case OnTrackListChanged(trackList) => 
               withAdapter(_.setTrackList(trackList))
               true
-            case OnPlaylistChanged(playlist) => 
-              withAdapter(_.setPlaymap(Playmap(playlist)))
+            case OnPlaymapChanged(playmap) => 
+              withAdapter(_.setPlaymap(playmap))
               true
             case OnLocalTrackOptionChanged(trackOption) => 
               withAdapter(_.setTrackOption(trackOption))
@@ -120,8 +120,8 @@ object Fragment {
                 }
               })
               true
-            case OnPlaylistChanged(playlist) => 
-              withAdapter(_.setPlaymap(Playmap(playlist)))
+            case OnPlaymapChanged(playmap) => 
+              withAdapter(_.setPlaymap(playmap))
               true
             case OnLocalTrackOptionChanged(trackOption) => 
               withAdapter(_.setTrackOption(trackOption))
@@ -171,8 +171,8 @@ object Fragment {
                 }
               })
               true
-            case OnPlaylistChanged(playlist) => 
-              withAdapter(_.setPlaymap(Playmap(playlist)))
+            case OnPlaymapChanged(playmap) => 
+              withAdapter(_.setPlaymap(playmap))
               true
             case OnLocalTrackOptionChanged(trackOption) => 
               withAdapter(_.setTrackOption(trackOption))

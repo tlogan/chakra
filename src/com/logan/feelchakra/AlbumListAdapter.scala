@@ -15,7 +15,7 @@ trait AlbumListAdapter {
   def albumTuplePosition: Int
   def setAlbumMap(albumMap: AlbumMap): Unit
   def setAlbumTupleOp(albumTupleOp: Option[(Album, List[Track])]): Unit
-  def setPlaymap(playmap: Map[Track, TreeSet[Int]]): Unit
+  def setPlaymap(playmap: Map[Track, Set[Int]]): Unit
   def setTrackOption(trackOption: Option[Track]): Unit
 
 }
@@ -28,7 +28,7 @@ object AlbumListAdapter {
     var _albumMap: AlbumMap = AlbumMap() 
     var _albumList: List[(Album, List[Track])] = _albumMap.toList
     var _positionMap: Map[(Album, List[Track]), Int] = _albumMap.zipWithIndex
-    var _playmap: Map[Track, TreeSet[Int]] = HashMap() 
+    var _playmap: Map[Track, Set[Int]] = HashMap() 
     var _trackOption: Option[Track] = None 
 
     new BaseAdapter with AlbumListAdapter {
@@ -89,7 +89,7 @@ object AlbumListAdapter {
         this.notifyDataSetChanged()
       }
 
-      override def setPlaymap(playmap: Map[Track, TreeSet[Int]]): Unit = {
+      override def setPlaymap(playmap: Map[Track, Set[Int]]): Unit = {
         _playmap = playmap
         this.notifyDataSetChanged()
       }

@@ -18,6 +18,7 @@ object UI {
   case class OnStationListChanged(stationList: List[Station]) extends OnChange
 
   case class OnPlaylistChanged(playlist: List[Track]) extends OnChange
+  case class OnPlaymapChanged(playmap: Map[Track, Set[Int]]) extends OnChange
   case class OnTrackIndexChanged(trackIndex: Int) extends OnChange
 
   case class OnLocalTrackOptionChanged(trackOption: Option[Track]) extends OnChange

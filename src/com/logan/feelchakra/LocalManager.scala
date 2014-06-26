@@ -37,6 +37,7 @@ case class LocalManager(
   def addPlaylistTrack(track: Track): LocalManager = {
     val newPlaylist = playlist.:+(track)
     mainActorRef ! NotifyHandlers(OnPlaylistChanged(newPlaylist))
+    mainActorRef ! NotifyHandlers(OnPlaymapChanged(Playmap(newPlaylist)))
     if (currentIndex + 1 == newPlaylist.size - 1) {
       mainActorRef ! NotifyHandlers(OnNextTrackOptionChanged(Some(track)))
     }
