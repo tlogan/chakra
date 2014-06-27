@@ -55,6 +55,14 @@ case class LocalManager(
     copy(pastTrackList = newPastTrackList, presentTrackOp = newPresentTrackOp)
   }
 
+  def removeFutureTrack(track: Track): LocalManager = {
+    val newFutureTrackList = futureTrackList.filter(futureTrack => {
+      futureTrack != track
+    })
+    mainActorRef ! NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
+    copy(futureTrackList = newFutureTrackList)
+  }
+
   def appendFutureTrack(track: Track): LocalManager = {
     val newFutureTrackList = futureTrackList.:+(track)
     mainActorRef ! NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))

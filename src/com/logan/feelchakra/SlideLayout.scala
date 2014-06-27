@@ -88,22 +88,23 @@ object SlideLayout {
   def construct(context: Context, slideLayout: ViewGroup with SlideLayout, track: Track): Unit = {
 
     val gesture = new SimpleOnGestureListener {
-        val rightGesture = MainGesture.createRightGesture(slideLayout.slideView)
 
-        override def onDown(e: MotionEvent): Boolean = {
-          rightGesture.onDown(e)
-        }
+      val rightGesture = MainGesture.createRightGesture(slideLayout.slideView)
 
-        override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
-          rightGesture.onScroll(e1, e2, distX, distY)
-        }
+      override def onDown(e: MotionEvent): Boolean = {
+        rightGesture.onDown(e)
+      }
 
-        override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
-          rightGesture.onFling(e1, e2, velX, velY)
-        }
+      override def onScroll(e1: MotionEvent, e2: MotionEvent, distX: Float, distY: Float): Boolean = {
+        rightGesture.onScroll(e1, e2, distX, distY)
+      }
+
+      override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
+        rightGesture.onFling(e1, e2, velX, velY)
+      }
 
       override def onSingleTapUp(e: MotionEvent): Boolean = {
-        mainActorRef ! MainActor.AppendFutureTrack(track)
+        mainActorRef ! MainActor.AppendOrRemoveFutureTrack(track)
         true
       }
     }

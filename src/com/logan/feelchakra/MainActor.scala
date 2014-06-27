@@ -19,6 +19,7 @@ object MainActor {
   case class SetSelection(selection: Selection) 
 
   case class AppendFutureTrack(track: Track) 
+  case class AppendOrRemoveFutureTrack(track: Track) 
   case class SetPresentTrack(track: Track) 
   case class SetPresentTrackToPrev
   case class SetPresentTrackToNext
@@ -160,6 +161,13 @@ class MainActor extends Actor {
 
     case AppendFutureTrack(track) =>
       appendFutureTrack(track)
+
+    case AppendOrRemoveFutureTrack(track) =>
+      if (localManager.futureTrackList.contains(track)) {
+        localManager = localManager.removeFutureTrack(track)
+      } else {
+        appendFutureTrack(track)
+      }
 
     case SetPresentTrack(track) =>
       setPresentTrack(track)
