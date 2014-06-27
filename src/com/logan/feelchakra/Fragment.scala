@@ -320,7 +320,7 @@ object Fragment {
 
         val playlistView: ListView = {
           val lv = ListView.createMain(this.getActivity(), PlaylistAdapter.create(this.getActivity())) 
-          lv.setLayoutParams(new LLLayoutParams(MATCH_PARENT, MATCH_PARENT)) 
+          lv.setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT)) 
           lv.setOnItemClick( 
             (parent: AdapterView[_], view: View, position: Int, id: Long) => {
               convertAdapter(lv.getAdapter(), adapter => {
@@ -386,7 +386,9 @@ object Fragment {
                 }
                 true
               case OnPastTrackListChanged(list) => 
-                withAdapter(_.setPastTrackList(list))
+                withAdapter(adapter => {
+                  adapter.setPastTrackList(list)
+                })
                 list.lastOption match {
                   case Some(track) =>
                     TextLayout.setTexts(prevTextLayout, track.title, track.artist, track.album.title)
@@ -413,7 +415,9 @@ object Fragment {
                 }
                 true
               case OnFutureTrackListChanged(list) => 
-                withAdapter(_.setFutureTrackList(list))
+                withAdapter(adapter => {
+                  adapter.setFutureTrackList(list)
+                })
                 list.headOption match {
                   case Some(track) =>
                     TextLayout.setTexts(nextTextLayout, track.title, track.artist, track.album.title)

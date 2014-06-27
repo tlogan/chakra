@@ -300,7 +300,7 @@ class MainActor extends Actor {
   }
 
   private def setPresentTrack(track: Track): Unit = {
-    localManager = localManager.setPresentTrack(track)
+    localManager = localManager.setPresentTrack(track).removeFutureTrack(track)
     writeTrackToListeners(track)
     playTrack(track)
   }
