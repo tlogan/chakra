@@ -65,7 +65,7 @@ object Fragment {
               withAdapter(_.setPresentTrackOption(trackOption))
               true
             case OnFutureTrackListChanged(list) => 
-              withAdapter(_.setFutureTrackMap(list.toIterator.zipWithIndex.toMap))
+              withAdapter(_.setFutureTrackMap(trackMap(list)))
               true
 
             case _ => false
@@ -125,7 +125,7 @@ object Fragment {
               withAdapter(_.setPresentTrackOption(trackOption))
               true
             case OnFutureTrackListChanged(list) => 
-              withAdapter(_.setFutureTrackMap(list.toIterator.zipWithIndex.toMap))
+              withAdapter(_.setFutureTrackMap(trackMap(list)))
               true
             case _ => false
           }
@@ -176,7 +176,7 @@ object Fragment {
               withAdapter(_.setPresentTrackOption(trackOption))
               true
             case OnFutureTrackListChanged(list) => 
-              withAdapter(_.setFutureTrackMap(list.toIterator.zipWithIndex.toMap))
+              withAdapter(_.setFutureTrackMap(trackMap(list)))
               true
             case _ => false
           }

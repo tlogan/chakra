@@ -272,5 +272,15 @@ package com.logan {
       d
     }
 
+    def trackMap(list: List[Track]): Map[Track, Int] = {
+      list.toIterator.zipWithIndex.foldLeft(HashMap[Track, Int]())((map, pair) => {
+        if (map.isDefinedAt(pair._1)) {
+          map
+        } else {
+          map + (pair._1 -> pair._2)
+        }
+      })
+    }
+
   }
 }
