@@ -34,11 +34,11 @@ class MainActivity extends Activity {
       override lazy val left: Int = -2 * dim.x 
       override val right: Int = 0 
       override def onSlideRightEnd(): Unit = {
-        mainActorRef ! MainActor.ChangeToPrevTrack
+        mainActorRef ! MainActor.SetPresentTrackToPrev
         _xGestureOn = true
       }
       override def onSlideLeftEnd(): Unit = {
-        mainActorRef ! MainActor.ChangeToNextTrack
+        mainActorRef ! MainActor.SetPresentTrackToNext
         _xGestureOn = true
       }
     }
@@ -282,14 +282,14 @@ class MainActivity extends Activity {
           replaceSelectionFragment(selection)
           true
 
-        case OnLocalTrackOptionChanged(trackOption) => 
+        case OnPastTrackListChanged(pastTrackList) =>
+          _prev = !pastTrackList.isEmpty
+          true
+        case OnPresentTrackOptionChanged(presentTrackOp) =>
           slideLayout.setX(-dim.x)
           true
-        case OnPrevTrackOptionChanged(trackOption) => 
-          _prev = trackOption != None
-          true
-        case OnNextTrackOptionChanged(trackOption) => 
-          _next = trackOption != None
+        case OnFutureTrackListChanged(futureTrackList) =>
+          _next = !futureTrackList.isEmpty 
           true
         case _ => false
       }

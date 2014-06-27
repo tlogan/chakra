@@ -17,7 +17,7 @@ object SlideLayout {
   def createTrackLayout(
       context: Context,
       track: Track,
-      playmap: Map[Track, Set[Int]],
+      futureTrackMap: Map[Track, Int],
       trackOption: Option[Track] 
   ): View with SlideLayout = { 
 
@@ -33,13 +33,13 @@ object SlideLayout {
     }
     SlideLayout.construct(context, view, track)
 
-    val color = playmap.get(track) match {
-      case Some(posSet) => 
+    val color = futureTrackMap.get(track) match {
+      case Some(pos) => GRAY 
+      case None => 
         trackOption match {
           case Some(currentTrack) if (currentTrack == track) => BLUE 
-          case _ => if (!posSet.filter(_ > 0).isEmpty) GRAY else DKGRAY 
+          case _ =>  DKGRAY 
         }
-      case None => DKGRAY 
     }
 
     view.slideView.setBackgroundColor(color)
@@ -50,7 +50,7 @@ object SlideLayout {
   def createAlbumTrackLayout(
       context: Context, 
       track: Track,
-      posSetOp: Option[Set[Int]],
+      futureTrackPosOp: Option[Int],
       textLayout: LinearLayout
   ): ViewGroup with SlideLayout = {
     val view = new RelativeLayout(context) with SlideLayout {
@@ -60,22 +60,16 @@ object SlideLayout {
     }
 
     SlideLayout.construct(context, view, track)
-    posSetOp match {
-      case Some(posSet) =>
-        val upcomingPosOp = posSet.filter(_ > 0).headOption
-        val color = upcomingPosOp match {
-          case Some(pos) => 
-            view.trackTextLayout.addView {
-              val tv = new TextView(context)
-              tv.setText(pos.toString)
-              tv.setTextSize(context.sp(8))
-              tv.setTextColor(LTGRAY)
-              tv
-            }
-            GRAY
-          case _ => LDKGRAY 
+    futureTrackPosOp match {
+      case Some(pos) =>
+        view.trackTextLayout.addView {
+          val tv = new TextView(context)
+          tv.setText((pos + 1).toString)
+          tv.setTextSize(context.sp(8))
+          tv.setTextColor(LTGRAY)
+          tv
         }
-        view.slideView.setBackgroundColor(color) 
+        view.slideView.setBackgroundColor(GRAY) 
       case None =>
         view.slideView.setBackgroundColor(LDKGRAY) 
     }
@@ -109,7 +103,7 @@ object SlideLayout {
         }
 
       override def onSingleTapUp(e: MotionEvent): Boolean = {
-        mainActorRef ! MainActor.AddPlaylistTrack(track)
+        mainActorRef ! MainActor.AppendFutureTrack(track)
         true
       }
     }

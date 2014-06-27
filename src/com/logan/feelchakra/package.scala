@@ -272,6 +272,5 @@ package com.logan {
       d
     }
 
-
   }
 }

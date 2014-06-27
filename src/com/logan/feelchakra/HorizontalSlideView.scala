@@ -24,7 +24,7 @@ object Slider {
       override val left = 0
       override lazy val right = width()
       override def onSlideLeftEnd() = {} 
-      override def onSlideRightEnd() = mainActorRef !  MainActor.AddAndPlayTrack(track)
+      override def onSlideRightEnd() = mainActorRef !  MainActor.SetPresentTrack(track)
     }
     view.setBackgroundColor(DKGRAY)
     view.setLayoutParams(new RLLayoutParams(MATCH_PARENT, MATCH_PARENT))

@@ -3,8 +3,9 @@ package com.logan.feelchakra
 import android.util.Log
 
 case class LocalManager(
-  currentIndex: Int, 
-  playlist: List[Track], 
+  pastTrackList: List[Track],
+  presentTrackOp: Option[Track],
+  futureTrackList: List[Track],
   artistTupleOp: Option[(String, AlbumMap)],
   artistMap: ArtistMap,
   albumTupleOp: Option[(Album, List[Track])],
@@ -15,34 +16,55 @@ case class LocalManager(
   startPos: Int
 ) {
 
-  def this() = this(-1, List(), None, new ArtistMap(), None, AlbumMap(), List(), false, false, 0)
+  def this() = this(List(), None, List(), None, new ArtistMap(), None, AlbumMap(), List(), false, false, 0)
 
   import MainActor._
   import UI._
 
-  def optionByIndex(index: Int): Option[Track] = playlist.lift(index)
-  def currentOp: Option[Track] = playlist.lift(currentIndex)
-  def prevOp: Option[Track] = playlist.lift(currentIndex - 1)
-  def nextOp: Option[Track] = playlist.lift(currentIndex + 1)
+  def setPresentTrackFromPastIndex(index: Int): LocalManager = {
+    val newPastTrackList = pastTrackList.take(index)
+    val newPresentTrackOp = pastTrackList.lift(index)
+    val newFutureTrackList = pastTrackList.drop(index + 1) ++ presentTrackOp.toList ++ futureTrackList
 
-  def setCurrentIndex(index: Int): LocalManager = {
-    mainActorRef ! NotifyHandlers(OnTrackIndexChanged(index))
-    val trackOption = optionByIndex(index)
-    mainActorRef ! NotifyHandlers(OnLocalTrackOptionChanged(trackOption))
-    mainActorRef ! NotifyHandlers(OnPrevTrackOptionChanged(optionByIndex(index - 1)))
-    mainActorRef ! NotifyHandlers(OnNextTrackOptionChanged(optionByIndex(index + 1)))
-    mainActorRef ! NotifyHandlers(OnPlaymapChanged(Playmap(playlist, index)))
-    copy(currentIndex = index)
+    mainActorRef ! NotifyHandlers(OnPastTrackListChanged(newPastTrackList))
+    mainActorRef ! NotifyHandlers(OnPresentTrackOptionChanged(newPresentTrackOp))
+    mainActorRef ! NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
+
+    copy(pastTrackList = newPastTrackList, presentTrackOp = newPresentTrackOp, futureTrackList = newFutureTrackList)
   }
-   
-  def addPlaylistTrack(track: Track): LocalManager = {
-    val newPlaylist = playlist.:+(track)
-    mainActorRef ! NotifyHandlers(OnPlaylistChanged(newPlaylist))
-    mainActorRef ! NotifyHandlers(OnPlaymapChanged(Playmap(newPlaylist, currentIndex)))
-    if (currentIndex + 1 == newPlaylist.size - 1) {
-      mainActorRef ! NotifyHandlers(OnNextTrackOptionChanged(Some(track)))
-    }
-    copy(playlist = newPlaylist)
+
+  def setPresentTrackFromFutureIndex(index: Int): LocalManager = {
+    val newPastTrackList = pastTrackList ++ presentTrackOp.toList ++ futureTrackList.take(index)
+    val newPresentTrackOp = futureTrackList.lift(index)
+    val newFutureTrackList = futureTrackList.drop(index + 1)
+
+    mainActorRef ! NotifyHandlers(OnPastTrackListChanged(newPastTrackList))
+    mainActorRef ! NotifyHandlers(OnPresentTrackOptionChanged(newPresentTrackOp))
+    mainActorRef ! NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
+
+    copy(pastTrackList = newPastTrackList, presentTrackOp = newPresentTrackOp, futureTrackList = newFutureTrackList)
+  }
+
+  def setPresentTrack(track: Track): LocalManager = {
+    val newPastTrackList = pastTrackList ++ presentTrackOp.toList 
+    val newPresentTrackOp = Some(track) 
+
+    mainActorRef ! NotifyHandlers(OnPastTrackListChanged(newPastTrackList))
+    mainActorRef ! NotifyHandlers(OnPresentTrackOptionChanged(newPresentTrackOp))
+
+    copy(pastTrackList = newPastTrackList, presentTrackOp = newPresentTrackOp)
+  }
+
+  def appendFutureTrack(track: Track): LocalManager = {
+    val newFutureTrackList = futureTrackList.:+(track)
+    mainActorRef ! NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
+    copy(futureTrackList = newFutureTrackList)
+  }
+
+  def prependFutureTrack(track: Track): LocalManager = {
+    val newFutureTrackList = futureTrackList.+:(track)
+    mainActorRef ! NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
+    copy(futureTrackList = newFutureTrackList)
   }
 
   def setTrackList(list: List[Track]): LocalManager = {
@@ -83,11 +105,6 @@ case class LocalManager(
 
   def flipPlayer(): LocalManager = {
     setPlayerOpen(!playerOpen)
-  }
-
-
-  def currentIsLast: Boolean = {
-    currentIndex == playlist.size - 1
   }
 
 }

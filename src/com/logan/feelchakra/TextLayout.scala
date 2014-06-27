@@ -51,7 +51,7 @@ object TextLayout {
       context: Context, 
       album: String,
       trackList: List[Track],
-      playmap: Map[Track, Set[Int]],
+      futureTrackMap: Map[Track, Int],
       trackOption: Option[Track]
   ): LinearLayout with TextLayout = {
 
@@ -69,7 +69,7 @@ object TextLayout {
     }
     v.setOnLongClick(view => {
       trackList.foreach(track => {
-        mainActorRef ! MainActor.AddPlaylistTrack(track)
+        mainActorRef ! MainActor.AppendFutureTrack(track)
       })
       true 
     })
@@ -104,7 +104,7 @@ object TextLayout {
           textLayout.setBackgroundColor(BLUE)
           textLayout
         } else {
-          val layout = SlideLayout.createAlbumTrackLayout(context, track, playmap.get(track), textLayout)
+          val layout = SlideLayout.createAlbumTrackLayout(context, track, futureTrackMap.get(track), textLayout)
           layout.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(40)))
           layout 
         }

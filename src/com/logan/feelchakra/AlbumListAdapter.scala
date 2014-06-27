@@ -15,8 +15,8 @@ trait AlbumListAdapter {
   def albumTuplePosition: Int
   def setAlbumMap(albumMap: AlbumMap): Unit
   def setAlbumTupleOp(albumTupleOp: Option[(Album, List[Track])]): Unit
-  def setPlaymap(playmap: Map[Track, Set[Int]]): Unit
-  def setTrackOption(trackOption: Option[Track]): Unit
+  def setFutureTrackMap(futureTrackMap: Map[Track, Int]): Unit
+  def setPresentTrackOption(trackOption: Option[Track]): Unit
 
 }
 
@@ -28,8 +28,8 @@ object AlbumListAdapter {
     var _albumMap: AlbumMap = AlbumMap() 
     var _albumList: List[(Album, List[Track])] = _albumMap.toList
     var _positionMap: Map[(Album, List[Track]), Int] = _albumMap.zipWithIndex
-    var _playmap: Map[Track, Set[Int]] = HashMap() 
-    var _trackOption: Option[Track] = None 
+    var _futureTrackMap: Map[Track, Int] = HashMap() 
+    var _presentTrackOption: Option[Track] = None 
 
     new BaseAdapter with AlbumListAdapter {
 
@@ -50,7 +50,7 @@ object AlbumListAdapter {
         _albumTupleOp match {
           case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
             ImageSplitLayout.create(context, album.coverArt, {
-              val v = TextLayout.createAlbumLayout(context, album.title, trackList, _playmap, _trackOption) 
+              val v = TextLayout.createAlbumLayout(context, album.title, trackList, _futureTrackMap, _presentTrackOption) 
               v.setOnClick(view => {
                 mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
               })
@@ -89,13 +89,13 @@ object AlbumListAdapter {
         this.notifyDataSetChanged()
       }
 
-      override def setPlaymap(playmap: Map[Track, Set[Int]]): Unit = {
-        _playmap = playmap
+      override def setFutureTrackMap(futureTrackMap: Map[Track, Int]): Unit = {
+        _futureTrackMap = futureTrackMap
         this.notifyDataSetChanged()
       }
 
-      override def setTrackOption(trackOption: Option[Track]): Unit = {
-        _trackOption = trackOption 
+      override def setPresentTrackOption(trackOption: Option[Track]): Unit = {
+        _presentTrackOption = trackOption 
         this.notifyDataSetChanged()
       }
     }

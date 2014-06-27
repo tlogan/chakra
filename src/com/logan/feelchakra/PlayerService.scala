@@ -40,10 +40,11 @@ class PlayerService extends Service {
           that.changeStation(stationOption)
           true
 
-        case OnLocalTrackOptionChanged(trackOption) => 
+
+        case OnPresentTrackOptionChanged(presentTrackOp) =>
           Log.d("chakra", "OnLocalTrackChanged")
           _mediaPlayer.reset();
-          trackOption match {
+          presentTrackOp match {
             case Some(track) =>
               _mediaPlayer.setDataSource(track.path)
               _mediaPlayer.prepareAsync()

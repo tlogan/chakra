@@ -61,12 +61,13 @@ object Fragment {
             case OnTrackListChanged(trackList) => 
               withAdapter(_.setTrackList(trackList))
               true
-            case OnPlaymapChanged(playmap) => 
-              withAdapter(_.setPlaymap(playmap))
+            case OnPresentTrackOptionChanged(trackOption) => 
+              withAdapter(_.setPresentTrackOption(trackOption))
               true
-            case OnLocalTrackOptionChanged(trackOption) => 
-              withAdapter(_.setTrackOption(trackOption))
+            case OnFutureTrackListChanged(list) => 
+              withAdapter(_.setFutureTrackMap(list.toIterator.zipWithIndex.toMap))
               true
+
             case _ => false
           }
         }
@@ -80,7 +81,7 @@ object Fragment {
         (parent: AdapterView[_], view: View, position: Int, id: Long) => {
           convertAdapter(lv.getAdapter(), adapter => {
             val track =  adapter.getItem(position)
-            mainActorRef ! MainActor.AddPlaylistTrack(track) 
+            mainActorRef ! MainActor.AppendFutureTrack(track) 
           })
         }
       ) 
@@ -120,11 +121,11 @@ object Fragment {
                 }
               })
               true
-            case OnPlaymapChanged(playmap) => 
-              withAdapter(_.setPlaymap(playmap))
+            case OnPresentTrackOptionChanged(trackOption) => 
+              withAdapter(_.setPresentTrackOption(trackOption))
               true
-            case OnLocalTrackOptionChanged(trackOption) => 
-              withAdapter(_.setTrackOption(trackOption))
+            case OnFutureTrackListChanged(list) => 
+              withAdapter(_.setFutureTrackMap(list.toIterator.zipWithIndex.toMap))
               true
             case _ => false
           }
@@ -171,11 +172,11 @@ object Fragment {
                 }
               })
               true
-            case OnPlaymapChanged(playmap) => 
-              withAdapter(_.setPlaymap(playmap))
+            case OnPresentTrackOptionChanged(trackOption) => 
+              withAdapter(_.setPresentTrackOption(trackOption))
               true
-            case OnLocalTrackOptionChanged(trackOption) => 
-              withAdapter(_.setTrackOption(trackOption))
+            case OnFutureTrackListChanged(list) => 
+              withAdapter(_.setFutureTrackMap(list.toIterator.zipWithIndex.toMap))
               true
             case _ => false
           }
@@ -323,8 +324,13 @@ object Fragment {
           lv.setOnItemClick( 
             (parent: AdapterView[_], view: View, position: Int, id: Long) => {
               convertAdapter(lv.getAdapter(), adapter => {
-                val trackIndex = adapter.getItemId(position)
-                mainActorRef ! MainActor.ChangeTrackByIndex(trackIndex.toInt) 
+                if (adapter.isPast(position)) {
+                  val index = adapter.pastIndex(position)
+                  mainActorRef ! MainActor.SetPresentTrackFromPastIndex(index) 
+                } else {
+                  val index = adapter.futureIndex(position)
+                  mainActorRef ! MainActor.SetPresentTrackFromFutureIndex(index) 
+                }
               })
             }
           )
@@ -362,14 +368,6 @@ object Fragment {
           override def handleMessage(msg: Message): Boolean = {
             import UI._ 
             msg.obj match {
-              case OnTrackIndexChanged(trackIndex) => 
-                withAdapter(_.setTrackIndex(trackIndex))
-                stopProgress()
-                frontBar.setX(0)
-                if (trackIndex < 0) {
-                  _trackDuration = -1
-                }
-                true
               case OnLocalPlayingChanged(playing) =>
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing
@@ -387,10 +385,18 @@ object Fragment {
                   frontBar.setX(startPos * width/_trackDuration)
                 }
                 true
-              case OnPlaylistChanged(playlist) => 
-                withAdapter(_.setPlaylist(playlist))
+              case OnPastTrackListChanged(list) => 
+                withAdapter(_.setPastTrackList(list))
+                list.lastOption match {
+                  case Some(track) =>
+                    TextLayout.setTexts(prevTextLayout, track.title, track.artist, track.album.title)
+                    ImageSplitLayout.setImageFromPath(prevLayout, track.album.coverArt)
+                  case _ => 
+                    TextLayout.setTexts(prevTextLayout, "", "", "")
+                    ImageSplitLayout.setImageFromPath(prevLayout, "")
+                }
                 true
-              case OnLocalTrackOptionChanged(trackOption) => 
+              case OnPresentTrackOptionChanged(trackOption) => 
                 trackOption match {
                   case Some(track) =>
                     _trackDuration = track.duration
@@ -406,18 +412,9 @@ object Fragment {
                     ImageSplitLayout.setImageFromPath(playerLayout, "")
                 }
                 true
-              case OnPrevTrackOptionChanged(trackOption) => 
-                trackOption match {
-                  case Some(track) =>
-                    TextLayout.setTexts(prevTextLayout, track.title, track.artist, track.album.title)
-                    ImageSplitLayout.setImageFromPath(prevLayout, track.album.coverArt)
-                  case _ => 
-                    TextLayout.setTexts(prevTextLayout, "", "", "")
-                    ImageSplitLayout.setImageFromPath(prevLayout, "")
-                }
-                true
-              case OnNextTrackOptionChanged(trackOption) => 
-                trackOption match {
+              case OnFutureTrackListChanged(list) => 
+                withAdapter(_.setFutureTrackList(list))
+                list.headOption match {
                   case Some(track) =>
                     TextLayout.setTexts(nextTextLayout, track.title, track.artist, track.album.title)
                     ImageSplitLayout.setImageFromPath(nextLayout, track.album.coverArt)

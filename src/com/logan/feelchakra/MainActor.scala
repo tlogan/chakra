@@ -18,12 +18,14 @@ object MainActor {
   case class SetTrackList(trackList: List[Track]) 
   case class SetSelection(selection: Selection) 
 
-  case object ChangeToPrevTrack
-  case object ChangeToNextTrack
-  case class ChangeTrackByIndex(trackIndex: Int)
+  case class AppendFutureTrack(track: Track) 
+  case class SetPresentTrack(track: Track) 
+  case class SetPresentTrackToPrev
+  case class SetPresentTrackToNext
 
-  case class AddPlaylistTrack(track: Track) 
-  case class AddAndPlayTrack(track: Track) 
+  case class SetPresentTrackFromPastIndex(index: Int) 
+  case class SetPresentTrackFromFutureIndex(index: Int) 
+
   case object FlipPlayer
   case class SetPlayerOpen(playerOpen: Boolean) 
   case class AddStation(station: Station)
@@ -109,13 +111,9 @@ class MainActor extends Actor {
         OnAlbumMapChanged(localManager.albumMap),
         OnTrackListChanged(localManager.trackList),
 
-        OnTrackIndexChanged(localManager.currentIndex),
-        OnPlaylistChanged(localManager.playlist),
-        OnPlaymapChanged(Playmap(localManager.playlist, localManager.currentIndex)),
-
-        OnLocalTrackOptionChanged(localManager.currentOp),
-        OnPrevTrackOptionChanged(localManager.prevOp),
-        OnNextTrackOptionChanged(localManager.nextOp),
+        OnPastTrackListChanged(localManager.pastTrackList),
+        OnPresentTrackOptionChanged(localManager.presentTrackOp),
+        OnFutureTrackListChanged(localManager.futureTrackList),
 
         OnLocalStartPosChanged(localManager.startPos),
         OnLocalPlayingChanged(localManager.playing)
@@ -157,33 +155,43 @@ class MainActor extends Actor {
     case SetPlayerOpen(playerOpen) =>
       localManager = localManager.setPlayerOpen(playerOpen)
 
-    case ChangeToPrevTrack =>
-      val prevIndex = localManager.currentIndex - 1
-      if (prevIndex >= 0) {
-        changeTrackByIndex(prevIndex)
-      } 
-
-    case ChangeToNextTrack =>
-      val nextIndex = localManager.currentIndex + 1
-      if (nextIndex < localManager.playlist.size) {
-        changeTrackByIndex(nextIndex)
-      } 
-
-    case ChangeTrackByIndex(trackIndex) => 
-      changeTrackByIndex(trackIndex)
-
     case WriteListenerPlayState(playState) => 
       notifyWriters(ListenerWriter.WritePlayState(playState))
 
-    case AddPlaylistTrack(track) =>
-      addPlaylistTrack(track)
+    case AppendFutureTrack(track) =>
+      appendFutureTrack(track)
 
-    case AddAndPlayTrack(track) =>
-      val newIndex = localManager.playlist.size
-      addPlaylistTrack(track)
-      localManager = localManager.setCurrentIndex(newIndex)
-      playTrack(track)
- 
+    case SetPresentTrack(track) =>
+      setPresentTrack(track)
+
+    case SetPresentTrackToPrev =>
+      localManager.pastTrackList.lastOption match {
+        case Some(track) =>
+          localManager = localManager.setPresentTrackFromPastIndex(localManager.pastTrackList.size - 1)
+          playTrack(track)
+        case None =>
+      }
+
+    case SetPresentTrackToNext =>
+      localManager.futureTrackList.headOption match {
+        case Some(track) => 
+          localManager = localManager.setPresentTrackFromFutureIndex(0)
+          playTrack(track)
+        case None =>
+      }
+    case SetPresentTrackFromPastIndex(index) =>
+      localManager = localManager.setPresentTrackFromPastIndex(index)
+      localManager.presentTrackOp match {
+        case Some(track) => playTrack(track)
+        case None =>
+      }
+        
+    case SetPresentTrackFromFutureIndex(index) => 
+      localManager = localManager.setPresentTrackFromFutureIndex(index)
+      localManager.presentTrackOp match {
+        case Some(track) => playTrack(track)
+        case None =>
+      }
 
     case AddStation(station) =>
       stationManager = stationManager.stageStation(station)
@@ -212,7 +220,7 @@ class MainActor extends Actor {
 
       val writerRef = context.actorOf(ListenerWriter.props())
       writerRef ! ListenerWriter.SetSocket(socket)
-      writerRef ! ListenerWriter.WriteTrackOp(localManager.currentOp)
+      writerRef ! ListenerWriter.WriteTrackOp(localManager.presentTrackOp)
 
       val reader = Runnable.createListenerReader(socket, writerRef)
       reader.run()
@@ -283,18 +291,25 @@ class MainActor extends Actor {
 
   }
 
-  private def changeTrackByIndex(trackIndex: Int): Unit = {
-    val current = localManager.optionByIndex(trackIndex)
-    localManager = localManager.setCurrentIndex(trackIndex)
-    current match {
-      case Some(track) =>
-        playTrack(track)
-      case None =>
-    }
-  } 
+  private def setPresentTrack(track: Track): Unit = {
+    localManager = localManager.setPresentTrack(track)
+    writeTrackToListeners(track)
+    playTrack(track)
+  }
 
-  private def addPlaylistTrack(track: Track): Unit = {
-    localManager = localManager.addPlaylistTrack(track)
+  private def playTrack(track: Track): Unit = {
+    if (stationManager.currentOp == None) {
+      notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
+    }
+    localManager = localManager.setStartPos(0)
+    localManager = localManager.setPlaying(true)
+  }
+
+  private def appendFutureTrack(track: Track): Unit = {
+    localManager = localManager.appendFutureTrack(track)
+    writeTrackToListeners(track)
+  }
+  private def writeTrackToListeners(track: Track): Unit = {
     notifyWriters(ListenerWriter.WriteTrackOp(Some(track)))
     AudioReader(track.path).subscribe(
       audioBuffer => notifyWriters(ListenerWriter.WriteAudioBuffer(track.path, audioBuffer)),
@@ -303,13 +318,6 @@ class MainActor extends Actor {
     )
   }
 
-  private def playTrack(track: Track): Unit = {
-    localManager = localManager.setStartPos(0)
-    if (stationManager.currentOp == None) {
-      localManager = localManager.setPlaying(true)
-      notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
-    }
-  }
 
   private def notifyHandlers(uis: Map[String, Handler], response: OnChange): Unit = {
     uis.foreach(pair => {

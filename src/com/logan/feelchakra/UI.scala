@@ -17,14 +17,9 @@ object UI {
   case class OnStationOptionChanged(stationOption: Option[Station]) extends OnChange
   case class OnStationListChanged(stationList: List[Station]) extends OnChange
 
-  case class OnPlaylistChanged(playlist: List[Track]) extends OnChange
-  case class OnPlaymapChanged(playmap: Map[Track, Set[Int]]) extends OnChange
-  case class OnTrackIndexChanged(trackIndex: Int) extends OnChange
-
-  case class OnLocalTrackOptionChanged(trackOption: Option[Track]) extends OnChange
-  case class OnPrevTrackOptionChanged(trackOption: Option[Track]) extends OnChange
-  case class OnNextTrackOptionChanged(trackOption: Option[Track]) extends OnChange
-
+  case class OnPastTrackListChanged(pastTrackList: List[Track]) extends OnChange
+  case class OnPresentTrackOptionChanged(presentTrackOp: Option[Track]) extends OnChange
+  case class OnFutureTrackListChanged(futureTrackList: List[Track]) extends OnChange 
 
   case class OnLocalPlayingChanged(playing: Boolean) extends OnChange
   case class OnLocalStartPosChanged(startPos: Int) extends OnChange

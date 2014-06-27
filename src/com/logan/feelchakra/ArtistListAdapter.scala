@@ -13,8 +13,8 @@ trait ArtistListAdapter {
 
   def setArtistMap(artistMap: ArtistMap): Unit
   def setArtistTupleOp(artistTupleOp: Option[(String, AlbumMap)]): Unit
-  def setPlaymap(playmap: Map[Track, Set[Int]]): Unit
-  def setTrackOption(trackOption: Option[Track]): Unit
+  def setFutureTrackMap(futureTrackMap: Map[Track, Int]): Unit
+  def setPresentTrackOption(trackOption: Option[Track]): Unit
   def artistTuplePosition: Int
 
 }
@@ -27,8 +27,8 @@ object ArtistListAdapter {
     var _artistMap: ArtistMap = new ArtistMap() 
     var _artistList: List[(String, AlbumMap)] = _artistMap.toList
     var _positionMap: Map[(String, AlbumMap), Int] = _artistMap.zipWithIndex
-    var _playmap: Map[Track, Set[Int]] = HashMap() 
-    var _trackOption: Option[Track] = None 
+    var _futureTrackMap: Map[Track, Int] = HashMap() 
+    var _presentTrackOption: Option[Track] = None 
 
 
     new BaseAdapter() with ArtistListAdapter {
@@ -72,7 +72,7 @@ object ArtistListAdapter {
                 }
 
                 addView {
-                  ImageSplitLayout.create(context, album.coverArt, TextLayout.createAlbumLayout(context, album.title, trackList, _playmap, _trackOption))
+                  ImageSplitLayout.create(context, album.coverArt, TextLayout.createAlbumLayout(context, album.title, trackList, _futureTrackMap, _presentTrackOption))
                 }
 
               })
@@ -109,13 +109,13 @@ object ArtistListAdapter {
         this.notifyDataSetChanged()
       }
 
-      override def setPlaymap(playmap: Map[Track, Set[Int]]): Unit = {
-        _playmap = playmap
+      override def setFutureTrackMap(futureTrackMap: Map[Track, Int]): Unit = {
+        _futureTrackMap = futureTrackMap
         this.notifyDataSetChanged()
       }
 
-      override def setTrackOption(trackOption: Option[Track]): Unit = {
-        _trackOption = trackOption 
+      override def setPresentTrackOption(trackOption: Option[Track]): Unit = {
+        _presentTrackOption = trackOption 
         this.notifyDataSetChanged()
       }
 

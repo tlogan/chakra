@@ -12,8 +12,8 @@ trait TrackListAdapter {
 
   override def getItem(position: Int): Track
   def setTrackList(trackList: List[Track]): Unit
-  def setPlaymap(playmap: Map[Track, Set[Int]]): Unit
-  def setTrackOption(trackOption: Option[Track]): Unit
+  def setFutureTrackMap(futureTrackMap: Map[Track, Int]): Unit
+  def setPresentTrackOption(trackOption: Option[Track]): Unit
 
 }
 
@@ -22,8 +22,8 @@ object TrackListAdapter {
   def create(context: Context): BaseAdapter with TrackListAdapter = {
 
     var _trackList: List[Track] = List() 
-    var _playmap: Map[Track, Set[Int]] = HashMap() 
-    var _trackOption: Option[Track] = None 
+    var _futureTrackMap: Map[Track, Int] = HashMap() 
+    var _presentTrackOption: Option[Track] = None 
 
     new BaseAdapter() with TrackListAdapter {
 
@@ -33,7 +33,7 @@ object TrackListAdapter {
 
       override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
         val track = getItem(position)
-        ImageSplitLayout.createMain(context, track.album.coverArt, SlideLayout.createTrackLayout(context, track, _playmap, _trackOption))
+        ImageSplitLayout.createMain(context, track.album.coverArt, SlideLayout.createTrackLayout(context, track, _futureTrackMap, _presentTrackOption))
       }
 
       override def setTrackList(trackList: List[Track]): Unit = {
@@ -41,13 +41,13 @@ object TrackListAdapter {
         this.notifyDataSetChanged()
       }
 
-      override def setPlaymap(playmap: Map[Track, Set[Int]]): Unit = {
-        _playmap = playmap
+      override def setPresentTrackOption(trackOption: Option[Track]): Unit = {
+        _presentTrackOption = trackOption 
         this.notifyDataSetChanged()
       }
 
-      override def setTrackOption(trackOption: Option[Track]): Unit = {
-        _trackOption = trackOption 
+      override def setFutureTrackMap(futureTrackMap: Map[Track, Int]): Unit = {
+        _futureTrackMap = futureTrackMap
         this.notifyDataSetChanged()
       }
 
