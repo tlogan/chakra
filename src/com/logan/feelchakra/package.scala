@@ -232,6 +232,7 @@ package com.logan {
 
     type ColorDrawable = android.graphics.drawable.ColorDrawable
 
+    type Drawable = android.graphics.drawable.Drawable
     val createDrawableFromPath = android.graphics.drawable.Drawable.createFromPath _
 
     type Table = guava.scalaandroid.Table

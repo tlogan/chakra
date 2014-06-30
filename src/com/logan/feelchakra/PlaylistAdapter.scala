@@ -10,6 +10,7 @@ trait PlaylistAdapter {
   def isPast(position: Int): Boolean 
   def pastIndex(position: Int): Int
   def futureIndex(position: Int): Int
+  def firstFuturePosition(): Int
 
 }
 
@@ -27,6 +28,8 @@ object PlaylistAdapter {
       private var _trackIndex: Int = -1 
 
       override def getCount(): Int = _pastTrackList.size + _futureTrackList.size 
+
+      override def firstFuturePosition(): Int = _pastTrackList.size
 
       override def isPast(position: Int): Boolean = position < _pastTrackList.size
 

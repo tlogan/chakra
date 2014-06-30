@@ -20,11 +20,11 @@ object ImageSplitLayout {
     layout.addView(layout.rightLayout)
   }
 
-  def create(context: Context, imagePath: String, rightView: View): LinearLayout with ImageSplitLayout = {
+  def create(context: Context, image: Drawable, rightView: View): LinearLayout with ImageSplitLayout = {
 
     val layout = new LinearLayout(context) with ImageSplitLayout {
 
-      override val imageLayout = ImageSplitLayout.imageLayout(context, imagePath)
+      override val imageLayout = ImageSplitLayout.imageLayout(context, image)
 
       override val rightLayout = {
         rightView.setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
@@ -36,22 +36,18 @@ object ImageSplitLayout {
 
   }
 
-  def setImageFromPath(layout: LinearLayout with ImageSplitLayout, imagePath: String): Unit = {
-    layout.imageLayout.setImageDrawable(createDrawableFromPath(imagePath))
-  }
-
-  def imageLayout(context: Context, imagePath: String): ImageView = {
+  def imageLayout(context: Context, image: Drawable): ImageView = {
     val view = new ImageView(context)
-    view.setImageDrawable(createDrawableFromPath(imagePath))
+    view.setImageDrawable(image)
     view.setBackgroundColor(WHITE)
     view.setLayoutParams(new LLLayoutParams(context.dp(64), context.dp(64)))
     view
   }
 
-  def createMain(context: Context, imagePath: String, rightView: View): LinearLayout with ImageSplitLayout = {
+  def createMain(context: Context, image: Drawable, rightView: View): LinearLayout with ImageSplitLayout = {
     val layout = new LinearLayout(context) with ImageSplitLayout {
 
-      override val imageLayout = ImageSplitLayout.imageLayout(context, imagePath)
+      override val imageLayout = ImageSplitLayout.imageLayout(context, image)
 
       override val rightLayout = {
         rightView.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(medDp)))

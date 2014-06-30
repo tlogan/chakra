@@ -17,7 +17,7 @@ object TrackListFuture {
       case Success(table) => { 
         table.rowObservable.subscribe( 
           (row) => { 
-            buffer += (row(ALBUM_KEY) -> Album(row(ALBUM), row(ALBUM_ART)))
+            buffer += (row(ALBUM_KEY) -> Album(row(ALBUM), createDrawableFromPath(row(ALBUM_ART))))
           },
           (e: Throwable) => Log.d("chakra", "album ID row observable failed: " + ALBUM_URI + " : "+ e.getMessage),
           () => { 
@@ -53,7 +53,7 @@ object TrackListFuture {
               (row) => { 
                 val album = albumIdMap.get(row(ALBUM_KEY)) match {
                   case Some(album) => album
-                  case None => Album("", "")
+                  case None => Album("", null)
                 }
                 trackListBuffer += Track(row(DATA), row(TITLE), album, row(ARTIST), row(DURATION).toLong)
               },

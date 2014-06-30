@@ -16,7 +16,7 @@ trait HorizontalSlideView {
 
 }
 
-object Slider {
+object HorizontalSlideView {
 
   def createTrackSlideView(context: Context, track: Track, width: () => Int): View with HorizontalSlideView = {
     val view = new View(context) with HorizontalSlideView {

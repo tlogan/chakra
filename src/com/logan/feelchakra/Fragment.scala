@@ -135,7 +135,7 @@ object Fragment {
 
     def createListView(context: Context): ListView = { 
       val lv =  ListView.createMain(context, ArtistListAdapter.create(context))
-      lv.setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
+      lv.setLayoutParams(new LLLayoutParams(MATCH_PARENT, MATCH_PARENT))
       lv
     }
 
@@ -289,19 +289,19 @@ object Fragment {
         val width = dimension(getActivity()).x
 
         val prevLayout =  {
-          val layout = ImageSplitLayout.createMain(getActivity(), "", prevTextLayout)
+          val layout = ImageSplitLayout.createMain(getActivity(), null, prevTextLayout)
           layout.setLayoutParams(new LLLayoutParams(width, WRAP_CONTENT))
           layout
         }
 
         val playerLayout =  {
-          val l = ImageSplitLayout.createMain(getActivity(), "", playerProgressView)
+          val l = ImageSplitLayout.createMain(getActivity(), null, playerProgressView)
           l.setLayoutParams(new LLLayoutParams(width, WRAP_CONTENT))
           l
         }
 
         val nextLayout =  {
-          val l = ImageSplitLayout.createMain(getActivity(), "", nextTextLayout) 
+          val l = ImageSplitLayout.createMain(getActivity(), null, nextTextLayout) 
           l.setLayoutParams(new LLLayoutParams(width, WRAP_CONTENT))
           l
         }
@@ -320,7 +320,7 @@ object Fragment {
 
         val playlistView: ListView = {
           val lv = ListView.createMain(this.getActivity(), PlaylistAdapter.create(this.getActivity())) 
-          lv.setLayoutParams(new LLLayoutParams(MATCH_PARENT, WRAP_CONTENT)) 
+          lv.setLayoutParams(new LLLayoutParams(MATCH_PARENT, MATCH_PARENT)) 
           lv.setOnItemClick( 
             (parent: AdapterView[_], view: View, position: Int, id: Long) => {
               convertAdapter(lv.getAdapter(), adapter => {
@@ -368,6 +368,15 @@ object Fragment {
           override def handleMessage(msg: Message): Boolean = {
             import UI._ 
             msg.obj match {
+
+              case OnPlayerOpenChanged(playerOpen) => 
+                if (playerOpen) {
+                  withAdapter(adapter => {
+                    val pos = adapter.firstFuturePosition
+                    playlistView.setSelectionFromTop(pos, 0)
+                  })
+                }
+                true
               case OnLocalPlayingChanged(playing) =>
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing
@@ -392,10 +401,10 @@ object Fragment {
                 list.lastOption match {
                   case Some(track) =>
                     TextLayout.setTexts(prevTextLayout, track.title, track.artist, track.album.title)
-                    ImageSplitLayout.setImageFromPath(prevLayout, track.album.coverArt)
+                    prevLayout.imageLayout.setImageDrawable(track.album.coverArt)
                   case _ => 
                     TextLayout.setTexts(prevTextLayout, "", "", "")
-                    ImageSplitLayout.setImageFromPath(prevLayout, "")
+                    prevLayout.imageLayout.setImageDrawable(null)
                 }
                 true
               case OnPresentTrackOptionChanged(trackOption) => 
@@ -408,10 +417,10 @@ object Fragment {
                       stopProgress()
                     }
                     TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album.title)
-                    ImageSplitLayout.setImageFromPath(playerLayout, track.album.coverArt)
+                    playerLayout.imageLayout.setImageDrawable(track.album.coverArt)
                   case _ => 
                     TextLayout.setTexts(playerTextLayout, "", "", "")
-                    ImageSplitLayout.setImageFromPath(playerLayout, "")
+                    playerLayout.imageLayout.setImageDrawable(null)
                 }
                 true
               case OnFutureTrackListChanged(list) => 
@@ -421,10 +430,10 @@ object Fragment {
                 list.headOption match {
                   case Some(track) =>
                     TextLayout.setTexts(nextTextLayout, track.title, track.artist, track.album.title)
-                    ImageSplitLayout.setImageFromPath(nextLayout, track.album.coverArt)
+                    nextLayout.imageLayout.setImageDrawable(track.album.coverArt)
                   case _ => 
                     TextLayout.setTexts(nextTextLayout, "", "", "")
-                    ImageSplitLayout.setImageFromPath(nextLayout, "")
+                    nextLayout.imageLayout.setImageDrawable(null)
                 }
                 true
               case _ => false

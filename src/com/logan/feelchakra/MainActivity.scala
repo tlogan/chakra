@@ -53,16 +53,16 @@ class MainActivity extends Activity {
   def slide(): Unit = {
     if (_prev && slideLayout.getX() > -dim.x / 2 ) {
       _xGestureOn = false
-      Slider.slideRight(slideLayout)
+      HorizontalSlideView.slideRight(slideLayout)
     } else if (slideLayout.getX() < 3 * -dim.x / 2) {
       _xGestureOn = false
-      Slider.slideLeft(slideLayout)
+      HorizontalSlideView.slideLeft(slideLayout)
     } else if (slideLayout.getX() > -dim.x) {
       _xGestureOn = false
-      Slider.slideLeft(slideLayout, -dim.x)
+      HorizontalSlideView.slideLeft(slideLayout, -dim.x)
     } else if (slideLayout.getX() < -dim.x) {
       _xGestureOn = false
-      Slider.slideRight(slideLayout, -dim.x)
+      HorizontalSlideView.slideRight(slideLayout, -dim.x)
     }
   }
 
@@ -170,10 +170,10 @@ class MainActivity extends Activity {
             if (_xGestureOn) {
               if (_prev && velX > 0) {
                 _xGestureOn = false
-                Slider.slideRight(slideLayout)
+                HorizontalSlideView.slideRight(slideLayout)
               } else if (_next && velX < 0) {
                 _xGestureOn = false
-                Slider.slideLeft(slideLayout)
+                HorizontalSlideView.slideLeft(slideLayout)
               }
             }
           case NoMotion =>

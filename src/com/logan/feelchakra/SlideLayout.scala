@@ -28,7 +28,7 @@ object SlideLayout {
         t
       }
       override val veiledView = SlideLayout.createVeiledView(context)
-      override val slideView = Slider.createTrackSlideView(context, track, () => veiledView.getWidth())
+      override val slideView = HorizontalSlideView.createTrackSlideView(context, track, () => veiledView.getWidth())
 
     }
     SlideLayout.construct(context, view, track)
@@ -56,7 +56,7 @@ object SlideLayout {
     val view = new RelativeLayout(context) with SlideLayout {
       override val trackTextLayout = textLayout
       override val veiledView = SlideLayout.createVeiledView(context)
-      override val slideView = Slider.createTrackSlideView(context, track, () => veiledView.getWidth())
+      override val slideView = HorizontalSlideView.createTrackSlideView(context, track, () => veiledView.getWidth())
     }
 
     SlideLayout.construct(context, view, track)
@@ -116,10 +116,10 @@ object SlideLayout {
       if (!gestureDetector.onTouchEvent(event)) {
         event.getAction() match {
           case ACTION_UP => 
-            Slider.slide(slideLayout.slideView)
+            HorizontalSlideView.slide(slideLayout.slideView)
             true
           case ACTION_CANCEL => 
-            Slider.slide(slideLayout.slideView)
+            HorizontalSlideView.slide(slideLayout.slideView)
             true
           case _ =>
             false

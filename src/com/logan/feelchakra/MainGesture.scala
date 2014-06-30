@@ -23,9 +23,9 @@ object MainGesture {
 
       override def onFling(e1: MotionEvent, e2: MotionEvent, velX: Float, velY: Float): Boolean = {
         if (velX > 0) {
-          Slider.slideRight(slideView)
+          HorizontalSlideView.slideRight(slideView)
         } else {
-          Slider.slideLeft(slideView)
+          HorizontalSlideView.slideLeft(slideView)
         }
         true
       }
