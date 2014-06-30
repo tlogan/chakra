@@ -86,15 +86,27 @@ object TextLayout {
 
       val textLayout = { 
         val l = new LinearLayout(context)
-        l.setOrientation(VERTICAL)
+        l.setOrientation(HORIZONTAL)
         l.setPadding(context.dp(4), context.dp(6), context.dp(4), context.dp(6))
-        l.setBackgroundColor(TRANSPARENT)
         l.addView {
           val v = new TextView(context)
+          v.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
           v.setText(trackNum + ". " + track.title)
           v.setTextSize(context.sp(10))
           v.setTextColor(WHITE)
           v
+        }
+        futureTrackMap.get(track) match {
+          case Some(pos) =>
+            l.addView {
+              val tv = new TextView(context)
+              tv.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 1))
+              tv.setText((pos + 1).toString)
+              tv.setTextSize(context.sp(10))
+              tv.setTextColor(LTGRAY)
+              tv
+            }
+          case None =>
         }
         l
       }
@@ -102,15 +114,22 @@ object TextLayout {
       v.addView {
         if (current) {
           textLayout.setBackgroundColor(BLUE)
+          textLayout.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(40)))
           textLayout
         } else {
-          val layout = SlideLayout.createAlbumTrackLayout(context, track, futureTrackMap.get(track), textLayout)
+
+          val color = futureTrackMap.get(track) match {
+            case Some(pos) => GRAY 
+            case None => LDKGRAY 
+          }
+          val layout = SlideLayout.createAlbumTrackLayout(context, track, color, textLayout)
           layout.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(40)))
           layout 
         }
       } 
 
       if (trackNum != trackList.size) {
+        //add a white line after all album tracks except the last
         v.addView {
           new View(context) {
             setBackgroundColor(LTGRAY)

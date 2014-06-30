@@ -50,7 +50,7 @@ object SlideLayout {
   def createAlbumTrackLayout(
       context: Context, 
       track: Track,
-      futureTrackPosOp: Option[Int],
+      color: Int,
       textLayout: LinearLayout
   ): ViewGroup with SlideLayout = {
     val view = new RelativeLayout(context) with SlideLayout {
@@ -58,21 +58,8 @@ object SlideLayout {
       override val veiledView = SlideLayout.createVeiledView(context)
       override val slideView = HorizontalSlideView.createTrackSlideView(context, track, () => veiledView.getWidth())
     }
-
     SlideLayout.construct(context, view, track)
-    futureTrackPosOp match {
-      case Some(pos) =>
-        view.trackTextLayout.addView {
-          val tv = new TextView(context)
-          tv.setText((pos + 1).toString)
-          tv.setTextSize(context.sp(8))
-          tv.setTextColor(LTGRAY)
-          tv
-        }
-        view.slideView.setBackgroundColor(GRAY) 
-      case None =>
-        view.slideView.setBackgroundColor(LDKGRAY) 
-    }
+    view.slideView.setBackgroundColor(color) 
     view
 
   }
@@ -128,6 +115,8 @@ object SlideLayout {
 
     })
 
+
+    slideLayout.trackTextLayout.setLayoutParams(new LLLayoutParams(MATCH_PARENT, MATCH_PARENT))
     slideLayout.addView(slideLayout.trackTextLayout)
     slideLayout.addView(slideLayout.veiledView)
     slideLayout.addView(slideLayout.slideView)
