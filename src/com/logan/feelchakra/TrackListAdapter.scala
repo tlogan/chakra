@@ -33,7 +33,13 @@ object TrackListAdapter {
 
       override def getView(position: Int, view: View, viewGroup: ViewGroup): View = {
         val track = getItem(position)
-        ImageSplitLayout.createMain(context, track.album.coverArt, SlideLayout.createTrackLayout(context, track, _futureTrackMap, _presentTrackOption))
+
+        val futurePosOp = _futureTrackMap.get(track)
+        val current = _presentTrackOption match {
+          case Some(currentTrack) => (currentTrack == track) 
+          case _ => false 
+        }
+        ImageSplitLayout.createMain(context, track.album.coverArt, SlideLayout.createTrackLayout(context, track, futurePosOp, current))
       }
 
       override def setTrackList(trackList: List[Track]): Unit = {

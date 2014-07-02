@@ -103,7 +103,7 @@ object TextLayout {
               tv.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 1))
               tv.setText((pos + 1).toString)
               tv.setTextSize(context.sp(10))
-              tv.setTextColor(LTGRAY)
+              tv.setTextColor(WHITE)
               tv
             }
           case None =>

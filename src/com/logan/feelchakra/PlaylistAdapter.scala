@@ -1,5 +1,10 @@
 package com.logan.feelchakra
 
+import android.util.Log
+import android.widget.Toast
+import RichView.view2RichView
+import RichContext.context2RichContext
+
 trait PlaylistAdapter {
   this: BaseAdapter =>
 
@@ -58,7 +63,29 @@ object PlaylistAdapter {
 
         val track = getItem(position)
         val color = if (position < _pastTrackList.size) DKGRAY else GRAY 
-        val layout = ImageSplitLayout.create(context, track.album.coverArt, TextLayout.createTextLayout(context, track.title, track.album.title, track.artist))
+
+        val hl = new LinearLayout(context)
+        hl.setOrientation(HORIZONTAL)
+        hl.addView {
+          val t = TextLayout.createTextLayout(context, track.title, track.album.title, track.artist)
+          t.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
+          t
+        }
+        hl.addView {
+          val tv = new TextView(context)
+          tv.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 1))
+          val playOrder = if (isPast(position)) {
+            (pastIndex(position) - _pastTrackList.size).toString
+          } else {
+            "+" + (futureIndex(position) + 1)
+          }
+          tv.setText(playOrder)
+          tv.setTextSize(context.sp(10))
+          tv.setTextColor(WHITE)
+          tv
+        }
+
+        val layout = ImageSplitLayout.create(context, track.album.coverArt, hl)
         layout.setBackgroundColor(color)
         layout
 
