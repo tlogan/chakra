@@ -216,7 +216,8 @@ object Fragment {
             case OnStationListChanged(stationList) => 
               withAdapter(_.setStationList(stationList))
               true
-            case OnStationOptionChanged(stationOption) => 
+            case OnStationConnectionChanged(stationConnection) => 
+              withAdapter(_.setStationConnection(stationConnection))
               true
             case _ => false
           }

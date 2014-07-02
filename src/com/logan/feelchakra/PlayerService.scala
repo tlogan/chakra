@@ -36,11 +36,9 @@ class PlayerService extends Service {
         case OnProfileChanged(networkProfile) =>
           that.setServiceInfo(networkProfile)
           true
-        case OnStationOptionChanged(stationOption) =>
-          that.changeStation(stationOption)
+        case OnStationConnectionChanged(stationConnection) =>
+          that.changeStation(stationConnection)
           true
-
-
         case OnPresentTrackOptionChanged(presentTrackOp) =>
           Log.d("chakra", "OnLocalTrackChanged")
           _mediaPlayer.reset();
@@ -324,13 +322,12 @@ class PlayerService extends Service {
 
   }
 
-  private def changeStation(stationOption: Option[Station]): Unit = {
+  private def changeStation(stationConnection: StationConnection): Unit = {
 
-    removeLegacyConnection()
-
-    stationOption match {
-      case Some(station) => tuneIntoStation(station)
-      case None => tryBecomingTheStation() 
+    stationConnection match {
+      case StationDisconnected => removeLegacyConnection(); tryBecomingTheStation() 
+      case StationRequested(station) => removeLegacyConnection(); tuneIntoStation(station)
+      case _ =>
     }
 
   }

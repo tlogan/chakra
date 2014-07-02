@@ -5,7 +5,7 @@ import android.util.Log
 case class StationManager(
   map: Map[String, Station],
   stagedMap: Map[String, Station],
-  currentOp: Option[Station],
+  currentConnection: StationConnection,
   trackOriginPathOp: Option[String],
   trackMap: Map[String, Track],
   trackAudioMap: Map[String, (Track, OutputStream)],
@@ -17,7 +17,7 @@ case class StationManager(
   def this() = this(
     HashMap[String, Station](),
     HashMap[String, Station](),
-    None,
+    StationDisconnected,
     None,
     HashMap[String, Track](),
     HashMap[String, (Track, OutputStream)](),
@@ -52,9 +52,21 @@ case class StationManager(
 
   }
 
-  def setCurrentOp(stationOp: Option[Station]): StationManager = {
-    mainActorRef ! NotifyHandlers(OnStationOptionChanged(stationOp))
-    this.copy(currentOp = stationOp)
+  def setCurrentConnection(stationCon: StationConnection): StationManager = {
+    mainActorRef ! NotifyHandlers(OnStationConnectionChanged(stationCon))
+    this.copy(currentConnection = stationCon)
+  }
+  def commitConnection(): StationManager = {
+    currentConnection match {
+      case StationRequested(station) =>
+        val stationCon = StationConnected(station)
+        mainActorRef ! NotifyHandlers(OnStationConnectionChanged(stationCon))
+        this.copy(currentConnection = stationCon)
+      case _ => 
+        assert(false)
+        this
+    }
+    
   }
 
   def setTrackOriginPathOp(trackOriginPathOp: Option[String]): StationManager = {

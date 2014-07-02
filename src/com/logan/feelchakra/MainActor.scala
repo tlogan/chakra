@@ -103,7 +103,7 @@ class MainActor extends Actor {
         OnSelectionChanged(selectionManager.current),
         OnPlayerOpenChanged(localManager.playerOpen),
 
-        OnStationOptionChanged(stationManager.currentOp),
+        OnStationConnectionChanged(stationManager.currentConnection),
         OnDiscoveringChanged(stationManager.discovering),
         OnAdvertisingChanged(stationManager.advertising),
         OnStationListChanged(stationManager.map.values.toList),
@@ -211,13 +211,13 @@ class MainActor extends Actor {
       stationManager = {
         stationManager
           .setDiscovering(false)
-          .setCurrentOp(Some(station))
+          .setCurrentConnection(StationRequested(station))
       }
 
     case BecomeTheStation =>
       stationManager = {
         stationManager
-          .setCurrentOp(None)
+          .setCurrentConnection(StationDisconnected)
           .setDiscovering(selectionManager.current == StationSelection)
       }
 
@@ -241,12 +241,15 @@ class MainActor extends Actor {
 
     case ConnectStation(remoteHost) =>
       localManager = localManager.setPlaying(false)
-      stationManager.currentOp match {
-        case Some(station) =>
+      stationManager.currentConnection match {
+        case StationRequested(station) =>
           val remoteAddress = 
             new InetSocketAddress(remoteHost, station.record.get("port").toInt)
           clientRef.!(Client.Connect(remoteAddress))
-        case None => Log.d("chakra", "Can't connect when station Op is NONE")
+        case StationConnected(station) =>
+          Log.d("chakra", "Can't connect when station is already connected")
+        case StationDisconnected => 
+          Log.d("chakra", "Can't connect when station is disconnected")
       }
 
     case ChangeStationMessenger(socket) =>
@@ -254,6 +257,7 @@ class MainActor extends Actor {
       writerRef ! StationWriter.SetSocket(socket)
       val reader = Runnable.createStationReader(socket, writerRef)
       reader.run()
+      stationManager = stationManager.commitConnection()
       stationMessengerOp = Some(Messenger(writerRef, reader))
 
     case ChangeStationTrackByOriginPath(originPath) =>
@@ -306,8 +310,10 @@ class MainActor extends Actor {
   }
 
   private def playTrack(track: Track): Unit = {
-    if (stationManager.currentOp == None) {
+    if (stationManager.currentConnection == StationDisconnected) {
       notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
+    } else {
+       Log.d("chakra", "can't write tracks, stationConnection is " + stationManager.currentConnection)
     }
     localManager = localManager.setStartPos(0)
     localManager = localManager.setPlaying(true)

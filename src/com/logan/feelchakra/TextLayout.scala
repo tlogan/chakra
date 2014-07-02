@@ -60,6 +60,7 @@ object TextLayout {
       override val secondTextView: TextView = TextView.createMinor(context, trackList.size + " Tracks")
       override val thirdTextView: TextView = TextView.createMinor(context, "---")
     }
+
     TextLayout.addTextViews(v)
     v.setBackgroundColor(LDKGRAY)
     v.addView {
