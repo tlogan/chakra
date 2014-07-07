@@ -227,13 +227,21 @@ package com.logan {
     val ARTIST_NUMBER_OF_ALBUMS = android.provider.MediaStore.Audio.ArtistColumns.NUMBER_OF_ALBUMS
     val ARTIST_NUMBER_OF_TRACKS = android.provider.MediaStore.Audio.ArtistColumns.NUMBER_OF_TRACKS
 
+    type MediaMetadataRetriever = android.media.MediaMetadataRetriever
+    val METADATA_KEY_TITLE = android.media.MediaMetadataRetriever.METADATA_KEY_TITLE
+    val METADATA_KEY_ARTIST = android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST
+    val METADATA_KEY_ALBUM = android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM
+    val METADATA_KEY_DURATION = android.media.MediaMetadataRetriever.METADATA_KEY_DURATION
+
     val smallDp = 16 
     val medDp = 64
 
     type ColorDrawable = android.graphics.drawable.ColorDrawable
 
     type Drawable = android.graphics.drawable.Drawable
+    type BitmapDrawable = android.graphics.drawable.BitmapDrawable
     val createDrawableFromPath = android.graphics.drawable.Drawable.createFromPath _
+    def createBitmap(bytes: Array[Byte]) = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.length)
 
     type Table = guava.scalaandroid.Table
 

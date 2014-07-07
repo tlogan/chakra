@@ -361,6 +361,8 @@ object Fragment {
         var _playing = false 
         var _startPos = 0 
 
+        var _playState: PlayState = NotPlaying
+
         def withAdapter(f: PlaylistAdapter => Unit): Unit = {
           convertAdapter(playlistView.getAdapter(), f)
         }
@@ -378,6 +380,53 @@ object Fragment {
                   })
                 }
                 true
+
+              case OnStationPlayStateChanged(playState) =>
+                Log.d("chakra", "OnStationPlayStateChanged: " + playState)
+                _playState = playState
+                playState match {
+                  case Playing(startTime) => 
+                    if (_trackDuration >= 0) {
+                      val width = playerProgressView.getWidth()
+                      frontBar.setX(
+                        (_startPos + (Platform.currentTime - startTime).toInt) * width/_trackDuration
+                      ) 
+                      animateProgress(_trackDuration)
+                    } else {
+                      stopProgress()
+                    }
+                  case _ =>
+                }
+
+                true
+
+              case OnStationTrackOpChanged(trackOption) => 
+                trackOption match {
+                  case Some(track) =>
+                    _trackDuration = track.duration
+                    _playState match {
+                      case Playing(startTime) => 
+                        if (_trackDuration >= 0) {
+                          val width = playerProgressView.getWidth()
+                          frontBar.setX(
+                            (_startPos + (Platform.currentTime - startTime).toInt) * width/_trackDuration
+                          ) 
+                          animateProgress(_trackDuration)
+                        } else {
+                          stopProgress()
+                        }
+                      case _ =>
+                    }
+                    TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album.title)
+                    playerLayout.imageLayout.setImageDrawable(track.album.coverArt)
+                  case _ => 
+                    TextLayout.setTexts(playerTextLayout, "", "", "")
+                    playerLayout.imageLayout.setImageDrawable(null)
+                }
+                true
+
+
+
               case OnLocalPlayingChanged(playing) =>
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing

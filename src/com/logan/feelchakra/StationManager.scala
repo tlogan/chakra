@@ -2,13 +2,15 @@ package com.logan.feelchakra
 
 import android.util.Log
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 case class StationManager(
-  map: Map[String, Station],
-  stagedMap: Map[String, Station],
+  fullyDiscoveredStationMap: Map[String, Station],
+  partlyDiscoveredStationMap: Map[String, Station],
   currentConnection: StationConnection,
   trackOriginPathOp: Option[String],
-  trackMap: Map[String, Track],
-  trackAudioMap: Map[String, (Track, OutputStream)],
+  transferredTrackMap: Map[String, Track],
+  transferringAudioMap: Map[String, (String, OutputStream)],
   playState: PlayState,
   discovering: Boolean,
   advertising: Boolean
@@ -20,7 +22,7 @@ case class StationManager(
     StationDisconnected,
     None,
     HashMap[String, Track](),
-    HashMap[String, (Track, OutputStream)](),
+    HashMap[String, (String, OutputStream)](),
     NotPlaying,
     false, 
     false
@@ -30,22 +32,22 @@ case class StationManager(
   import UI._
 
   def trackOp: Option[Track] = trackOriginPathOp match {
-    case Some(path) => trackMap.get(path)
+    case Some(path) => transferredTrackMap.get(path)
     case None => None
   }
 
-  def stageStation(station: Station): StationManager = {
-    val newStagedMap = stagedMap.+(station.device.deviceAddress -> station)
-    this.copy(stagedMap = newStagedMap)
+  def stageStationDiscovery(station: Station): StationManager = {
+    val newStagedMap = partlyDiscoveredStationMap.+(station.device.deviceAddress -> station)
+    this.copy(partlyDiscoveredStationMap = newStagedMap)
   }
 
-  def commitStation(device: WifiP2pDevice): StationManager = {
+  def commitStationDiscovery(device: WifiP2pDevice): StationManager = {
 
-    if (stagedMap.isDefinedAt(device.deviceAddress)) {
-      val station = stagedMap(device.deviceAddress)
-      val newMap = map.+(device.deviceAddress -> station)
+    if (partlyDiscoveredStationMap.isDefinedAt(device.deviceAddress)) {
+      val station = partlyDiscoveredStationMap(device.deviceAddress)
+      val newMap = fullyDiscoveredStationMap.+(device.deviceAddress -> station)
       mainActorRef ! NotifyHandlers(OnStationListChanged(newMap.values.toList))
-      this.copy(map = newMap)
+      this.copy(fullyDiscoveredStationMap = newMap)
     } else {
       this
     }
@@ -56,7 +58,8 @@ case class StationManager(
     mainActorRef ! NotifyHandlers(OnStationConnectionChanged(stationCon))
     this.copy(currentConnection = stationCon)
   }
-  def commitConnection(): StationManager = {
+
+  def commitStationConnection(): StationManager = {
     currentConnection match {
       case StationRequested(station) =>
         val stationCon = StationConnected(station)
@@ -73,7 +76,7 @@ case class StationManager(
 
     trackOriginPathOp match {
       case Some(trackOriginPath) =>
-        trackMap.get(trackOriginPath) match {
+        transferredTrackMap.get(trackOriginPath) match {
           case Some(track) => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(Some(track)))
           case None => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(None))
         }
@@ -83,23 +86,19 @@ case class StationManager(
     this.copy(trackOriginPathOp = trackOriginPathOp)
   }
 
-  def commitTrack(originPath: String): StationManager = {
-    trackAudioMap.get(originPath) match {
-      case Some(trackAudio) =>
-        val track = trackAudio._1
-        trackOriginPathOp match {
-          case Some(trackOriginPath) if trackOriginPath == originPath =>
-            mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(Some(track)))
-          case _ => 
-        }
-        this.copy(trackMap = trackMap.+(originPath -> track))
-      case None => this
+  def commitTrackTransfer(originPath: String, track: Track): StationManager = {
+
+    trackOriginPathOp match {
+      case Some(trackOriginPath) if trackOriginPath == originPath =>
+        mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(Some(track)))
+      case _ => 
     }
+    this.copy(transferredTrackMap = transferredTrackMap.+(originPath -> track), transferringAudioMap = transferringAudioMap.-(originPath))
 
   }
 
-  def addTrackAudio(originPath: String, track: Track, fileOutput: OutputStream): StationManager = {
-    this.copy(trackAudioMap = trackAudioMap.+(originPath -> (track, fileOutput)))
+  def addTrackAudio(originPath: String, path: String, fileOutput: OutputStream): StationManager = {
+    this.copy(transferringAudioMap = transferringAudioMap.+(originPath -> (path -> fileOutput)))
   }
 
   def setPlayState(playState: PlayState): StationManager = {

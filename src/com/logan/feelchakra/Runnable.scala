@@ -7,7 +7,7 @@ import akka.util.Timeout
 
 object Runnable {
 
-  val TrackMessage = 10
+  //val TrackMessage = 10
   val PlayStateMessage = 20
   val TrackPathMessage = 27 
   val AudioBufferMessage = 33 
@@ -134,6 +134,7 @@ object Runnable {
     val socketInput: InputStream = socket.getInputStream()
     val dataInput: DataInputStream = new DataInputStream(socketInput)
 
+    /*
     @throws(classOf[IOException])
     def readTrack(): Unit = {
       Log.d("chakra", "reading track ")
@@ -148,6 +149,7 @@ object Runnable {
       mainActorRef ! MainActor.AddStationTrack(track)
 
     }
+    */
 
     @throws(classOf[IOException])
     def readAudioBuffer(): Unit = {
@@ -222,9 +224,11 @@ object Runnable {
 
     val receive: PartialFunction[Any, Unit] = {
 
+      /*
       case TrackMessage =>
         Log.d("chakra", "reading track")
         readTrack()
+        */
       case TrackPathMessage =>
         Log.d("chakra", "reading current track path")
         readTrackPath()

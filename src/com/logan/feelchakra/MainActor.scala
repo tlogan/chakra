@@ -46,7 +46,6 @@ object MainActor {
   case object Discover 
 
   case class ChangeStationTrackByOriginPath(originPath: String)
-  case class AddStationTrack(track: Track)
 
   case class AddStationAudioBuffer(path: String, audioBuffer: Array[Byte])
   case class EndStationAudioBuffer(path: String)
@@ -106,7 +105,7 @@ class MainActor extends Actor {
         OnStationConnectionChanged(stationManager.currentConnection),
         OnDiscoveringChanged(stationManager.discovering),
         OnAdvertisingChanged(stationManager.advertising),
-        OnStationListChanged(stationManager.map.values.toList),
+        OnStationListChanged(stationManager.fullyDiscoveredStationMap.values.toList),
 
         OnArtistMapChanged(localManager.artistMap),
         OnAlbumMapChanged(localManager.albumMap),
@@ -202,10 +201,10 @@ class MainActor extends Actor {
       }
 
     case AddStation(station) =>
-      stationManager = stationManager.stageStation(station)
+      stationManager = stationManager.stageStationDiscovery(station)
 
     case CommitStation(device) =>
-      stationManager = stationManager.commitStation(device)
+      stationManager = stationManager.commitStationDiscovery(device)
      
     case RequestStation(station) =>
       stationManager = {
@@ -228,7 +227,15 @@ class MainActor extends Actor {
 
       val writerRef = context.actorOf(ListenerWriter.props())
       writerRef ! ListenerWriter.SetSocket(socket)
-      writerRef ! ListenerWriter.WriteTrackOp(localManager.presentTrackOp)
+      localManager.presentTrackOp match {
+        case Some(track) =>
+          AudioReader(track.path).subscribe(
+            audioBuffer => writerRef ! ListenerWriter.WriteAudioBuffer(track.path, audioBuffer),
+            t => {},
+            () => writerRef ! ListenerWriter.WriteAudioDone(track.path)
+          )
+        case None =>
+      }
 
       val reader = Runnable.createListenerReader(socket, writerRef)
       reader.run()
@@ -257,29 +264,39 @@ class MainActor extends Actor {
       writerRef ! StationWriter.SetSocket(socket)
       val reader = Runnable.createStationReader(socket, writerRef)
       reader.run()
-      stationManager = stationManager.commitConnection()
+      stationManager = stationManager.commitStationConnection()
       stationMessengerOp = Some(Messenger(writerRef, reader))
 
     case ChangeStationTrackByOriginPath(originPath) =>
       stationManager = stationManager.setTrackOriginPathOp(Some(originPath))
 
-    case AddStationTrack(track) =>
-      Log.d("chakra", "AddStationTrack: " + track)
-      val name = "chakra" + Platform.currentTime 
-      val file = java.io.File.createTempFile(name, null, cacheDir)
-      val remoteTrack = track.copy(path = file.getAbsolutePath())
-      val fileOutput = new BufferedOutputStream(new FileOutputStream(file))
-      stationManager = stationManager.addTrackAudio(track.path, remoteTrack, fileOutput)
+    case AddStationAudioBuffer(stationPath, audioBuffer) =>
+      stationManager.transferringAudioMap.get(stationPath) match {
+        case None =>
+          val name = "chakra" + Platform.currentTime 
+          val file = java.io.File.createTempFile(name, null, cacheDir)
+          val fileOutput = new BufferedOutputStream(new FileOutputStream(file))
+          stationManager = stationManager.addTrackAudio(stationPath, file.getAbsolutePath(), fileOutput)
+          fileOutput.write(audioBuffer)
+        case Some(transferringAudio) =>
+          transferringAudio._2.write(audioBuffer)
+      }
 
-    case AddStationAudioBuffer(path, audioBuffer) =>
-      val trackAudio = stationManager.trackAudioMap(path)
-      trackAudio._2.write(audioBuffer)
 
-    case EndStationAudioBuffer(path) =>
-      Log.d("chakra", "end station: " + path)
-      val trackAudio = stationManager.trackAudioMap(path)
-      trackAudio._2.close()
-      stationManager = stationManager.commitTrack(path)
+
+    case EndStationAudioBuffer(stationPath) =>
+      Log.d("chakra", "end station: " + stationPath)
+      val transferringAudio = stationManager.transferringAudioMap(stationPath)
+      transferringAudio._2.close()
+      val path = transferringAudio._1
+
+      TrackFuture(path) onComplete {
+        case Success(track) => 
+          Log.d("chakra", "end station audio buffer track: " + track)
+          stationManager = stationManager.commitTrackTransfer(stationPath, track)
+        case Failure(t) => 
+          assert(false) 
+      }
 
     case SetStationPlayState(playState) =>
       Log.d("chakra", "set station playstate: " + playState)
@@ -324,7 +341,6 @@ class MainActor extends Actor {
     writeTrackToListeners(track)
   }
   private def writeTrackToListeners(track: Track): Unit = {
-    notifyWriters(ListenerWriter.WriteTrackOp(Some(track)))
     AudioReader(track.path).subscribe(
       audioBuffer => notifyWriters(ListenerWriter.WriteAudioBuffer(track.path, audioBuffer)),
       t => {},

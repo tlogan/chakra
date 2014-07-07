@@ -10,10 +10,8 @@ object ListenerWriter {
   }
 
   case class SetSocket(socket: Socket)
-  case class WriteTrackOp(trackOp: Option[Track]) 
   case class WriteAudioBuffer(path: String, audioBuffer: Array[Byte]) 
   case class WriteAudioDone(path: String)
-
 
   case class WriteCurrentTrackPath(path: String)
   case class WritePlayState(playState: PlayState) 
@@ -49,30 +47,6 @@ class ListenerWriter extends Actor {
             Log.d("chakra", "error writing sync result")
             e.printStackTrace()
         }
-      }
-
-      def writeTrack(trackOp: Option[Track]): Unit = {
-        Log.d("chakra", "write track")
-        trackOp match {
-          case None => //dont write anything 
-          case Some(track) =>
-            try {
-
-              //write messageType 
-              dataOutput.writeInt(Runnable.TrackMessage)
-              dataOutput.flush()
-
-              //write the file path
-              dataOutput.writeInt(track.path.length())
-              dataOutput.flush()
-              socketOutput.write(track.path.getBytes())
-
-            } catch {
-              case e: IOException => 
-                Log.d("chakra", "error writing exception")
-            }
-        }
-
       }
 
       def writeCurrentTrackPath(path: String): Unit = {
@@ -166,9 +140,6 @@ class ListenerWriter extends Actor {
         case WriteSyncResponse(syncRequestReadTime) =>
           Log.d("chakra", "writing sync response")
           writeSyncResponse(syncRequestReadTime)
-
-        case WriteTrackOp(trackOp) =>
-          writeTrack(trackOp)
 
         case WriteAudioBuffer(path, audioBuffer) =>
           writeAudioBuffer(path, audioBuffer)
