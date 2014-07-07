@@ -363,6 +363,8 @@ object Fragment {
 
         var _playState: PlayState = NotPlaying
 
+        var _stationConnection: StationConnection = StationDisconnected
+
         def withAdapter(f: PlaylistAdapter => Unit): Unit = {
           convertAdapter(playlistView.getAdapter(), f)
         }
@@ -372,8 +374,20 @@ object Fragment {
             import UI._ 
             msg.obj match {
 
+
+              case OnStationConnectionChanged(stationConnection) =>
+                _stationConnection = stationConnection
+                stationConnection match {
+                  case StationDisconnected =>
+                    playlistView.setVisibility(VISIBLE)
+                  case _ => 
+                    playlistView.setVisibility(GONE)
+                }
+                true
+
               case OnPlayerOpenChanged(playerOpen) => 
-                if (playerOpen) {
+
+                if (playerOpen) { 
                   withAdapter(adapter => {
                     val pos = adapter.firstFuturePosition
                     playlistView.setSelectionFromTop(pos, 0)
@@ -425,9 +439,7 @@ object Fragment {
                 }
                 true
 
-
-
-              case OnLocalPlayingChanged(playing) =>
+              case OnLocalPlayingChanged(playing) if _stationConnection == StationDisconnected =>
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing
                 if (_trackDuration >= 0 && _playing) {
@@ -436,7 +448,7 @@ object Fragment {
                   stopProgress()
                 }
                 true
-              case OnLocalStartPosChanged(startPos) =>
+              case OnLocalStartPosChanged(startPos) if _stationConnection == StationDisconnected =>
                 Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
                 _startPos = startPos 
                 if (_trackDuration > -1) {
@@ -444,7 +456,7 @@ object Fragment {
                   frontBar.setX(startPos * width/_trackDuration)
                 }
                 true
-              case OnPastTrackListChanged(list) => 
+              case OnPastTrackListChanged(list) if _stationConnection == StationDisconnected => 
                 withAdapter(adapter => {
                   adapter.setPastTrackList(list)
                 })
@@ -457,7 +469,7 @@ object Fragment {
                     prevLayout.imageLayout.setImageDrawable(null)
                 }
                 true
-              case OnPresentTrackOptionChanged(trackOption) => 
+              case OnPresentTrackOptionChanged(trackOption) if _stationConnection == StationDisconnected => 
                 trackOption match {
                   case Some(track) =>
                     _trackDuration = track.duration
@@ -473,7 +485,7 @@ object Fragment {
                     playerLayout.imageLayout.setImageDrawable(null)
                 }
                 true
-              case OnFutureTrackListChanged(list) => 
+              case OnFutureTrackListChanged(list) if _stationConnection == StationDisconnected => 
                 withAdapter(adapter => {
                   adapter.setFutureTrackList(list)
                 })

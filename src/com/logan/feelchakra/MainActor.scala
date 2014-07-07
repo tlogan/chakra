@@ -175,7 +175,9 @@ class MainActor extends Actor {
       localManager.pastTrackList.lastOption match {
         case Some(track) =>
           localManager = localManager.setPresentTrackFromPastIndex(localManager.pastTrackList.size - 1)
-          playTrack(track)
+          if (stationManager.currentConnection == StationDisconnected) {
+            playTrack(track)
+          } 
         case None =>
       }
 
@@ -183,20 +185,28 @@ class MainActor extends Actor {
       localManager.futureTrackList.headOption match {
         case Some(track) => 
           localManager = localManager.setPresentTrackFromFutureIndex(0)
-          playTrack(track)
+          if (stationManager.currentConnection == StationDisconnected) {
+            playTrack(track)
+          } 
         case None =>
       }
     case SetPresentTrackFromPastIndex(index) =>
       localManager = localManager.setPresentTrackFromPastIndex(index)
       localManager.presentTrackOp match {
-        case Some(track) => playTrack(track)
+        case Some(track) => 
+          if (stationManager.currentConnection == StationDisconnected) {
+            playTrack(track)
+          } 
         case None =>
       }
         
     case SetPresentTrackFromFutureIndex(index) => 
       localManager = localManager.setPresentTrackFromFutureIndex(index)
       localManager.presentTrackOp match {
-        case Some(track) => playTrack(track)
+        case Some(track) => 
+          if (stationManager.currentConnection == StationDisconnected) {
+            playTrack(track)
+          } 
         case None =>
       }
 
@@ -322,23 +332,23 @@ class MainActor extends Actor {
 
   private def setPresentTrack(track: Track): Unit = {
     localManager = localManager.setPresentTrack(track).removeFutureTrack(track)
-    writeTrackToListeners(track)
-    playTrack(track)
+    if (stationManager.currentConnection == StationDisconnected) {
+      writeTrackToListeners(track)
+      playTrack(track)
+    } 
   }
 
   private def playTrack(track: Track): Unit = {
-    if (stationManager.currentConnection == StationDisconnected) {
-      notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
-    } else {
-       Log.d("chakra", "can't write tracks, stationConnection is " + stationManager.currentConnection)
-    }
+    notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
     localManager = localManager.setStartPos(0)
     localManager = localManager.setPlaying(true)
   }
 
   private def appendFutureTrack(track: Track): Unit = {
     localManager = localManager.appendFutureTrack(track)
-    writeTrackToListeners(track)
+    if (stationManager.currentConnection == StationDisconnected) {
+      writeTrackToListeners(track)
+    } 
   }
   private def writeTrackToListeners(track: Track): Unit = {
     AudioReader(track.path).subscribe(

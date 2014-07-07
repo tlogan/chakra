@@ -26,6 +26,8 @@ class PlayerService extends Service {
 
   private var _playState: PlayState = NotPlaying
 
+  private var _stationConnection: StationConnection = StationDisconnected
+
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
@@ -37,9 +39,11 @@ class PlayerService extends Service {
           that.setServiceInfo(networkProfile)
           true
         case OnStationConnectionChanged(stationConnection) =>
+          _stationConnection = stationConnection
           that.changeStation(stationConnection)
           true
-        case OnPresentTrackOptionChanged(presentTrackOp) =>
+
+        case OnPresentTrackOptionChanged(presentTrackOp) if _stationConnection == StationDisconnected =>
           Log.d("chakra", "OnLocalTrackChanged")
           _mediaPlayer.reset();
           presentTrackOp match {
@@ -49,7 +53,7 @@ class PlayerService extends Service {
             case None => {}
           }
           true
-        case OnLocalPlayingChanged(playing) =>
+        case OnLocalPlayingChanged(playing) if _stationConnection == StationDisconnected =>
           Log.d("chakra", "OnLocalPlayingChanged: " + playing)
           _playing = playing
           if (_prepared) {
@@ -59,7 +63,7 @@ class PlayerService extends Service {
             } else _mediaPlayer.pause()
           }
           true
-        case OnLocalStartPosChanged(startPos) =>
+        case OnLocalStartPosChanged(startPos) if _stationConnection == StationDisconnected =>
           Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
           _startPos = startPos 
           if (_prepared) {
