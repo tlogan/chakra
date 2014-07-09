@@ -12,6 +12,7 @@ class PlayerService extends Service {
 
   private var _playing: Boolean = false 
   private var _startPos: Int = 0
+  private var _lastSeek: Int = 0
   private var _prepared: Boolean = false
 
   private var _manager: WifiP2pManager = _
@@ -28,6 +29,29 @@ class PlayerService extends Service {
 
   private var _stationConnection: StationConnection = StationDisconnected
 
+  private def seek(): Unit = {
+    if (_startPos != _lastSeek) {
+      _mediaPlayer.seekTo(_startPos)
+      _lastSeek = _startPos
+    }
+  }
+
+  private def playOrPause(): Unit = {
+    if (_playing != _mediaPlayer.isPlaying()) {
+      if (_playing) { 
+        _mediaPlayer.start() 
+        mainActorRef ! MainActor.WriteListenerPlayState(Playing(Platform.currentTime))
+      } else {
+        _mediaPlayer.pause()
+      }
+    }
+  }
+
+  private def reset(): Unit = {
+    _mediaPlayer.reset()
+    _prepared = false
+  }
+
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
@@ -42,38 +66,30 @@ class PlayerService extends Service {
           _stationConnection = stationConnection
           that.changeStation(stationConnection)
           true
-
         case OnPresentTrackOptionChanged(presentTrackOp) if _stationConnection == StationDisconnected =>
           Log.d("chakra", "OnLocalTrackChanged")
-          _mediaPlayer.reset();
+          reset()
           presentTrackOp match {
             case Some(track) =>
               _mediaPlayer.setDataSource(track.path)
               _mediaPlayer.prepareAsync()
-            case None => {}
+            case None => 
           }
           true
         case OnLocalPlayingChanged(playing) if _stationConnection == StationDisconnected =>
           Log.d("chakra", "OnLocalPlayingChanged: " + playing)
           _playing = playing
           if (_prepared) {
-            if (_playing) { 
-              _mediaPlayer.start() 
-              mainActorRef ! MainActor.WriteListenerPlayState(Playing(Platform.currentTime))
-            } else _mediaPlayer.pause()
+            playOrPause()
           }
           true
         case OnLocalStartPosChanged(startPos) if _stationConnection == StationDisconnected =>
           Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
           _startPos = startPos 
-          if (_prepared) {
-            _mediaPlayer.seekTo(startPos) 
-          }
+          if (_prepared) { seek() }
           true
-
         case OnStationTrackOpChanged(trackOp) =>
-          _mediaPlayer.reset()
-          _prepared = false
+          reset()
           trackOp match {
             case Some(track) =>
               _mediaPlayer.setDataSource(track.path)
@@ -95,8 +111,6 @@ class PlayerService extends Service {
             }
           }
           true
-
-
         case _ => false
       }
     }
@@ -134,10 +148,8 @@ class PlayerService extends Service {
                     _groupFormed = true
 
                     if (info.isGroupOwner) {
-                      Toast.makeText(that, "Connected as Server", Toast.LENGTH_SHORT).show()
                       Log.d("chakra", "Connected as Server")
                     } else {
-                      Toast.makeText(that, "Connected as Client", Toast.LENGTH_SHORT).show()
                       Log.d("chakra", "Connected as Client")
                       val remoteHost = info.groupOwnerAddress.getHostAddress()
                       mainActorRef ! MainActor.ConnectStation(remoteHost)
@@ -192,10 +204,8 @@ class PlayerService extends Service {
       case Some(serviceRequest) =>
         _manager.removeServiceRequest(_channel, serviceRequest, new WifiActionListener() {
           override def onSuccess(): Unit = {
-            Toast.makeText(that, "stopping discovery", Toast.LENGTH_SHORT).show()
           }
           override def onFailure(code: Int): Unit = {
-            Toast.makeText(that, "failed stopping discovery", Toast.LENGTH_SHORT).show()
           }
         })
         _serviceRequestOp = None
@@ -204,8 +214,6 @@ class PlayerService extends Service {
   }
 
   private def discoverServices(): Unit = {
-
-    Toast.makeText(that, "starting discovery", Toast.LENGTH_SHORT).show()
 
     val serviceListener = new DnsSdServiceResponseListener() {
       override def onDnsSdServiceAvailable(name: String, 
@@ -228,10 +236,8 @@ class PlayerService extends Service {
     val serviceRequest = newServiceRequest()
     _manager.addServiceRequest(_channel, serviceRequest, new WifiActionListener() {
       override def onSuccess(): Unit = {
-        //Toast.makeText(that, "serviceRequest Success", Toast.LENGTH_SHORT).show()
       }
       override def onFailure(code: Int): Unit = {
-        Toast.makeText(that, "serviceRequest Failed: " + code, Toast.LENGTH_SHORT).show()
         Log.d("chakra", "serviceRequest Failed: " + code)
       }
     })
@@ -240,10 +246,8 @@ class PlayerService extends Service {
 
     _manager.discoverServices(_channel, new WifiActionListener() {
       override def onSuccess(): Unit = {
-        //Toast.makeText(that, "discover Success", Toast.LENGTH_SHORT).show()
       }
       override def onFailure(code: Int): Unit = {
-        Toast.makeText(that, "discover Failed: " + code, Toast.LENGTH_SHORT).show()
         Log.d("chakra", "discover Failed: " + code)
       }
     })
@@ -261,7 +265,6 @@ class PlayerService extends Service {
         record.put("port", localAddress.getPort().toString)
 
         val serviceInfo = newServiceInfo(serviceName, serviceType, record)
-        Toast.makeText(that, "isStation: " + _isStation, Toast.LENGTH_SHORT).show()
         if (_isStation) { 
           _serviceInfoOp match {
             case None =>
@@ -303,10 +306,8 @@ class PlayerService extends Service {
     if (_groupFormed) {
       _manager.removeGroup(_channel, new WifiActionListener() {
         override def onSuccess(): Unit = { 
-          Toast.makeText(that, "legacy group removed", Toast.LENGTH_SHORT).show()
         }
         override def onFailure(reason: Int): Unit = {
-          Toast.makeText(that, "failed removing group: " + reason, Toast.LENGTH_SHORT).show()
           Log.d("chakra", "failed removing group: " + reason)
         }
       }) 
@@ -321,16 +322,26 @@ class PlayerService extends Service {
       } 
 
     } else {
-      Toast.makeText(that, "nothing removed", Toast.LENGTH_SHORT).show()
     }
 
   }
 
+  private var count = 0
+
   private def changeStation(stationConnection: StationConnection): Unit = {
 
     stationConnection match {
-      case StationDisconnected => removeLegacyConnection(); tryBecomingTheStation() 
-      case StationRequested(station) => removeLegacyConnection(); tuneIntoStation(station)
+      case StationDisconnected => 
+        _mediaPlayer.setOnCompletion(mp => {
+          count = count + 1
+          mainActorRef ! MainActor.SetPresentTrackToNext
+        })
+        removeLegacyConnection()
+        tryBecomingTheStation() 
+      case StationRequested(station) => 
+        _mediaPlayer.setOnCompletion(mp => {})
+        removeLegacyConnection()
+        tuneIntoStation(station)
       case _ =>
     }
 
@@ -340,20 +351,18 @@ class PlayerService extends Service {
 
     _mediaPlayer.setOnPrepared(mp => {
       _prepared = true
-      if (_playing) {
-        mp.seekTo(_startPos)
-        mp.start()
+      if (_playing && !_mediaPlayer.isPlaying()) { 
+        seek()
+        playOrPause()
         mainActorRef ! MainActor.WriteListenerPlayState(Playing(Platform.currentTime))
       }
     })
 
     _manager.addLocalService(_channel, serviceInfo, new WifiActionListener() {
       override def onSuccess(): Unit = { 
-        Toast.makeText(that, "advertising", Toast.LENGTH_SHORT).show()
         mainActorRef ! MainActor.Discover
       }
       override def onFailure(reason: Int): Unit = {
-        Toast.makeText(that, "failed advertising", Toast.LENGTH_SHORT).show()
         Log.d("chakra", "failed advertising" + reason)
       }
     })
@@ -382,11 +391,9 @@ class PlayerService extends Service {
     }
     _manager.connect(_channel, config, new WifiActionListener() {
       override def onSuccess(): Unit = { 
-        Toast.makeText(that, "requesting connection", Toast.LENGTH_SHORT).show()
         Log.d("chakra", "requesting connection")
       }
       override def onFailure(reason: Int): Unit = {
-        Toast.makeText(that, "failed requesting connection: " + reason, Toast.LENGTH_SHORT).show()
         Log.d("chakra", "failed requesting connection: " + reason)
       }
     })

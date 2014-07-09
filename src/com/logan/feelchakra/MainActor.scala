@@ -65,8 +65,6 @@ class MainActor extends Actor {
   private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
 
-  //private val listenerNetworkRef: ActorRef = context.actorOf(ListenerNetwork.props(), "ListenerNetwork")
-
   private var database: Database = null
   private var cacheDir: File = null
   private var uis: Map[String, Handler] = new HashMap[String, Handler]()
@@ -174,7 +172,8 @@ class MainActor extends Actor {
     case SetPresentTrackToPrev =>
       localManager.pastTrackList.lastOption match {
         case Some(track) =>
-          localManager = localManager.setPresentTrackFromPastIndex(localManager.pastTrackList.size - 1)
+          localManager = localManager
+            .setPresentTrackFromPastIndex(localManager.pastTrackList.size - 1)
           if (stationManager.currentConnection == StationDisconnected) {
             playTrack(track)
           } 
@@ -190,6 +189,7 @@ class MainActor extends Actor {
           } 
         case None =>
       }
+
     case SetPresentTrackFromPastIndex(index) =>
       localManager = localManager.setPresentTrackFromPastIndex(index)
       localManager.presentTrackOp match {
@@ -331,7 +331,9 @@ class MainActor extends Actor {
   }
 
   private def setPresentTrack(track: Track): Unit = {
-    localManager = localManager.setPresentTrack(track).removeFutureTrack(track)
+    localManager = localManager
+      .setPresentTrack(track)
+      .removeFutureTrack(track)
     if (stationManager.currentConnection == StationDisconnected) {
       writeTrackToListeners(track)
       playTrack(track)
