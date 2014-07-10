@@ -58,7 +58,7 @@ object AlbumListAdapter {
         _albumTupleOp match {
           case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
             ImageSplitLayout.create(context, album.coverArt, {
-              val v = TextLayout.createAlbumLayout(context, album.title, trackList, _futureTrackMap, _presentTrackOption) 
+              val v = AlbumLayout.create(context, album.title, trackList, _futureTrackMap, _presentTrackOption) 
               v.setOnClick(view => {
                 mainActorRef ! MainActor.SelectAlbumTuple(albumTuple) 
               })

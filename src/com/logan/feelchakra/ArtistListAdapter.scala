@@ -58,6 +58,21 @@ object ArtistListAdapter {
         val minutes = totalDuration / 60000 
         val seconds = (totalDuration/1000) % 60
         val time = f"$minutes%02d:$seconds%02d"
+        
+        val txLayout = {
+          val v = new LinearLayout(context)
+          v.setOrientation(VERTICAL)
+          val mainTextView = TextView.createMajor(context, artist)
+          val secondTextView = TextView.createMinor(context, albumMap.size + " Albums / " + trackCount + " Tracks")
+          val thirdTextView = TextView.createMinor(context, time)
+          List(mainTextView, secondTextView, thirdTextView).foreach(textView => {
+            v.addView(textView)
+          })
+          v.setOnClick(view => {
+            mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
+          })
+          v
+        }
 
         _artistTupleOp match {
           case Some(openArtistTuple) if (artistTuple == openArtistTuple) => 
@@ -66,21 +81,9 @@ object ArtistListAdapter {
               setBackgroundColor(GRAY)
               setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
-
               val imTxLayout = ImageSplitLayout.createMain(context, lastAlbum.coverArt, {
-                val v = new LinearLayout(context)
-                v.setOrientation(VERTICAL)
-                val mainTextView = TextView.createMajor(context, artist)
-                val secondTextView = TextView.createMinor(context, albumMap.size + " Albums / " + trackCount + " Tracks")
-                val thirdTextView = TextView.createMinor(context, time)
-                List(mainTextView, secondTextView, thirdTextView).foreach(textView => {
-                  v.addView(textView)
-                })
-                v.setBackgroundColor(LDKGRAY)
-                v.setOnClick(view => {
-                  mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
-                })
-                v
+                txLayout.setBackgroundColor(LDKGRAY)
+                txLayout
               })
               addView(imTxLayout)
 
@@ -96,20 +99,16 @@ object ArtistListAdapter {
                 }
 
                 addView {
-                  ImageSplitLayout.create(context, album.coverArt, TextLayout.createAlbumLayout(context, album.title, trackList, _futureTrackMap, _presentTrackOption))
+                  ImageSplitLayout.create(context, album.coverArt, AlbumLayout.create(context, album.title, trackList, _futureTrackMap, _presentTrackOption))
                 }
 
               })
 
             }
           case _ =>
-             ImageSplitLayout.createMain(context, lastAlbum.coverArt, {
-               val t = TextLayout.createTextLayout(context, artist, albumMap.size + " Albums / " + trackCount + " Tracks", time) 
-               t.setBackgroundColor(DKGRAY)
-               t.setOnClick(view => {
-                 mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
-               })
-               t
+            ImageSplitLayout.createMain(context, lastAlbum.coverArt, {
+              txLayout.setBackgroundColor(DKGRAY)
+              txLayout
             })
         }
 

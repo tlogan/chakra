@@ -21,10 +21,10 @@ class MainActivity extends Activity {
 
   lazy val originalBottom = contentView.getBottom() 
 
-  private val albumSelectionFragment =  Fragment.createAlbumSelection()
-  private val artistSelectionFragment =  Fragment.createArtistSelection()
-  private val trackSelectionFragment =  Fragment.createTrackSelection()
-  private val stationSelectionFragment = Fragment.createStationSelection()
+  private val albumSelectionFragment =  AlbumSelectionFragment.create()
+  private val artistSelectionFragment =  ArtistSelectionFragment.create()
+  private val trackSelectionFragment =  TrackSelectionFragment.create()
+  private val stationSelectionFragment = StationSelectionFragment.create()
 
   private lazy val dim = dimension(this)
 
@@ -66,7 +66,7 @@ class MainActivity extends Activity {
     }
   }
 
-  private lazy val playerFragment = Fragment.createPlayer(slideLayout)
+  private lazy val playerFragment = PlayerFragment.create(slideLayout)
 
   private var menu: Menu = _ 
 

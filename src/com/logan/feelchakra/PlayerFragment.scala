@@ -5,244 +5,9 @@ import RichContext.context2RichContext
 import android.util.Log
 import android.widget.Toast
 
-object Fragment {
+object PlayerFragment {
 
-  def createListFragment(createHandler: ListView => Handler, createListView: Context => ListView): Fragment = {
-
-    new Fragment() {
-
-      override def onCreate(savedState: Bundle): Unit = {
-        super.onCreate(savedState)
-      }
-
-      override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
-
-        val listView = createListView(this.getActivity())
-        mainActorRef ! MainActor.Subscribe(this.toString, createHandler(listView)) 
-
-        val layout = new LinearLayout(this.getActivity())
-        layout.setOrientation(VERTICAL)
-        layout.addView(listView)
-        layout
-
-      }
-
-      override def onDestroy(): Unit =  {
-        super.onDestroy()
-        mainActorRef ! MainActor.Unsubscribe(this.toString)
-      }
-
-    }
-
-  }
-
-  def createTrackSelection(): Fragment = {
-
-    def convertAdapter(adapter: ListAdapter, f: BaseAdapter with TrackListAdapter => Unit): Unit = {
-      adapter match {
-        case adapter: BaseAdapter with TrackListAdapter => {
-          f(adapter)
-        }
-      } 
-    }
-
-    def createHandler(listView: ListView) = {
-
-      new Handler(new HandlerCallback() {
-        override def handleMessage(msg: Message): Boolean = {
-
-          val adapter = listView.getAdapter()
-          def withAdapter(f: TrackListAdapter => Unit): Unit = {
-            convertAdapter(adapter, f)
-          }
-
-          import UI._
-          msg.obj match {
-            case OnTrackListChanged(trackList) => 
-              withAdapter(_.setTrackList(trackList))
-              true
-            case OnPresentTrackOptionChanged(trackOption) => 
-              withAdapter(_.setPresentTrackOption(trackOption))
-              true
-            case OnFutureTrackListChanged(list) => 
-              withAdapter(_.setFutureTrackMap(trackMap(list)))
-              true
-
-            case _ => false
-          }
-        }
-      })
-
-    }
-
-    def createListView(context: Context): ListView = {
-      val lv = ListView.createMain(context, TrackListAdapter.create(context))
-      lv.setOnItemClick( 
-        (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-          convertAdapter(lv.getAdapter(), adapter => {
-            val track =  adapter.getItem(position)
-            mainActorRef ! MainActor.AppendFutureTrack(track) 
-          })
-        }
-      ) 
-      lv 
-    }
-
-    Fragment.createListFragment(createHandler, createListView)
-
-  }
-
-  def createArtistSelection(): Fragment = {
-
-    def createHandler(listView: ListView) = {
-      new Handler(new HandlerCallback() {
-        override def handleMessage(msg: Message): Boolean = {
-
-          val adapter = listView.getAdapter()
-          def withAdapter(f: ArtistListAdapter => Unit): Unit = {
-            adapter match {
-              case adapter: ArtistListAdapter => {
-                f(adapter)
-              }
-            } 
-          }
-
-          import UI._
-          msg.obj match {
-            case OnArtistMapChanged(artistMap) => 
-              withAdapter(_.setArtistMap(artistMap))
-              true
-            case OnArtistTupleOpChanged(artistTupleOp) =>
-              withAdapter(artistAdapter => {
-                artistAdapter.setArtistTupleOp(artistTupleOp)
-                if (artistTupleOp != None) {
-                  val pos = artistAdapter.artistTuplePosition
-                  listView.setSelectionFromTop(pos, 0)
-                }
-              })
-              true
-            case OnPresentTrackOptionChanged(trackOption) => 
-              withAdapter(_.setPresentTrackOption(trackOption))
-              true
-            case OnFutureTrackListChanged(list) => 
-              withAdapter(_.setFutureTrackMap(trackMap(list)))
-              true
-            case _ => false
-          }
-        }
-      })
-    }
-
-    def createListView(context: Context): ListView = { 
-      val lv =  ListView.createMain(context, ArtistListAdapter.create(context))
-      lv.setLayoutParams(new LLLayoutParams(MATCH_PARENT, MATCH_PARENT))
-      lv
-    }
-
-    Fragment.createListFragment(createHandler, createListView)
-
-  }
-
-  def createAlbumSelection(): Fragment = {
-
-    def createHandler(listView: ListView) = {
-      new Handler(new HandlerCallback() {
-        override def handleMessage(msg: Message): Boolean = {
-
-          val adapter = listView.getAdapter()
-          def withAdapter(f: AlbumListAdapter => Unit): Unit = {
-            adapter match {
-              case adapter: AlbumListAdapter => {
-                f(adapter)
-              }
-            } 
-          }
-
-          import UI._
-          msg.obj match {
-            case OnAlbumMapChanged(albumMap) => 
-              withAdapter(_.setAlbumMap(albumMap))
-              true
-            case OnAlbumTupleOpChanged(albumTupleOp) =>
-              withAdapter(adapter => {
-                adapter.setAlbumTupleOp(albumTupleOp)
-                if (albumTupleOp != None) {
-                  val pos = adapter.albumTuplePosition
-                  listView.setSelectionFromTop(pos, 0)
-                }
-              })
-              true
-            case OnPresentTrackOptionChanged(trackOption) => 
-              withAdapter(_.setPresentTrackOption(trackOption))
-              true
-            case OnFutureTrackListChanged(list) => 
-              withAdapter(_.setFutureTrackMap(trackMap(list)))
-              true
-            case _ => false
-          }
-
-        }
-      })
-    }
-
-    def createListView(context: Context): ListView = ListView.createMain(context, AlbumListAdapter.create(context))
-
-    Fragment.createListFragment(createHandler, createListView)
-
-  }
-
-  def createStationSelection(): Fragment = {
-
-    def convertAdapter(adapter: ListAdapter, f: StationListAdapter => Unit): Unit = {
-      adapter match {
-        case adapter: StationListAdapter => {
-          f(adapter)
-        }
-      } 
-    }
-
-    def createHandler(listView: ListView) = {
-
-      val adapter = listView.getAdapter() 
-
-      def withAdapter(f: StationListAdapter => Unit): Unit = {
-        convertAdapter(adapter, f)
-      }
-
-      new Handler(new HandlerCallback() {
-        override def handleMessage(msg: Message): Boolean = {
-          import UI._
-          msg.obj match {
-            case OnStationListChanged(stationList) => 
-              withAdapter(_.setStationList(stationList))
-              true
-            case OnStationConnectionChanged(stationConnection) => 
-              withAdapter(_.setStationConnection(stationConnection))
-              true
-            case _ => false
-          }
-        }
-      })
-    }
-
-    def createListView(context: Context): ListView = {
-      val lv = ListView.createMain(context, StationListAdapter.create(context))
-      lv.setOnItemClick( 
-        (parent: AdapterView[_], view: View, position: Int, id: Long) => {
-          convertAdapter(lv.getAdapter(), adapter => {
-            val station = adapter.getItem(position)
-            mainActorRef ! MainActor.RequestStation(station) 
-          })
-        }
-      )  
-      lv
-    }
-
-    Fragment.createListFragment(createHandler, createListView)
-
-  }
-
-  def createPlayer(slideLayout: LinearLayout with HorizontalSlideView): Fragment = {
+  def create(slideLayout: LinearLayout with HorizontalSlideView): Fragment = {
 
     new Fragment() {
 
@@ -252,21 +17,24 @@ object Fragment {
 
       override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
 
-        def createCurrentTrackTextLayout() = {
+        def createTrackTextLayout() = {
           val t = TextLayout.createTextLayout(getActivity(), "", "", "") 
-          t.setBackgroundColor(TRANSPARENT)
           t.setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
           t
         }
 
-        val playerTextLayout = createCurrentTrackTextLayout()
+        val playerTextLayout = { 
+          val v = createTrackTextLayout()
+          v.setBackgroundColor(TRANSPARENT)
+          v
+        }
         val nextTextLayout = { 
-          val v = createCurrentTrackTextLayout()
+          val v = createTrackTextLayout()
           v.setBackgroundColor(GRAY)
           v
         }
         val prevTextLayout = {
-          val v = createCurrentTrackTextLayout()
+          val v = createTrackTextLayout()
           v.setBackgroundColor(DKGRAY)
           v
         }
@@ -523,7 +291,5 @@ object Fragment {
     }
 
   }
-
-
 
 }
