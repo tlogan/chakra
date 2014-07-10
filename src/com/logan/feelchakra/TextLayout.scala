@@ -55,10 +55,18 @@ object TextLayout {
       trackOption: Option[Track]
   ): LinearLayout with TextLayout = {
 
+    val totalDuration = trackList.foldLeft[Long](0)((duration, track) => {
+      duration + track.duration
+    })
+
+    val minutes = totalDuration / 60000 
+    val seconds = (totalDuration/1000) % 60
+    val time = f"$minutes%02d:$seconds%02d"
+
     val v = new LinearLayout(context) with TextLayout {
       override val mainTextView: TextView = TextView.createMajor(context, album)
       override val secondTextView: TextView = TextView.createMinor(context, trackList.size + " Tracks")
-      override val thirdTextView: TextView = TextView.createMinor(context, "---")
+      override val thirdTextView: TextView = TextView.createMinor(context, time)
     }
 
     TextLayout.addTextViews(v)

@@ -47,6 +47,14 @@ object AlbumListAdapter {
         val album = albumTuple._1
         val trackList = albumTuple._2
 
+        val totalDuration = trackList.foldLeft[Long](0)((duration, track) => {
+          duration + track.duration
+        })
+
+        val minutes = totalDuration / 60000 
+        val seconds = (totalDuration/1000) % 60
+        val time = f"$minutes%02d:$seconds%02d"
+
         _albumTupleOp match {
           case Some(openAlbumTuple) if (albumTuple == openAlbumTuple) =>
             ImageSplitLayout.create(context, album.coverArt, {
@@ -58,7 +66,7 @@ object AlbumListAdapter {
             })
           case _ =>
             ImageSplitLayout.createMain(context, album.coverArt, {
-              val v = TextLayout.createTextLayout(context, album.title, trackList.size + " Tracks", "time") 
+              val v = TextLayout.createTextLayout(context, album.title, trackList.size + " Tracks", time) 
               v.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(64)))
               v.setBackgroundColor(DKGRAY)
               v.setOnClick(view => {

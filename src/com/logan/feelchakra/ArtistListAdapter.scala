@@ -43,6 +43,22 @@ object ArtistListAdapter {
         val albumMap = artistTuple._2
         val lastAlbum = albumMap.last._1
 
+        val trackCount = albumMap.foldLeft(0)((count, pair) => {
+          val trackList = pair._2
+          count + trackList.length
+        })
+
+        val totalDuration = albumMap.foldLeft[Long](0)((duration, pair) => {
+          val trackList = pair._2
+          duration + trackList.foldLeft[Long](0)((duration, track) => {
+            duration + track.duration
+          })
+        })
+
+        val minutes = totalDuration / 60000 
+        val seconds = (totalDuration/1000) % 60
+        val time = f"$minutes%02d:$seconds%02d"
+
         _artistTupleOp match {
           case Some(openArtistTuple) if (artistTuple == openArtistTuple) => 
             new LinearLayout(context) {
@@ -50,8 +66,9 @@ object ArtistListAdapter {
               setBackgroundColor(GRAY)
               setLayoutParams(new LVLayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
+
               val imTxLayout = ImageSplitLayout.createMain(context, lastAlbum.coverArt, {
-                val t = TextLayout.createTextLayout(context, artist, albumMap.size + " Albums", "time") 
+                val t = TextLayout.createTextLayout(context, artist, albumMap.size + " Albums / " + trackCount + " Tracks", time) 
                 t.setBackgroundColor(LDKGRAY)
                 t.setOnClick(view => {
                   mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
@@ -80,12 +97,12 @@ object ArtistListAdapter {
             }
           case _ =>
              ImageSplitLayout.createMain(context, lastAlbum.coverArt, {
-              val t = TextLayout.createTextLayout(context, artist, albumMap.size + " Albums", "time") 
-              t.setBackgroundColor(DKGRAY)
-              t.setOnClick(view => {
-                mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
-              })
-              t
+               val t = TextLayout.createTextLayout(context, artist, albumMap.size + " Albums / " + trackCount + " Tracks", time) 
+               t.setBackgroundColor(DKGRAY)
+               t.setOnClick(view => {
+                 mainActorRef ! MainActor.SelectArtistTuple(artistTuple) 
+               })
+               t
             })
         }
 
