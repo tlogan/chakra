@@ -39,7 +39,7 @@ object ImageSplitLayout {
   def imageLayout(context: Context, image: Drawable): ImageView = {
     val view = new ImageView(context)
     view.setImageDrawable(image)
-    view.setBackgroundColor(WHITE)
+    view.setBackgroundColor(TRANSPARENT)
     view.setLayoutParams(new LLLayoutParams(context.dp(64), context.dp(64)))
     view
   }

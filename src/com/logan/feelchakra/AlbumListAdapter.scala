@@ -66,7 +66,14 @@ object AlbumListAdapter {
             })
           case _ =>
             ImageSplitLayout.createMain(context, album.coverArt, {
-              val v = TextLayout.createTextLayout(context, album.title, trackList.size + " Tracks", time) 
+              val v = new LinearLayout(context)
+              v.setOrientation(VERTICAL)
+              val mainTextView = TextView.createMajor(context, album.title)
+              val secondTextView = TextView.createMinor(context, trackList.size + " Tracks")
+              val thirdTextView = TextView.createMinor(context, time)
+              List(mainTextView, secondTextView, thirdTextView).foreach(textView => {
+                v.addView(textView)
+              })
               v.setLayoutParams(new LLLayoutParams(MATCH_PARENT, context.dp(64)))
               v.setBackgroundColor(DKGRAY)
               v.setOnClick(view => {

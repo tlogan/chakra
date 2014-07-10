@@ -23,28 +23,39 @@ object SlideLayout {
 
     val view = new RelativeLayout(context) with SlideLayout {
       override val trackTextLayout = {
+        val t = new LinearLayout(context)
+        t.setOrientation(VERTICAL)
+        t.addView { 
+          val ll = new LinearLayout(context)
+          ll.setOrientation(HORIZONTAL)
+          val mainTextView = TextView.createMajor(context, track.title)
+          mainTextView.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
+          ll.addView(mainTextView)
 
-        val hl = new LinearLayout(context)
-        hl.setOrientation(HORIZONTAL)
-        hl.addView {
-          val t = TextLayout.createTextLayout(context, track.title, track.artist, track.album.title)
-          t.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
-          t.setBackgroundColor(TRANSPARENT)
-          t
+          futurePosOp match {
+            case Some(pos) =>
+              ll.addView {
+                val tv = new TextView(context)
+                tv.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 1))
+                tv.setText((pos + 1).toString)
+                tv.setTextSize(context.sp(10))
+                tv.setTextColor(WHITE)
+                tv
+              }
+            case None =>
+          }
+
+          ll
         }
-        futurePosOp match {
-          case Some(pos) =>
-            hl.addView {
-              val tv = new TextView(context)
-              tv.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 1))
-              tv.setText((pos + 1).toString)
-              tv.setTextSize(context.sp(10))
-              tv.setTextColor(WHITE)
-              tv
-            }
-          case None =>
-        }
-        hl
+        val secondTextView = TextView.createMinor(context, track.artist)
+        val thirdTextView = TextView.createMinor(context, track.album.title)
+        List(secondTextView, thirdTextView).foreach(textView => {
+          t.addView(textView)
+        })
+
+        t.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
+        t.setBackgroundColor(TRANSPARENT)
+        t
       }
       override val veiledView = SlideLayout.createVeiledView(context)
       override val slideView = HorizontalSlideView.createTrackSlideView(context, track, () => veiledView.getWidth())
@@ -57,6 +68,7 @@ object SlideLayout {
       case None if (current) => BLUE
       case _ => DKGRAY
     }
+
 
     view.slideView.setBackgroundColor(color)
     view

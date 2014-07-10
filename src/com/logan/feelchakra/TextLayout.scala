@@ -31,9 +31,11 @@ object TextLayout {
 
   def addTextViews(view: LinearLayout with TextLayout): Unit = {
     view.setOrientation(VERTICAL)
-    view.addView(view.mainTextView)
-    view.addView(view.secondTextView)
-    view.addView(view.thirdTextView)
+
+    List(view.mainTextView, view.secondTextView, view.thirdTextView).foreach(textView => {
+      view.addView(textView)
+    })
+
   }
 
   def setTexts(
@@ -69,7 +71,11 @@ object TextLayout {
       override val thirdTextView: TextView = TextView.createMinor(context, time)
     }
 
-    TextLayout.addTextViews(v)
+    v.setOrientation(VERTICAL)
+    List(v.mainTextView, v.secondTextView, v.thirdTextView).foreach(textView => {
+      v.addView(textView)
+    })
+
     v.setBackgroundColor(LDKGRAY)
     v.addView {
       new View(context) {
