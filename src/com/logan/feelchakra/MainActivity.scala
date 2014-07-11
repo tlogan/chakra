@@ -51,17 +51,15 @@ class MainActivity extends Activity {
   }
 
   def slide(): Unit = {
-    if (_prev && slideLayout.getX() > -dim.x / 2 ) {
+    if (slideLayout.getX() > -dim.x / 2 ) {
       _xGestureOn = false
       HorizontalSlideView.slideRight(slideLayout)
     } else if (slideLayout.getX() < 3 * -dim.x / 2) {
       _xGestureOn = false
       HorizontalSlideView.slideLeft(slideLayout)
     } else if (slideLayout.getX() > -dim.x) {
-      _xGestureOn = false
       HorizontalSlideView.slideLeft(slideLayout, -dim.x)
     } else if (slideLayout.getX() < -dim.x) {
-      _xGestureOn = false
       HorizontalSlideView.slideRight(slideLayout, -dim.x)
     }
   }
@@ -168,12 +166,16 @@ class MainActivity extends Activity {
             }
           case XMotion =>
             if (_xGestureOn) {
-              if (_prev && velX > 0) {
+              if (_prev && velX > that.dp(96)) {
                 _xGestureOn = false
                 HorizontalSlideView.slideRight(slideLayout)
-              } else if (_next && velX < 0) {
+              } else if (_prev && velX > 0) {
+                HorizontalSlideView.slideLeft(slideLayout, -dim.x)
+              } else if (_next && velX < that.dp(-96)) {
                 _xGestureOn = false
                 HorizontalSlideView.slideLeft(slideLayout)
+              } else if (_next && velX < 0) {
+                HorizontalSlideView.slideRight(slideLayout, -dim.x)
               }
             }
           case NoMotion =>

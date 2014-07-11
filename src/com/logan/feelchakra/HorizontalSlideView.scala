@@ -45,7 +45,7 @@ object HorizontalSlideView {
       .setDuration(Math.abs(right - view.getX().toInt)/view.velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
-          view.onSlideRightEnd()
+          if (view.getX() >= view.right) view.onSlideRightEnd()
         }
       })
   }
@@ -56,7 +56,7 @@ object HorizontalSlideView {
       .setDuration(Math.abs(view.getX().toInt - left)/view.velMs)
       .setListener(new AnimatorListenerAdapter() {
         override def onAnimationEnd(animator: Animator): Unit = {
-          view.onSlideLeftEnd()
+          if (view.getX() <= view.left) view.onSlideLeftEnd()
         }
       })
   }
