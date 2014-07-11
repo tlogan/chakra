@@ -45,7 +45,7 @@ object TrackListFuture {
       case Success(albumIdMap) =>
         database.query (
           AUDIO_URI,
-          null, null, null, null
+          null, null, null, TITLE + " ASC" 
         ) onComplete {
           case Success(table) => { 
             
