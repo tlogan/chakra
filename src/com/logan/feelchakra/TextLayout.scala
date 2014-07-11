@@ -10,6 +10,10 @@ trait TextLayout {
   val secondTextView: TextView
   val thirdTextView: TextView
 
+  val fourthTextView: TextView
+  val fifthTextView: TextView
+  val sixthTextView: TextView
+
 }
 
 object TextLayout {
@@ -18,25 +22,42 @@ object TextLayout {
       context: Context, 
       mainText: String, 
       secondText: String, 
-      thirdText: String
+      thirdText: String,
+      fourthText: String,
+      fifthText: String,
+      sixthText: String
   ): LinearLayout with TextLayout = {
     val v = new LinearLayout(context) with TextLayout {
       override val mainTextView: TextView = TextView.createMajor(context, mainText)
       override val secondTextView: TextView = TextView.createMinor(context, secondText)
       override val thirdTextView: TextView = TextView.createMinor(context, thirdText)
+
+      override val fourthTextView: TextView = TextView.createMajor(context, fourthText)
+      override val fifthTextView: TextView = TextView.createMinor(context, fifthText)
+      override val sixthTextView: TextView = TextView.createMinor(context, sixthText)
     }
-    TextLayout.addTextViews(v)
+
+    v.setOrientation(VERTICAL)
+
+    List(
+      (v.mainTextView -> v.fourthTextView), 
+      (v.secondTextView -> v.fifthTextView), 
+      (v.thirdTextView -> v.sixthTextView)
+    ).foreach(pair => {
+      v.addView {
+        val l = new LinearLayout(context)
+        l.setOrientation(HORIZONTAL)
+        pair._1.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
+        l.addView(pair._1)
+        pair._2.setLayoutParams(new LLLayoutParams(context.dp(48), MATCH_PARENT))
+        l.addView(pair._2)
+        l
+      }
+    })
+
     v
   }
 
-  def addTextViews(view: LinearLayout with TextLayout): Unit = {
-    view.setOrientation(VERTICAL)
-
-    List(view.mainTextView, view.secondTextView, view.thirdTextView).foreach(textView => {
-      view.addView(textView)
-    })
-
-  }
 
   def setTexts(
       textLayout: LinearLayout with TextLayout, 

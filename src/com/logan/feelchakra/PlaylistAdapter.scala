@@ -67,13 +67,13 @@ object PlaylistAdapter {
         val hl = new LinearLayout(context)
         hl.setOrientation(HORIZONTAL)
         hl.addView {
-          val t = TextLayout.createTextLayout(context, track.title, track.album.title, track.artist)
+          val t = TextLayout.createTextLayout(context, track.title, track.album.title, track.artist, "", "", "")
           t.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
           t
         }
         hl.addView {
           val tv = new TextView(context)
-          tv.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 1))
+          tv.setLayoutParams(new LLLayoutParams(context.dp(32), MATCH_PARENT))
           val playOrder = if (isPast(position)) {
             (pastIndex(position) - _pastTrackList.size).toString
           } else {

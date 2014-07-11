@@ -18,7 +18,7 @@ object PlayerFragment {
       override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
 
         def createTrackTextLayout() = {
-          val t = TextLayout.createTextLayout(getActivity(), "", "", "") 
+          val t = TextLayout.createTextLayout(getActivity(), "", "", "", "", "time", "time") 
           t.setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
           t
         }
