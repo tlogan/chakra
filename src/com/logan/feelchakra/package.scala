@@ -43,6 +43,9 @@ package com.logan {
     val RichMediaPlayer = guava.scalaandroid.RichMediaPlayer
     type RichMediaPlayer = guava.scalaandroid.RichMediaPlayer
 
+    type ValueAnimator = android.animation.ValueAnimator
+    type AnimatorUpdateListener = android.animation.ValueAnimator.AnimatorUpdateListener
+
     type Animator = android.animation.Animator
     type AnimatorListenerAdapter = android.animation.AnimatorListenerAdapter
 
@@ -291,19 +294,11 @@ package com.logan {
       })
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def ms2MinSec(ms: Long): String = {
+      val minutes = ms / 60000 
+      val seconds = (ms/1000) % 60
+      f"$minutes%02d:$seconds%02d"
+    }
 
   }
 }

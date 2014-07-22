@@ -27,6 +27,7 @@ object MainActor {
   case class SetPresentTrackFromPastIndex(index: Int) 
   case class SetPresentTrackFromFutureIndex(index: Int) 
 
+  case object FlipPlaying
   case object FlipPlayer
   case class SetPlayerOpen(playerOpen: Boolean) 
   case class AddStation(station: Station)
@@ -146,6 +147,11 @@ class MainActor extends Actor {
 
     case Discover => 
       stationManager = stationManager.setDiscovering(true)
+
+
+    case FlipPlaying => 
+      val playing = !localManager.playing
+      localManager = localManager.setPlaying(playing)
 
     case FlipPlayer =>
       localManager = localManager.flipPlayer()

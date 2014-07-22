@@ -10,8 +10,8 @@ import RichContext.context2RichContext
 
 object MainActivity {
    
-   val selectionFrameId = 23;
-   val playerFrameId = 56;
+  val selectionFrameId = 23;
+  val playerFrameId = 56;
 
 }
 
@@ -70,7 +70,7 @@ class MainActivity extends Activity {
 
   var _playerOpen: Boolean = false
 
-  lazy val bottomHeight = this.dp(medDp) + 2 * this.dp(smallDp)
+  lazy val touchAreaHeight = this.dp(medDp) + 2 * this.dp(smallDp)
 
   lazy val selectionFrame = new FrameLayout(that) {
     setId(MainActivity.selectionFrameId)
@@ -82,7 +82,7 @@ class MainActivity extends Activity {
     
     override val velMs = 2
     override val upY = 0
-    override lazy val downY = contentView.getBottom() - bottomHeight  
+    override lazy val downY = contentView.getBottom() - touchAreaHeight  
     override def onSlideUpEnd() = {
       mainActorRef ! MainActor.SetPlayerOpen(true)
     }
@@ -117,12 +117,17 @@ class MainActivity extends Activity {
         val touchStartY = e.getY().toInt
         if (!_playerOpen && touchStartY > playerFrame.downY) {
           true
-        } else if (_playerOpen && touchStartY < 100) {
+        } else if (_playerOpen && touchStartY < (playerFrame.upY + touchAreaHeight)) {
           true
         } else {
           false
         }
 
+      }
+
+      override def onSingleTapUp(e: MotionEvent): Boolean = {
+        mainActorRef ! MainActor.FlipPlaying
+        true
       }
 
       override def onScroll(e1: MotionEvent, e2: MotionEvent, scrollX: Float, scrollY: Float): Boolean = {
@@ -223,7 +228,7 @@ class MainActivity extends Activity {
     })
 
     this.addOnLayoutChange((view, left, top, right, bottom, ol, ot, or, ob, remove) => {
-      selectionFrame.setBottom(bottom - bottomHeight)
+      selectionFrame.setBottom(bottom - touchAreaHeight)
       playerFrame.setVisibility(VISIBLE)
     })
 
@@ -329,17 +334,14 @@ class MainActivity extends Activity {
 
     val transaction = getFragmentManager().beginTransaction()
 
-    selection match {
-      case ArtistSelection => 
-        transaction.replace(selectionFrame.getId(), artistSelectionFragment)
-      case AlbumSelection => 
-        transaction.replace(selectionFrame.getId(), albumSelectionFragment)
-      case TrackSelection => 
-        transaction.replace(selectionFrame.getId(), trackSelectionFragment)
-      case StationSelection =>
-        transaction.replace(selectionFrame.getId(), stationSelectionFragment)
+    val frag = selection match {
+      case ArtistSelection => artistSelectionFragment
+      case AlbumSelection => albumSelectionFragment
+      case TrackSelection => trackSelectionFragment
+      case StationSelection => stationSelectionFragment
     }
 
+    transaction.replace(selectionFrame.getId(), frag)
     transaction.commit()
     
   }

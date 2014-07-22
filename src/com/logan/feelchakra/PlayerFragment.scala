@@ -18,7 +18,7 @@ object PlayerFragment {
       override def onCreateView(inflater: LayoutInflater, viewGroup: ViewGroup, savedState: Bundle): View = {
 
         def createTrackTextLayout() = {
-          val t = TextLayout.createTextLayout(getActivity(), "", "", "", "", "time", "time") 
+          val t = TextLayout.createTextLayout(getActivity(), "", "", "", "", "", "") 
           t.setLayoutParams(new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT))
           t
         }
@@ -105,33 +105,30 @@ object PlayerFragment {
           )
           lv
         }
+         
+        var _trackDuration: Long = -1
+        var _playing = false 
+        var _startPos: Long = 0 
+        var _startTime: Long = 0 
+
+        var _playState: PlayState = NotPlaying
+
+        var _stationConnection: StationConnection = StationDisconnected
 
 
         def stopProgress(): Unit = {
           frontBar.animate().cancel()
         }
 
-        def animateProgress(duration: Long): Unit = {
-          require(duration >= 0)
+        def animateProgress(): Unit = {
+          assert(_trackDuration >= _startPos)
 
           val width = playerProgressView.getWidth()
           frontBar.animate()
             .x(width)
-            .setDuration(duration)
-            .setListener(new AnimatorListenerAdapter() {
-              override def onAnimationEnd(animator: Animator): Unit = {
-                frontBar.setX(0) 
-              }
-            })
+            .setDuration(_trackDuration - _startPos)
         }
 
-        var _trackDuration: Long = -1
-        var _playing = false 
-        var _startPos = 0 
-
-        var _playState: PlayState = NotPlaying
-
-        var _stationConnection: StationConnection = StationDisconnected
 
         def withAdapter(f: PlaylistAdapter => Unit): Unit = {
           convertAdapter(playlistView.getAdapter(), f)
@@ -173,7 +170,7 @@ object PlayerFragment {
                       frontBar.setX(
                         (_startPos + (Platform.currentTime - startTime).toInt) * width/_trackDuration
                       ) 
-                      animateProgress(_trackDuration)
+                      animateProgress()
                     } else {
                       stopProgress()
                     }
@@ -193,7 +190,7 @@ object PlayerFragment {
                           frontBar.setX(
                             (_startPos + (Platform.currentTime - startTime).toInt) * width/_trackDuration
                           ) 
-                          animateProgress(_trackDuration)
+                          animateProgress()
                         } else {
                           stopProgress()
                         }
@@ -210,15 +207,18 @@ object PlayerFragment {
               case OnLocalPlayingChanged(playing) if _stationConnection == StationDisconnected =>
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing
-                if (_trackDuration >= 0 && _playing) {
-                  animateProgress(_trackDuration)
+                if (_playing) {
+                  animateProgress()
                 } else {
+                  _startPos = _startPos + Platform.currentTime - _startTime
+                  _startTime = Platform.currentTime
                   stopProgress()
                 }
                 true
               case OnLocalStartPosChanged(startPos) if _stationConnection == StationDisconnected =>
                 Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
                 _startPos = startPos 
+                _startTime = Platform.currentTime
                 if (_trackDuration > -1) {
                   val width = playerProgressView.getWidth()
                   frontBar.setX(startPos * width/_trackDuration)
@@ -230,9 +230,11 @@ object PlayerFragment {
                 })
                 list.lastOption match {
                   case Some(track) =>
+                    prevTextLayout.sixthTextView.setText(ms2MinSec(track.duration))
                     TextLayout.setTexts(prevTextLayout, track.title, track.artist, track.album.title)
                     prevLayout.imageLayout.setImageDrawable(track.album.coverArt)
                   case _ => 
+                    prevTextLayout.sixthTextView.setText("")
                     TextLayout.setTexts(prevTextLayout, "", "", "")
                     prevLayout.imageLayout.setImageDrawable(null)
                 }
@@ -242,13 +244,16 @@ object PlayerFragment {
                   case Some(track) =>
                     _trackDuration = track.duration
                     if (_trackDuration >= 0 && _playing) {
-                      animateProgress(_trackDuration)
+                      animateProgress()
                     } else {
                       stopProgress()
                     }
+                    
+                    playerTextLayout.sixthTextView.setText(ms2MinSec(track.duration))
                     TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album.title)
                     playerLayout.imageLayout.setImageDrawable(track.album.coverArt)
                   case _ => 
+                    playerTextLayout.sixthTextView.setText("")
                     TextLayout.setTexts(playerTextLayout, "", "", "")
                     playerLayout.imageLayout.setImageDrawable(null)
                 }
@@ -259,9 +264,11 @@ object PlayerFragment {
                 })
                 list.headOption match {
                   case Some(track) =>
+                    nextTextLayout.sixthTextView.setText(ms2MinSec(track.duration))
                     TextLayout.setTexts(nextTextLayout, track.title, track.artist, track.album.title)
                     nextLayout.imageLayout.setImageDrawable(track.album.coverArt)
                   case _ => 
+                    nextTextLayout.sixthTextView.setText("")
                     TextLayout.setTexts(nextTextLayout, "", "", "")
                     nextLayout.imageLayout.setImageDrawable(null)
                 }
