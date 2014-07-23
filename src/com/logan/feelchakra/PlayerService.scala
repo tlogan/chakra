@@ -39,10 +39,20 @@ class PlayerService extends Service {
   private def playOrPause(): Unit = {
     if (_playing != _mediaPlayer.isPlaying()) {
       if (_playing) { 
+        val pos = _mediaPlayer.getCurrentPosition()
+        val time = Platform.currentTime
+
+        //the following seekTo call to the current position 
+        //keeps the local player synchronized with the listeners' players
+        //which call seekTo before starting.
+        //perhaps the position after seeking to the current position is different
+        //because the queried position is a rounded.
+        _mediaPlayer.seekTo(pos)
         _mediaPlayer.start() 
-        mainActorRef ! MainActor.WriteListenerPlayState(Playing(Platform.currentTime))
+        mainActorRef ! MainActor.WriteListenerPlayState(Playing(pos, time))
       } else {
         _mediaPlayer.pause()
+        mainActorRef ! MainActor.WriteListenerPlayState(NotPlaying)
       }
     }
   }
@@ -102,11 +112,15 @@ class PlayerService extends Service {
           _playState = playState
           if (_prepared) {
             _playState match {
-              case NotPlaying => _mediaPlayer.pause()
-              case Playing(startTime) => 
-                 Log.d("chakra", "on remote playstate current time: " + Platform.currentTime)
-                 Log.d("chakra", "on remote playstate starttime: " + startTime)
-                _mediaPlayer.seekTo(_startPos + (Platform.currentTime - startTime).toInt)
+              case NotPlaying => 
+                _mediaPlayer.pause()
+              case Playing(startPos, startTime) => 
+                Log.d("chakra", "on remote playstate current time: " + Platform.currentTime)
+                Log.d("chakra", "on remote playstate starttime: " + startTime)
+                Log.d("chakra", "on remote playstate startPos: " + startPos)
+                Log.d("chakra", "mp currentPos: " + _mediaPlayer.getCurrentPosition())
+                _mediaPlayer.seekTo((startPos + Platform.currentTime - startTime).toInt)
+                Log.d("chakra", "mp currentPos post seek: " + _mediaPlayer.getCurrentPosition())
                 _mediaPlayer.start() 
             }
           }
@@ -354,7 +368,6 @@ class PlayerService extends Service {
       if (_playing && !_mediaPlayer.isPlaying()) { 
         seek()
         playOrPause()
-        mainActorRef ! MainActor.WriteListenerPlayState(Playing(Platform.currentTime))
       }
     })
 
@@ -374,10 +387,13 @@ class PlayerService extends Service {
       _prepared = true
       _playState match {
         case NotPlaying => _mediaPlayer.pause()
-        case Playing(startTime) => 
+        case Playing(startPos, startTime) => 
            Log.d("chakra", "on remote playstate current time: " + Platform.currentTime)
            Log.d("chakra", "on remote playstate starttime: " + startTime)
-          _mediaPlayer.seekTo(_startPos + (Platform.currentTime - startTime).toInt)
+           Log.d("chakra", "on remote playstate startPos: " + startPos)
+           Log.d("chakra", "mp currentPos: " + _mediaPlayer.getCurrentPosition())
+          _mediaPlayer.seekTo((startPos + Platform.currentTime - startTime).toInt)
+           Log.d("chakra", "mp currentPos post seek: " + _mediaPlayer.getCurrentPosition())
           _mediaPlayer.start() 
       }
     })

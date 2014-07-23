@@ -208,12 +208,14 @@ object Runnable {
     @throws(classOf[IOException])
     def readPlayState(): Unit = {
       Log.d("chakra", "reading playState ")
-      val foreignStartTime = dataInput.readLong()
-      val playState = if (foreignStartTime > 0) {
+      val playingInt = dataInput.readInt()
+      val playState = if (playingInt == 1) {
+        val startPos = dataInput.readInt()
+        val foreignStartTime = dataInput.readLong()
         val localStartTime = foreignStartTime + timeDiff
 
         Log.d("chakra", "reading playState with timeDiff: " + timeDiff)
-        Playing(localStartTime)
+        Playing(startPos, localStartTime)
       } else {
         NotPlaying
       }

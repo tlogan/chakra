@@ -78,11 +78,14 @@ class ListenerWriter extends Actor {
           dataOutput.flush()
 
           //write data
-          val startTime = playState match {
-            case Playing(startTime) => startTime
-            case NotPlaying => 0
+          playState match {
+            case Playing(startPos, startTime) => 
+              dataOutput.writeInt(1)
+              dataOutput.writeInt(startPos)
+              dataOutput.writeLong(startTime)
+            case NotPlaying => 
+              dataOutput.writeInt(0)
           }
-          dataOutput.writeLong(startTime)
           dataOutput.flush()
 
         } catch {

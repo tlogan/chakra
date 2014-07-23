@@ -16,9 +16,7 @@ object AlbumLayout {
       duration + track.duration
     })
 
-    val minutes = totalDuration / 60000 
-    val seconds = (totalDuration/1000) % 60
-    val time = f"$minutes%02d:$seconds%02d"
+    val time = ms2MinSec(totalDuration)
 
     val v = new LinearLayout(context)
     val mainTextView = TextView.createMajor(context, album)

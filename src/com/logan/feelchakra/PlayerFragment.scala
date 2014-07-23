@@ -106,11 +106,14 @@ object PlayerFragment {
           lv
         }
          
-        var _trackDuration: Long = -1
+        var _localTrackDuration: Int = -1
+        var _localStartPos: Int = 0 
+        var _localStartTime: Long = 0 
         var _playing = false 
-        var _startPos: Long = 0 
-        var _startTime: Long = 0 
 
+
+
+        var _stationTrackDuration: Int = -1
         var _playState: PlayState = NotPlaying
 
         var _stationConnection: StationConnection = StationDisconnected
@@ -120,13 +123,13 @@ object PlayerFragment {
           frontBar.animate().cancel()
         }
 
-        def animateProgress(): Unit = {
-          assert(_trackDuration >= _startPos)
+        def animateProgress(trackDuration: Int, startPos: Int): Unit = {
+          require(trackDuration >= startPos)
 
           val width = playerProgressView.getWidth()
           frontBar.animate()
             .x(width)
-            .setDuration(_trackDuration - _startPos)
+            .setDuration(trackDuration - startPos)
         }
 
 
@@ -164,37 +167,29 @@ object PlayerFragment {
                 Log.d("chakra", "OnStationPlayStateChanged: " + playState)
                 _playState = playState
                 playState match {
-                  case Playing(startTime) => 
-                    if (_trackDuration >= 0) {
-                      val width = playerProgressView.getWidth()
-                      frontBar.setX(
-                        (_startPos + (Platform.currentTime - startTime).toInt) * width/_trackDuration
-                      ) 
-                      animateProgress()
-                    } else {
-                      stopProgress()
-                    }
+                  case Playing(startPos, startTime) if (_stationTrackDuration >= 0) =>
+                    val width = playerProgressView.getWidth()
+                    val adjStartPos = (startPos + Platform.currentTime - startTime).toInt
+                    animateProgress(_stationTrackDuration, adjStartPos)
                   case _ =>
+                    Log.d("chakra", "trying to stop the animation")
+                    stopProgress()
+                  
                 }
-
                 true
 
               case OnStationTrackOpChanged(trackOption) => 
                 trackOption match {
                   case Some(track) =>
-                    _trackDuration = track.duration
+                    _stationTrackDuration = track.duration
                     _playState match {
-                      case Playing(startTime) => 
-                        if (_trackDuration >= 0) {
-                          val width = playerProgressView.getWidth()
-                          frontBar.setX(
-                            (_startPos + (Platform.currentTime - startTime).toInt) * width/_trackDuration
-                          ) 
-                          animateProgress()
-                        } else {
-                          stopProgress()
-                        }
+                      case Playing(startPos, startTime) if (_stationTrackDuration >= 0) =>
+                        val width = playerProgressView.getWidth()
+                        val adjStartPos = (startPos + Platform.currentTime - startTime).toInt
+                        frontBar.setX(adjStartPos * width/_stationTrackDuration) 
+                        animateProgress(_stationTrackDuration, adjStartPos)
                       case _ =>
+                        stopProgress()
                     }
                     TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album.title)
                     playerLayout.imageLayout.setImageDrawable(track.album.coverArt)
@@ -208,20 +203,20 @@ object PlayerFragment {
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing
                 if (_playing) {
-                  animateProgress()
+                  animateProgress(_localTrackDuration, _localStartPos)
                 } else {
-                  _startPos = _startPos + Platform.currentTime - _startTime
-                  _startTime = Platform.currentTime
+                  _localStartPos = (_localStartPos + Platform.currentTime - _localStartTime).toInt
+                  _localStartTime = Platform.currentTime
                   stopProgress()
                 }
                 true
               case OnLocalStartPosChanged(startPos) if _stationConnection == StationDisconnected =>
                 Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
-                _startPos = startPos 
-                _startTime = Platform.currentTime
-                if (_trackDuration > -1) {
+                _localStartPos = startPos 
+                _localStartTime = Platform.currentTime
+                if (_localTrackDuration > -1) {
                   val width = playerProgressView.getWidth()
-                  frontBar.setX(startPos * width/_trackDuration)
+                  frontBar.setX(startPos * width/_localTrackDuration)
                 }
                 true
               case OnPastTrackListChanged(list) if _stationConnection == StationDisconnected => 
@@ -242,9 +237,9 @@ object PlayerFragment {
               case OnPresentTrackOptionChanged(trackOption) if _stationConnection == StationDisconnected => 
                 trackOption match {
                   case Some(track) =>
-                    _trackDuration = track.duration
-                    if (_trackDuration >= 0 && _playing) {
-                      animateProgress()
+                    _localTrackDuration = track.duration
+                    if (_localTrackDuration >= 0 && _playing) {
+                      animateProgress(_localTrackDuration, _localStartPos)
                     } else {
                       stopProgress()
                     }

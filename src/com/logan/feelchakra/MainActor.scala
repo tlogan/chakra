@@ -27,6 +27,7 @@ object MainActor {
   case class SetPresentTrackFromPastIndex(index: Int) 
   case class SetPresentTrackFromFutureIndex(index: Int) 
 
+  case class SetStartPos(startPos: Int)
   case object FlipPlaying
   case object FlipPlayer
   case class SetPlayerOpen(playerOpen: Boolean) 
@@ -148,6 +149,8 @@ class MainActor extends Actor {
     case Discover => 
       stationManager = stationManager.setDiscovering(true)
 
+    case SetStartPos(startPos) =>
+      localManager = localManager.setStartPos(startPos)
 
     case FlipPlaying => 
       val playing = !localManager.playing
@@ -269,6 +272,7 @@ class MainActor extends Actor {
           val remoteAddress = 
             new InetSocketAddress(remoteHost, station.record.get("port").toInt)
           clientRef.!(Client.Connect(remoteAddress))
+          Log.d("chakra", "staiton requested: " + remoteAddress)
         case StationConnected(station) =>
           Log.d("chakra", "Can't connect when station is already connected")
         case StationDisconnected => 
