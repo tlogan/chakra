@@ -20,9 +20,26 @@ object ListFragment {
         val listView = createListView(this.getActivity())
         mainActorRef ! MainActor.Subscribe(this.toString, createHandler(listView)) 
 
+
         val layout = new LinearLayout(this.getActivity())
         layout.setOrientation(VERTICAL)
         layout.addView(listView)
+
+        val handlerTwo = new Handler(new HandlerCallback() {
+          override def handleMessage(msg: Message): Boolean = {
+
+            import UI._
+            msg.obj match {
+              case OnModHeightChanged(height) => 
+                listView.setLayoutParams(new LLLayoutParams(MATCH_PARENT, height))
+                true
+              case _ => false
+            }
+          }
+        })
+
+        mainActorRef ! MainActor.Subscribe(this.toString + "2", handlerTwo) 
+
         layout
 
       }
@@ -30,7 +47,9 @@ object ListFragment {
       override def onDestroy(): Unit =  {
         super.onDestroy()
         mainActorRef ! MainActor.Unsubscribe(this.toString)
+        mainActorRef ! MainActor.Unsubscribe(this.toString + "2")
       }
+
 
     }
 

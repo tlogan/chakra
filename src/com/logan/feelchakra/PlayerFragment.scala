@@ -191,9 +191,11 @@ object PlayerFragment {
                       case _ =>
                         stopProgress()
                     }
+                    playerTextLayout.sixthTextView.setText(ms2MinSec(track.duration))
                     TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album.title)
                     playerLayout.imageLayout.setImageDrawable(track.album.coverArt)
                   case _ => 
+                    playerTextLayout.sixthTextView.setText("")
                     TextLayout.setTexts(playerTextLayout, "", "", "")
                     playerLayout.imageLayout.setImageDrawable(null)
                 }

@@ -15,6 +15,8 @@ object MainActor {
   case class SetDatabase(database: Database) 
   case class SetCacheDir(cacheDir: File) 
 
+  case class SetModHeight(height: Int)
+
   case class SetTrackList(trackList: List[Track]) 
   case class SetSelection(selection: Selection) 
 
@@ -70,6 +72,8 @@ class MainActor extends Actor {
   private var database: Database = null
   private var cacheDir: File = null
   private var uis: Map[String, Handler] = new HashMap[String, Handler]()
+
+  private var _modHeight: Int = 0
   private var selectionManager: SelectionManager = new SelectionManager
   private var localManager: LocalManager = new LocalManager 
   private var stationManager: StationManager = new StationManager
@@ -87,7 +91,7 @@ class MainActor extends Actor {
   def receive = {
 
     case NotifyHandlers(onChange) =>
-      notifyHandlers(uis, onChange)
+      notifyHandlers(onChange)
 
     case Subscribe(key, ui) =>
       networkProfile.localAddressOp match {
@@ -98,6 +102,8 @@ class MainActor extends Actor {
       }
 
       List(
+
+        OnModHeightChanged(_modHeight),
         OnSelectionListChanged(selectionManager.list),
         OnSelectionChanged(selectionManager.current),
         OnPlayerOpenChanged(localManager.playerOpen),
@@ -138,6 +144,10 @@ class MainActor extends Actor {
 
     case SetCacheDir(cacheDir) => 
       this.cacheDir = cacheDir
+
+    case SetModHeight(height) =>
+      _modHeight = height
+      notifyHandlers(UI.OnModHeightChanged(_modHeight))
 
     case SetTrackList(trackList) =>
       localManager = localManager.setTrackList(trackList)
@@ -371,7 +381,7 @@ class MainActor extends Actor {
   }
 
 
-  private def notifyHandlers(uis: Map[String, Handler], response: OnChange): Unit = {
+  private def notifyHandlers(response: OnChange): Unit = {
     uis.foreach(pair => {
       val ui = pair._2
       ui.obtainMessage(0, response).sendToTarget()

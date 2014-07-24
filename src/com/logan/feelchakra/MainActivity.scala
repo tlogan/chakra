@@ -74,6 +74,9 @@ class MainActivity extends Activity {
 
   lazy val selectionFrame = new FrameLayout(that) {
     setId(MainActivity.selectionFrameId)
+    setLayoutParams {
+      new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT)
+    }
   } 
 
   private var _xGestureOn = true
@@ -90,7 +93,6 @@ class MainActivity extends Activity {
       mainActorRef ! MainActor.SetPlayerOpen(false)
     }
 
-    setVisibility(GONE)
     setId(MainActivity.playerFrameId)
     setLayoutParams {
       new RLLayoutParams(MATCH_PARENT, MATCH_PARENT)
@@ -228,8 +230,7 @@ class MainActivity extends Activity {
     })
 
     this.addOnLayoutChange((view, left, top, right, bottom, ol, ot, or, ob, remove) => {
-      selectionFrame.setBottom(bottom - touchAreaHeight)
-      playerFrame.setVisibility(VISIBLE)
+      mainActorRef ! MainActor.SetModHeight(bottom - touchAreaHeight)
     })
 
   }

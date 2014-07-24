@@ -58,7 +58,7 @@ object AlbumLayout {
         l.addView {
           val v = new TextView(context)
           v.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
-          v.setText(trackNum + ". " + track.title)
+          v.setText(track.title)
           v.setTextSize(context.sp(10))
           v.setTextColor(WHITE)
           v

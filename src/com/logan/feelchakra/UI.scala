@@ -3,6 +3,9 @@ package com.logan.feelchakra
 object UI {
 
   sealed trait OnChange 
+
+  case class OnModHeightChanged(height: Int) extends OnChange
+
   case class OnSelectionListChanged(selectionList: List[Selection]) extends OnChange
   case class OnPlayerOpenChanged(playerOpen: Boolean) extends OnChange
   case class OnSelectionChanged(selection: Selection) extends OnChange
