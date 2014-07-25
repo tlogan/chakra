@@ -204,7 +204,7 @@ object PlayerFragment {
               case OnLocalPlayingChanged(playing) if _stationConnection == StationDisconnected =>
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing
-                if (_playing) {
+                if (_playing && _localTrackDuration >= _localStartPos) {
                   animateProgress(_localTrackDuration, _localStartPos)
                 } else {
                   _localStartPos = (_localStartPos + Platform.currentTime - _localStartTime).toInt
@@ -240,7 +240,7 @@ object PlayerFragment {
                 trackOption match {
                   case Some(track) =>
                     _localTrackDuration = track.duration
-                    if (_localTrackDuration >= 0 && _playing) {
+                    if (_playing && _localTrackDuration >= _localStartPos) {
                       animateProgress(_localTrackDuration, _localStartPos)
                     } else {
                       stopProgress()

@@ -63,30 +63,16 @@ object PlaylistAdapter {
 
         val track = getItem(position)
         val color = if (position < _pastTrackList.size) DKGRAY else GRAY 
-
-        val hl = new LinearLayout(context)
-        hl.setOrientation(HORIZONTAL)
-        hl.addView {
-          val t = TextLayout.createTextLayout(context, track.title, track.album.title, track.artist, "", "", "")
-          t.setLayoutParams(new LLLayoutParams(0, MATCH_PARENT, 20))
-          t
-        }
-        hl.addView {
-          val tv = new TextView(context)
-          tv.setLayoutParams(new LLLayoutParams(context.dp(32), MATCH_PARENT))
-          val playOrder = if (isPast(position)) {
-            (pastIndex(position) - _pastTrackList.size).toString
-          } else {
-            "+" + (futureIndex(position) + 1)
-          }
-          tv.setText(playOrder)
-          tv.setTextSize(context.sp(10))
-          tv.setTextColor(WHITE)
-          tv
+        val playOrder = if (isPast(position)) {
+          (pastIndex(position) - _pastTrackList.size).toString
+        } else {
+          "+" + (futureIndex(position) + 1)
         }
 
-        val layout = ImageSplitLayout.create(context, track.album.coverArt, hl)
-        layout.setBackgroundColor(color)
+        val t = TextLayout.createTextLayout(context, track.title, track.album.title, track.artist, playOrder, "", "")
+        t.setBackgroundColor(color)
+
+        val layout = ImageSplitLayout.create(context, track.album.coverArt, t)
         layout
 
       }

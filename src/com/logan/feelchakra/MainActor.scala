@@ -154,7 +154,6 @@ class MainActor extends Actor {
 
     case SetSelection(selection) => 
       selectionManager = selectionManager.setCurrent(selection)
-      localManager = localManager.setPlayerOpen(false)
 
     case Discover => 
       stationManager = stationManager.setDiscovering(true)

@@ -19,7 +19,7 @@ class MainActivity extends Activity {
 
   private val that = this
 
-  lazy val originalBottom = contentView.getBottom() 
+
 
   private val albumSelectionFragment =  AlbumSelectionFragment.create()
   private val artistSelectionFragment =  ArtistSelectionFragment.create()
@@ -27,6 +27,21 @@ class MainActivity extends Activity {
   private val stationSelectionFragment = StationSelectionFragment.create()
 
   private lazy val dim = dimension(this)
+
+  private def resourceDim(stringId: String) = {
+
+    val resourceId = getResources().getIdentifier(stringId, "dimen", "android")
+    if (resourceId > 0) {
+      getResources().getDimensionPixelSize(resourceId);
+    } else {
+      0
+    } 
+  }
+
+  lazy val statusBarHeight = resourceDim("status_bar_height") 
+  lazy val topAreaHeight = this.dp(medDp)
+  lazy val touchAreaHeight = this.dp(medDp) + 2 * this.dp(smallDp)
+  lazy val contentHeight =  dim.y - statusBarHeight - topAreaHeight - touchAreaHeight
 
   private lazy val slideLayout = {
     val sl = new LinearLayout(this) with HorizontalSlideView {
@@ -66,26 +81,48 @@ class MainActivity extends Activity {
 
   private lazy val playerFragment = PlayerFragment.create(slideLayout)
 
-  private var menu: Menu = _ 
-
   var _playerOpen: Boolean = false
+  var _selectionMap: Map[Selection, TextView] = new HashMap()
+  var _selectionOp: Option[Selection] = None  
 
-  lazy val touchAreaHeight = this.dp(medDp) + 2 * this.dp(smallDp)
 
-  lazy val selectionFrame = new FrameLayout(that) {
-    setId(MainActivity.selectionFrameId)
+  private def navLayout(): LinearLayout = {
+    val ll = new LinearLayout(that)
+    ll.setBackgroundColor(BLACK)
+    ll.setLayoutParams {
+      new RLLayoutParams(MATCH_PARENT, topAreaHeight)
+    }
+    ll.setGravity(CENTER)
+    ll
+  }
+
+  lazy val selectionNavLayout = navLayout()
+  lazy val queueNavLayout = navLayout()
+
+  lazy val navFrame = new FrameLayout(that) {
     setLayoutParams {
       new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT)
     }
   } 
+
+
+  lazy val selectionFrame = new FrameLayout(that) {
+    setId(MainActivity.selectionFrameId)
+    setBackgroundColor(WHITE)
+    setY(topAreaHeight)
+    setLayoutParams {
+      new RLLayoutParams(MATCH_PARENT, WRAP_CONTENT)
+    }
+  } 
+
 
   private var _xGestureOn = true
 
   lazy val playerFrame = new FrameLayout(that) with VerticalSlideView {
     
     override val velMs = 2
-    override val upY = 0
-    override lazy val downY = contentView.getBottom() - touchAreaHeight  
+    override val upY = topAreaHeight
+    override lazy val downY = dim.y - statusBarHeight - touchAreaHeight
     override def onSlideUpEnd() = {
       mainActorRef ! MainActor.SetPlayerOpen(true)
     }
@@ -94,6 +131,7 @@ class MainActivity extends Activity {
     }
 
     setId(MainActivity.playerFrameId)
+    setBackgroundColor(WHITE)
     setLayoutParams {
       new RLLayoutParams(MATCH_PARENT, MATCH_PARENT)
     }
@@ -119,7 +157,7 @@ class MainActivity extends Activity {
         val touchStartY = e.getY().toInt
         if (!_playerOpen && touchStartY > playerFrame.downY) {
           true
-        } else if (_playerOpen && touchStartY < (playerFrame.upY + touchAreaHeight)) {
+        } else if (_playerOpen && touchStartY > playerFrame.upY && touchStartY < (playerFrame.upY + touchAreaHeight)) {
           true
         } else {
           false
@@ -138,7 +176,7 @@ class MainActivity extends Activity {
 
         if (motion == YMotion || (motion == NoMotion && Math.abs(totalDispY) > Math.abs(totalDispX))) {
           motion = YMotion
-          val offset = if (_playerOpen) totalDispY else totalDispY + playerFrame.downY 
+          val offset = if (_playerOpen) totalDispY  + playerFrame.upY else totalDispY + playerFrame.downY 
           if (totalDispY < 0) {
             VerticalSlideView.moveUp(playerFrame, offset)
           } else {
@@ -229,51 +267,7 @@ class MainActivity extends Activity {
 
     })
 
-    this.addOnLayoutChange((view, left, top, right, bottom, ol, ot, or, ob, remove) => {
-      mainActorRef ! MainActor.SetModHeight(bottom - touchAreaHeight)
-    })
-
   }
-
-  override def onCreate(savedInstanceState: Bundle): Unit = {
-
-    super.onCreate(savedInstanceState)
-    getActionBar().hide()
-    getActionBar().setDisplayShowHomeEnabled(false)
-    getActionBar().setDisplayShowTitleEnabled(false)
-    setContentView(contentView)
-
-    contentView.addView(selectionFrame)
-    contentView.addView(playerFrame)
-    contentView.bringChildToFront(playerFrame)
-
-    val playerFragTrans = getFragmentManager().beginTransaction()
-    playerFragTrans.replace(playerFrame.getId(), playerFragment).commit()
-
-    val playerServiceIntent = new Intent(this, classOf[PlayerService])
-    startService(playerServiceIntent);
-
-
-  }
-
-  override def onCreateOptionsMenu(menu: Menu): Boolean  = {
-    this.menu = menu
-    mainActorRef ! MainActor.SetDatabase(new Database(this))
-    mainActorRef ! MainActor.SetCacheDir(getCacheDir())
-    mainActorRef ! MainActor.Subscribe(this.toString, handler)
-    getActionBar().show()
-    super.onCreateOptionsMenu(menu)
-  }
-
-  override def onDestroy(): Unit = {
-    super.onDestroy()
-    val playerServiceIntent = new Intent(this, classOf[PlayerService])
-    stopService(playerServiceIntent);
-    mainActorRef ! MainActor.Unsubscribe(this.toString)
-  }
-
-  private var _prev = false
-  private var _next = false
 
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
@@ -287,8 +281,10 @@ class MainActivity extends Activity {
           that.setPlayerVisibility(playerOpen)
           true
         case OnSelectionChanged(selection) => 
+          Log.d("chakra", "selection changed: " + selection)
           replaceSelectionFragment(selection)
           true
+
 
         case OnPastTrackListChanged(pastTrackList) =>
           _prev = !pastTrackList.isEmpty
@@ -304,18 +300,63 @@ class MainActivity extends Activity {
     }
   })
 
-  private def setSelectionList(selectionList: List[Selection]): Unit = {
+  override def onCreate(savedInstanceState: Bundle): Unit = {
 
-    selectionList.zipWithIndex foreach { pair => 
-      val selection = pair._1
-      val index = pair._2
-      val item = menu.add(0, index, 0, selection.label)
-      item.setShowAsAction(SHOW_AS_ACTION_ALWAYS)
-      item.setOnClick(it => {
+    super.onCreate(savedInstanceState)
+    setContentView(contentView)
+
+    contentView.addView(navFrame)
+    contentView.addView(selectionFrame)
+    contentView.addView(playerFrame)
+    contentView.bringChildToFront(playerFrame)
+
+    mainActorRef ! MainActor.SetDatabase(new Database(this))
+    mainActorRef ! MainActor.SetCacheDir(getCacheDir())
+    mainActorRef ! MainActor.SetModHeight(contentHeight)
+
+    val playerFragTrans = getFragmentManager().beginTransaction()
+    playerFragTrans.replace(playerFrame.getId(), playerFragment).commit()
+
+    val playerServiceIntent = new Intent(this, classOf[PlayerService])
+    startService(playerServiceIntent)
+
+    mainActorRef ! MainActor.Subscribe(this.toString, handler)
+  }
+
+  override def onDestroy(): Unit = {
+    super.onDestroy()
+    mainActorRef ! MainActor.Unsubscribe(this.toString)
+    val playerServiceIntent = new Intent(this, classOf[PlayerService])
+    stopService(playerServiceIntent);
+  }
+
+  private var _prev = false
+  private var _next = false
+
+
+  private def setSelectionList(selectionList: List[Selection]): Unit = {
+    _selectionMap.foreach(pair => {
+      val tv = pair._2
+      selectionNavLayout.removeView(tv)
+    })
+
+    _selectionMap = selectionList.map(selection => {
+      val tv = new TextView(that)
+      val lp = new LLLayoutParams(this.dp(medDp), this.dp(medDp))
+      lp.setMargins(that.dp(8), 0, that.dp(8), 0)
+      tv.setLayoutParams(lp)
+      tv.setGravity(CENTER)
+      tv.setBackgroundColor(BLACK)
+      tv.setTextColor(WHITE)
+      tv.setTextSize(18)
+      tv.setText(selection.label)
+      tv.setOnClick(view => {
         mainActorRef ! MainActor.SetSelection(selection)
-        true
       })
-    }
+      selectionNavLayout.addView(tv)
+      (selection -> tv)
+
+    }).toMap
 
   }
 
@@ -325,13 +366,29 @@ class MainActivity extends Activity {
       Log.d("chakra", "Player Opened!!")
       VerticalSlideView.moveUp(playerFrame)
       selectionFrame.setVisibility(GONE)
+      navFrame.removeView(selectionNavLayout)
+      if (navFrame.getChildAt(0) != queueNavLayout) {
+        navFrame.addView(queueNavLayout)
+      }
     } else {
+      Log.d("chakra", "Player Closed!!")
       selectionFrame.setVisibility(VISIBLE)
       VerticalSlideView.moveDown(playerFrame)
+      navFrame.removeView(queueNavLayout)
+      if (navFrame.getChildAt(0) != selectionNavLayout) {
+        navFrame.addView(selectionNavLayout)
+      }
     }
   }
 
   private def replaceSelectionFragment(selection: Selection): Unit = {
+    _selectionOp match {
+      case Some(currentSelection) => 
+        _selectionMap(currentSelection).setTextColor(WHITE)
+      case None =>
+    }
+    _selectionOp = Some(selection)
+    _selectionMap(selection).setTextColor(BLUE)
 
     val transaction = getFragmentManager().beginTransaction()
 

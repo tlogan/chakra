@@ -275,6 +275,8 @@ package com.logan {
 
     type Runnable = java.lang.Runnable
 
+    val CENTER = android.view.Gravity.CENTER
+
     val mainActorRef = ActorSystem("actorSystem").actorOf(MainActor.props(), "mainActor")
 
     def dimension(activity: Activity) = {
