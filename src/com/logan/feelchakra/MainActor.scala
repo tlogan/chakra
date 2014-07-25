@@ -58,6 +58,7 @@ object MainActor {
   case class SelectArtistTuple(artistTuple: (String, AlbumMap)) 
   case class SelectAlbumTuple(albumTuple: (Album, List[Track])) 
 
+
 }
 
 class MainActor extends Actor {
@@ -75,6 +76,7 @@ class MainActor extends Actor {
 
   private var _modHeight: Int = 0
   private var selectionManager: SelectionManager = new SelectionManager
+  private var playerPartManager: PlayerPartManager = PlayerPartManager.create()
   private var localManager: LocalManager = new LocalManager 
   private var stationManager: StationManager = new StationManager
   private var networkProfile: NetworkProfile = new NetworkProfile
@@ -104,6 +106,10 @@ class MainActor extends Actor {
       List(
 
         OnModHeightChanged(_modHeight),
+
+        OnPlayerPartListChanged(playerPartManager.list),
+        OnPlayerPartChanged(playerPartManager.current),
+
         OnSelectionListChanged(selectionManager.list),
         OnSelectionChanged(selectionManager.current),
         OnPlayerOpenChanged(localManager.playerOpen),
@@ -385,6 +391,11 @@ class MainActor extends Actor {
       val ui = pair._2
       ui.obtainMessage(0, response).sendToTarget()
     })
+  }
+
+  def setCurrentPlayerPart(current: PlayerPart): PlayerPartManager = {
+    notifyHandlers(UI.OnPlayerPartChanged(current))
+    playerPartManager.copy(current = current)
   }
 
 }

@@ -84,6 +84,18 @@ class MainActivity extends Activity {
   var _playerOpen: Boolean = false
   var _selectionMap: Map[Selection, TextView] = new HashMap()
   var _selectionOp: Option[Selection] = None  
+  var _playerPartMap: Map[PlayerPart, TextView] = new HashMap()
+  var _playerPartOp: Option[PlayerPart] = None  
+
+  def selectNavItem[T](tmap: Map[T, TextView], deselectOp: Option[T], selection: T): Option[T] = {
+    deselectOp match {
+      case Some(deselection) => 
+        tmap(deselection).setTextColor(WHITE)
+      case None =>
+    }
+    tmap(selection).setTextColor(BLUE)
+    Some(selection)
+  }
 
 
   private def navLayout(): LinearLayout = {
@@ -273,18 +285,26 @@ class MainActivity extends Activity {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
       msg.obj match {
-        case OnSelectionListChanged(selectionList) => 
-          that.setSelectionList(selectionList)
-          true
         case OnPlayerOpenChanged(playerOpen) => 
           _playerOpen = playerOpen
           that.setPlayerVisibility(playerOpen)
           true
+
+        case OnSelectionListChanged(selectionList) => 
+          that.setSelectionList(selectionList)
+          true
         case OnSelectionChanged(selection) => 
-          Log.d("chakra", "selection changed: " + selection)
+          _selectionOp = selectNavItem(_selectionMap, _selectionOp, selection)
           replaceSelectionFragment(selection)
           true
 
+        case OnPlayerPartListChanged(list) => 
+          that.setPlayerPartList(list)
+          true
+
+        case OnPlayerPartChanged(playerPart) => 
+          _playerPartOp = selectNavItem(_playerPartMap, _playerPartOp, playerPart)
+          true
 
         case OnPastTrackListChanged(pastTrackList) =>
           _prev = !pastTrackList.isEmpty
@@ -333,6 +353,33 @@ class MainActivity extends Activity {
   private var _prev = false
   private var _next = false
 
+  private def navItemView(): TextView = {
+    val tv = new TextView(that)
+    val lp = new LLLayoutParams(this.dp(medDp), this.dp(medDp))
+    lp.setMargins(that.dp(8), 0, that.dp(8), 0)
+    tv.setLayoutParams(lp)
+    tv.setGravity(CENTER)
+    tv.setBackgroundColor(BLACK)
+    tv.setTextColor(WHITE)
+    tv.setTextSize(18)
+    tv
+  }
+
+  private def setPlayerPartList(list: List[PlayerPart]): Unit = {
+    _playerPartMap.foreach(pair => {
+      val tv = pair._2
+      queueNavLayout.removeView(tv)
+    })
+
+    _playerPartMap = list.map(playerPart => {
+      val tv = navItemView()
+      tv.setText(playerPart.label)
+      queueNavLayout.addView(tv)
+      (playerPart -> tv)
+
+    }).toMap
+  }
+
 
   private def setSelectionList(selectionList: List[Selection]): Unit = {
     _selectionMap.foreach(pair => {
@@ -341,14 +388,7 @@ class MainActivity extends Activity {
     })
 
     _selectionMap = selectionList.map(selection => {
-      val tv = new TextView(that)
-      val lp = new LLLayoutParams(this.dp(medDp), this.dp(medDp))
-      lp.setMargins(that.dp(8), 0, that.dp(8), 0)
-      tv.setLayoutParams(lp)
-      tv.setGravity(CENTER)
-      tv.setBackgroundColor(BLACK)
-      tv.setTextColor(WHITE)
-      tv.setTextSize(18)
+      val tv = navItemView()
       tv.setText(selection.label)
       tv.setOnClick(view => {
         mainActorRef ! MainActor.SetSelection(selection)
@@ -382,13 +422,6 @@ class MainActivity extends Activity {
   }
 
   private def replaceSelectionFragment(selection: Selection): Unit = {
-    _selectionOp match {
-      case Some(currentSelection) => 
-        _selectionMap(currentSelection).setTextColor(WHITE)
-      case None =>
-    }
-    _selectionOp = Some(selection)
-    _selectionMap(selection).setTextColor(BLUE)
 
     val transaction = getFragmentManager().beginTransaction()
 
