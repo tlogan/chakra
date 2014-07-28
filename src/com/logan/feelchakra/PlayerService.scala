@@ -231,7 +231,8 @@ class PlayerService extends Service {
 
     val serviceListener = new DnsSdServiceResponseListener() {
       override def onDnsSdServiceAvailable(name: String, 
-        regType: String, device: WifiP2pDevice): Unit = {
+          regType: String, device: WifiP2pDevice): Unit = {
+
         mainActorRef ! MainActor.CommitStation(device)
       }
     }
@@ -240,6 +241,7 @@ class PlayerService extends Service {
       override def onDnsSdTxtRecordAvailable(domain: String, record: java.util.Map[String, String], 
         device: WifiP2pDevice
       ): Unit = {
+        Log.d("chakra", "domain: " + domain)
         val station = Station(domain, record, device)
         mainActorRef ! MainActor.AddStation(station)
       }

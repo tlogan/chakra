@@ -235,7 +235,11 @@ class MainActor extends Actor {
       }
 
     case AddStation(station) =>
-      stationManager = stationManager.stageStationDiscovery(station)
+      val chakraDomain = List(networkProfile.serviceName, networkProfile.serviceType, "local").mkString(".") + "."
+      Log.d("chakra", "chakraDomain: " + chakraDomain)
+      if (station.domain == chakraDomain) {
+        stationManager = stationManager.stageStationDiscovery(station)
+      }
 
     case CommitStation(device) =>
       stationManager = stationManager.commitStationDiscovery(device)
