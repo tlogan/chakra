@@ -22,7 +22,7 @@ class PlayerService extends Service {
 
   private var _serviceInfoOp: Option[WifiP2pDnsSdServiceInfo] = None
   private var _serviceRequestOp: Option[WifiP2pDnsSdServiceRequest] = None 
-  private var _isStation: Boolean = false 
+  private var _localServiceAdded: Boolean = false 
   private var _groupFormed: Boolean = false 
 
   private var _playState: PlayState = NotPlaying
@@ -157,22 +157,15 @@ class PlayerService extends Service {
             if (networkInfo.isConnected()) {
               _manager.requestConnectionInfo(_channel, new ConnectionInfoListener() {
                 override def onConnectionInfoAvailable(info: WifiP2pInfo): Unit = {
-                  if (info.groupFormed) {
 
-                    _groupFormed = true
-
-                    if (info.isGroupOwner) {
-                      Log.d("chakra", "Connected as Server")
-                    } else {
-                      Log.d("chakra", "Connected as Client")
-                      val remoteHost = info.groupOwnerAddress.getHostAddress()
-                      mainActorRef ! MainActor.ConnectStation(remoteHost)
-                    }
-                  } else {
-                    _groupFormed = false 
-                  }
-                  
+                  _groupFormed = info.groupFormed
+                  if (info.groupFormed && !info.isGroupOwner) {
+                    Log.d("chakra", "Connected as Client")
+                    val remoteHost = info.groupOwnerAddress.getHostAddress()
+                    mainActorRef ! MainActor.ConnectStation(remoteHost)
+                  }               
                 }
+
               })
             } else {
               _groupFormed = false 
@@ -281,7 +274,7 @@ class PlayerService extends Service {
         record.put("port", localAddress.getPort().toString)
 
         val serviceInfo = newServiceInfo(serviceName, serviceType, record)
-        if (_isStation) { 
+        if (_localServiceAdded) { 
           _serviceInfoOp match {
             case None =>
               //if this device should be the station but the service info wasn't available before
@@ -301,7 +294,7 @@ class PlayerService extends Service {
   }
 
   private def tryBecomingTheStation(): Unit = {
-    _isStation = true
+    _localServiceAdded = true
     _serviceInfoOp match {
       case Some(serviceInfo) => becomeTheStation(serviceInfo)
       case None => {}
@@ -322,19 +315,20 @@ class PlayerService extends Service {
     if (_groupFormed) {
       _manager.removeGroup(_channel, new WifiActionListener() {
         override def onSuccess(): Unit = { 
+          Log.d("chakra", "removing group ")
         }
         override def onFailure(reason: Int): Unit = {
           Log.d("chakra", "failed removing group: " + reason)
         }
       }) 
 
-      if (_isStation) { 
+      if (_localServiceAdded) { 
         _serviceInfoOp match {
           case Some(oldServiceInfo) => 
             _manager.removeLocalService(_channel, oldServiceInfo, null)
           case None => {} 
         }
-        _isStation = false
+        _localServiceAdded = false
       } 
 
     } else {
@@ -381,6 +375,7 @@ class PlayerService extends Service {
         Log.d("chakra", "failed advertising" + reason)
       }
     })
+
   }
 
 

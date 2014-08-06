@@ -35,7 +35,7 @@ object MainActor {
   case class SetPlayerOpen(playerOpen: Boolean) 
   case class AddStation(station: Station)
   case class CommitStation(device: WifiP2pDevice)
-  case class RequestStation(station: Station)
+  case class CancelOrRequestStation(station: Station)
   case object BecomeTheStation
   case object AcceptListeners 
   case class ConnectStation(remoteHost: String)
@@ -244,11 +244,18 @@ class MainActor extends Actor {
     case CommitStation(device) =>
       stationManager = stationManager.commitStationDiscovery(device)
      
-    case RequestStation(station) =>
-      stationManager = {
-        stationManager
-          .setDiscovering(false)
-          .setCurrentConnection(StationRequested(station))
+    case CancelOrRequestStation(station) =>
+      stationManager.currentConnection match {
+        case StationRequested(currentStation) if (currentStation == station) => 
+          disconnectStation()
+        case StationConnected(currentStation) if (currentStation == station) => 
+          disconnectStation()
+        case _ =>
+          stationManager = {
+            stationManager
+              .setDiscovering(false)
+              .setCurrentConnection(StationRequested(station))
+          }
       }
 
     case BecomeTheStation =>
@@ -400,6 +407,14 @@ class MainActor extends Actor {
   def setCurrentPlayerPart(current: PlayerPart): PlayerPartManager = {
     notifyHandlers(UI.OnPlayerPartChanged(current))
     playerPartManager.copy(current = current)
+  }
+
+  def disconnectStation(): Unit = {
+    stationManager = {
+      stationManager
+        .setDiscovering(true)
+        .setCurrentConnection(StationDisconnected)
+    }
   }
 
 }

@@ -47,7 +47,7 @@ object StationSelectionFragment {
         (parent: AdapterView[_], view: View, position: Int, id: Long) => {
           convertAdapter(lv.getAdapter(), adapter => {
             val station = adapter.getItem(position)
-            mainActorRef ! MainActor.RequestStation(station) 
+            mainActorRef ! MainActor.CancelOrRequestStation(station) 
           })
         }
       )  
