@@ -12,7 +12,10 @@ object TrackFuture {
       val title = retriever.extractMetadata(METADATA_KEY_TITLE)
       val artist = retriever.extractMetadata(METADATA_KEY_ARTIST)
       val albumTitle = retriever.extractMetadata(METADATA_KEY_ALBUM)
-      val albumArt = new BitmapDrawable(createBitmap(retriever.getEmbeddedPicture()))
+      val albumArt = retriever.getEmbeddedPicture() match {
+        case null => null
+        case byteArray: Array[Byte] => new BitmapDrawable(createBitmap(byteArray))
+      }
       val duration = retriever.extractMetadata(METADATA_KEY_DURATION).toInt
 
       Track(trackPath, title, Album(albumTitle, albumArt), artist, duration)

@@ -314,11 +314,13 @@ class MainActor extends Actor {
       stationMessengerOp = Some(Messenger(writerRef, reader))
 
     case ChangeStationTrackByOriginPath(originPath) =>
+      Log.d("chakra", "ChangeStationTrackByOriginPath: " + originPath)
       stationManager = stationManager.setTrackOriginPathOp(Some(originPath))
 
     case AddStationAudioBuffer(stationPath, audioBuffer) =>
       stationManager.transferringAudioMap.get(stationPath) match {
         case None =>
+          Log.d("chakra", "AddStationAudioBuffer: " + stationPath)
           val name = "chakra" + Platform.currentTime 
           val file = java.io.File.createTempFile(name, null, cacheDir)
           val fileOutput = new BufferedOutputStream(new FileOutputStream(file))
