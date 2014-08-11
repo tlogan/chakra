@@ -29,7 +29,7 @@ class StationWriter extends Actor {
       try {
         //write messageType 
         syncRequestWriteTime = Platform.currentTime
-        dataOutput.writeInt(Runnable.SyncRequestMessage)
+        dataOutput.writeInt(Reader.SyncRequestMessage)
         dataOutput.flush()
       } catch {
         case e: IOException => 

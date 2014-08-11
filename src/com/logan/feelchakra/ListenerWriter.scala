@@ -31,7 +31,7 @@ class ListenerWriter extends Actor {
       def writeSyncResponse(syncRequestReadTime: Long): Unit = {
         try {
           //write messageType 
-          dataOutput.writeInt(Runnable.SyncResponseMessage)
+          dataOutput.writeInt(Reader.SyncResponseMessage)
           dataOutput.flush()
 
           //write the request read time 
@@ -54,7 +54,7 @@ class ListenerWriter extends Actor {
 
         try {
           //write messageType 
-          dataOutput.writeInt(Runnable.TrackPathMessage)
+          dataOutput.writeInt(StationReader.TrackPathMessage)
           dataOutput.flush()
 
           //write data
@@ -74,7 +74,7 @@ class ListenerWriter extends Actor {
         try {
 
           //write messageType 
-          dataOutput.writeInt(Runnable.PlayStateMessage)
+          dataOutput.writeInt(StationReader.PlayStateMessage)
           dataOutput.flush()
 
           //write data
@@ -98,7 +98,7 @@ class ListenerWriter extends Actor {
         try {
 
           //write messageType 
-          dataOutput.writeInt(Runnable.AudioBufferMessage)
+          dataOutput.writeInt(StationReader.AudioBufferMessage)
           dataOutput.flush()
 
           //write data
@@ -124,7 +124,7 @@ class ListenerWriter extends Actor {
         try {
 
           //write messageType 
-          dataOutput.writeInt(Runnable.AudioDoneMessage)
+          dataOutput.writeInt(StationReader.AudioDoneMessage)
           dataOutput.flush()
 
           //write data

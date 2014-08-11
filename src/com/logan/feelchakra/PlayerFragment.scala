@@ -126,7 +126,7 @@ object PlayerFragment {
         def animateProgress(trackDuration: Int, startPos: Int): Unit = {
           require(trackDuration >= startPos)
 
-          val width = playerProgressView.getWidth()
+          val width = backBar.getWidth()
           frontBar.animate()
             .x(width)
             .setDuration(trackDuration - startPos)
@@ -135,6 +135,27 @@ object PlayerFragment {
 
         def withAdapter(f: PlaylistAdapter => Unit): Unit = {
           convertAdapter(playlistView.getAdapter(), f)
+        }
+
+        def adjustProgressBar(): Unit = {
+          _playState match {
+            case Playing(startPos, startTime) if (_stationTrackDuration >= startPos) =>
+              val width = backBar.getWidth()
+              val adjStartPos = (startPos)// + Platform.currentTime - startTime)
+
+              Log.d("chakra", "startTime: " + startTime)
+              //TO DO: FIX
+              //the newX appears to be larger than it should be
+              val newX = (width.toFloat/_stationTrackDuration.toFloat) * adjStartPos.toFloat
+              Log.d("chakra", "newX 1: " + (adjStartPos.toFloat/_stationTrackDuration.toFloat) * width.toFloat)
+              Log.d("chakra", "newX 2: " + (adjStartPos.toFloat * width.toFloat) /_stationTrackDuration.toFloat)
+              Log.d("chakra", "newX 3: " + (width.toFloat/_stationTrackDuration.toFloat) * adjStartPos.toFloat)
+              frontBar.setX(newX)
+              animateProgress(_stationTrackDuration, adjStartPos.toInt)
+            case _ =>
+              Log.d("chakra", "trying to stop the animation")
+              stopProgress()
+          }
         }
 
         val handler = new Handler(new HandlerCallback() {
@@ -166,31 +187,14 @@ object PlayerFragment {
               case OnStationPlayStateChanged(playState) =>
                 Log.d("chakra", "OnStationPlayStateChanged: " + playState)
                 _playState = playState
-                playState match {
-                  case Playing(startPos, startTime) if (_stationTrackDuration >= 0) =>
-                    val width = playerProgressView.getWidth()
-                    val adjStartPos = (startPos + Platform.currentTime - startTime).toInt
-                    animateProgress(_stationTrackDuration, adjStartPos)
-                  case _ =>
-                    Log.d("chakra", "trying to stop the animation")
-                    stopProgress()
-                  
-                }
+                adjustProgressBar()
                 true
 
               case OnStationTrackOpChanged(trackOption) => 
                 trackOption match {
                   case Some(track) =>
                     _stationTrackDuration = track.duration
-                    _playState match {
-                      case Playing(startPos, startTime) if (_stationTrackDuration >= 0) =>
-                        val width = playerProgressView.getWidth()
-                        val adjStartPos = (startPos + Platform.currentTime - startTime).toInt
-                        frontBar.setX(adjStartPos * width/_stationTrackDuration) 
-                        animateProgress(_stationTrackDuration, adjStartPos)
-                      case _ =>
-                        stopProgress()
-                    }
+                    adjustProgressBar()
                     playerTextLayout.sixthTextView.setText(ms2MinSec(track.duration))
                     TextLayout.setTexts(playerTextLayout, track.title, track.artist, track.album.title)
                     playerLayout.imageLayout.setImageDrawable(track.album.coverArt)
@@ -217,7 +221,7 @@ object PlayerFragment {
                 _localStartPos = startPos 
                 _localStartTime = Platform.currentTime
                 if (_localTrackDuration > -1) {
-                  val width = playerProgressView.getWidth()
+                  val width = backBar.getWidth()
                   frontBar.setX(startPos * width/_localTrackDuration)
                 }
                 true

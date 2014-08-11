@@ -282,7 +282,7 @@ class MainActor extends Actor {
         case None =>
       }
 
-      val reader = Runnable.createListenerReader(socket, writerRef)
+      val reader = ListenerReader.create(socket, writerRef)
       reader.run()
 
       val messenger = Messenger(writerRef, reader)
@@ -308,7 +308,7 @@ class MainActor extends Actor {
     case ChangeStationMessenger(socket) =>
       val writerRef = context.actorOf(StationWriter.props(), "StationWriter")
       writerRef ! StationWriter.SetSocket(socket)
-      val reader = Runnable.createStationReader(socket, writerRef)
+      val reader = StationReader.create(socket, writerRef)
       reader.run()
       stationManager = stationManager.commitStationConnection()
       stationMessengerOp = Some(Messenger(writerRef, reader))
@@ -406,12 +406,12 @@ class MainActor extends Actor {
     })
   }
 
-  def setCurrentPlayerPart(current: PlayerPart): PlayerPartManager = {
+  private def setCurrentPlayerPart(current: PlayerPart): PlayerPartManager = {
     notifyHandlers(UI.OnPlayerPartChanged(current))
     playerPartManager.copy(current = current)
   }
 
-  def disconnectStation(): Unit = {
+  private def disconnectStation(): Unit = {
     stationManager = {
       stationManager
         .setDiscovering(true)

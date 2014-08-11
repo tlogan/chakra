@@ -62,6 +62,15 @@ class PlayerService extends Service {
     _prepared = false
   }
 
+  private def adjustMediaPlayer(): Unit = {
+    _playState match {
+      case NotPlaying => _mediaPlayer.pause()
+      case Playing(startPos, startTime) => 
+        _mediaPlayer.seekTo((startPos + Platform.currentTime - startTime).toInt)
+        _mediaPlayer.start() 
+    }
+  }
+
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
@@ -111,18 +120,7 @@ class PlayerService extends Service {
           Log.d("chakra", "OnStationPlayState: " + playState)
           _playState = playState
           if (_prepared) {
-            _playState match {
-              case NotPlaying => 
-                _mediaPlayer.pause()
-              case Playing(startPos, startTime) => 
-                Log.d("chakra", "on remote playstate current time: " + Platform.currentTime)
-                Log.d("chakra", "on remote playstate starttime: " + startTime)
-                Log.d("chakra", "on remote playstate startPos: " + startPos)
-                Log.d("chakra", "mp currentPos: " + _mediaPlayer.getCurrentPosition())
-                _mediaPlayer.seekTo((startPos + Platform.currentTime - startTime).toInt)
-                Log.d("chakra", "mp currentPos post seek: " + _mediaPlayer.getCurrentPosition())
-                _mediaPlayer.start() 
-            }
+            adjustMediaPlayer()
           }
           true
         case _ => false
@@ -382,17 +380,7 @@ class PlayerService extends Service {
   private def tuneIntoStation(station: Station): Unit = {
     _mediaPlayer.setOnPrepared(mp => {
       _prepared = true
-      _playState match {
-        case NotPlaying => _mediaPlayer.pause()
-        case Playing(startPos, startTime) => 
-           Log.d("chakra", "on remote playstate current time: " + Platform.currentTime)
-           Log.d("chakra", "on remote playstate starttime: " + startTime)
-           Log.d("chakra", "on remote playstate startPos: " + startPos)
-           Log.d("chakra", "mp currentPos: " + _mediaPlayer.getCurrentPosition())
-          _mediaPlayer.seekTo((startPos + Platform.currentTime - startTime).toInt)
-           Log.d("chakra", "mp currentPos post seek: " + _mediaPlayer.getCurrentPosition())
-          _mediaPlayer.start() 
-      }
+      adjustMediaPlayer()
     })
 
 
