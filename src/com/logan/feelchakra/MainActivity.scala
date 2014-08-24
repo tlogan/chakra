@@ -373,7 +373,7 @@ class MainActivity extends Activity {
 
     _playerPartMap = list.map(playerPart => {
       val tv = navItemView()
-      tv.setText(playerPart.label)
+      tv.setText(PlayerPart.label(playerPart))
       queueNavLayout.addView(tv)
       (playerPart -> tv)
 
@@ -389,7 +389,7 @@ class MainActivity extends Activity {
 
     _selectionMap = selectionList.map(selection => {
       val tv = navItemView()
-      tv.setText(selection.label)
+      tv.setText(Selection.label(selection))
       tv.setOnClick(view => {
         mainActorRef ! MainActor.SetSelection(selection)
       })

@@ -1,13 +1,15 @@
 package com.logan.feelchakra
 
-sealed trait PlayerPart {
-  val label: String
+object PlayerPart {
+  def label(playerPart: PlayerPart): String = {
+    playerPart match {
+      case PlayerQueue =>  "Queue"
+      case PlayerChat =>  "Chat"
+    }
+  }
 }
 
-case object PlayerQueue extends PlayerPart {
-  val label: String =  "Queue"
-}
+sealed trait PlayerPart
 
-case object PlayerChat extends PlayerPart {
-  val label: String =  "Chat"
-}
+case object PlayerQueue extends PlayerPart
+case object PlayerChat extends PlayerPart
