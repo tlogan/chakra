@@ -123,13 +123,14 @@ object PlayerFragment {
           frontBar.animate().cancel()
         }
 
-        def animateProgress(trackDuration: Int, startPos: Int): Unit = {
-          require(trackDuration >= startPos)
+        def animateProgress(duration: Int): Unit = {
+          require(duration >= 0)
 
           val width = backBar.getWidth()
           frontBar.animate()
+            .setInterpolator(new LinearInterpolator())
             .x(width)
-            .setDuration(trackDuration - startPos)
+            .setDuration(duration)
         }
 
 
@@ -140,18 +141,14 @@ object PlayerFragment {
         def adjustProgressBar(): Unit = {
           _playState match {
             case Playing(startPos, startTime) if (_stationTrackDuration >= startPos) =>
-              val width = backBar.getWidth()
-              val adjStartPos = (startPos)// + Platform.currentTime - startTime)
+              val adjStartPos = (startPos + Platform.currentTime - startTime)
+              if (_stationTrackDuration > adjStartPos.toInt) {
+                val width = backBar.getWidth()
+                val newX = width * adjStartPos/_stationTrackDuration
+                frontBar.setX(newX)
+                animateProgress(_stationTrackDuration - adjStartPos.toInt)
+              }
 
-              Log.d("chakra", "startTime: " + startTime)
-              //TO DO: FIX
-              //the newX appears to be larger than it should be
-              val newX = (width.toFloat/_stationTrackDuration.toFloat) * adjStartPos.toFloat
-              Log.d("chakra", "newX 1: " + (adjStartPos.toFloat/_stationTrackDuration.toFloat) * width.toFloat)
-              Log.d("chakra", "newX 2: " + (adjStartPos.toFloat * width.toFloat) /_stationTrackDuration.toFloat)
-              Log.d("chakra", "newX 3: " + (width.toFloat/_stationTrackDuration.toFloat) * adjStartPos.toFloat)
-              frontBar.setX(newX)
-              animateProgress(_stationTrackDuration, adjStartPos.toInt)
             case _ =>
               Log.d("chakra", "trying to stop the animation")
               stopProgress()
@@ -209,7 +206,7 @@ object PlayerFragment {
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing
                 if (_playing && _localTrackDuration >= _localStartPos) {
-                  animateProgress(_localTrackDuration, _localStartPos)
+                  animateProgress(_localTrackDuration - _localStartPos)
                 } else {
                   _localStartPos = (_localStartPos + Platform.currentTime - _localStartTime).toInt
                   _localStartTime = Platform.currentTime
@@ -245,7 +242,7 @@ object PlayerFragment {
                   case Some(track) =>
                     _localTrackDuration = track.duration
                     if (_playing && _localTrackDuration >= _localStartPos) {
-                      animateProgress(_localTrackDuration, _localStartPos)
+                      animateProgress(_localTrackDuration - _localStartPos)
                     } else {
                       stopProgress()
                     }

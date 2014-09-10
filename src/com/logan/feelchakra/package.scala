@@ -48,6 +48,7 @@ package com.logan {
 
     type Animator = android.animation.Animator
     type AnimatorListenerAdapter = android.animation.AnimatorListenerAdapter
+    type LinearInterpolator = android.view.animation.LinearInterpolator
 
     type SimpleOnGestureListener = android.view.GestureDetector.SimpleOnGestureListener
     type GestureDetector = android.view.GestureDetector
@@ -270,6 +271,7 @@ package com.logan {
     type Observer[-T] = rx.lang.scala.Observer[T]
     val ReplaySubject = rx.lang.scala.subjects.ReplaySubject
     type ReplaySubject[T] = rx.lang.scala.subjects.ReplaySubject[T]
+
 
     type Bitmap = android.graphics.Bitmap
 

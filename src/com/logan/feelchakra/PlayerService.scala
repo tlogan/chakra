@@ -42,6 +42,7 @@ class PlayerService extends Service {
         val pos = _mediaPlayer.getCurrentPosition()
         val time = Platform.currentTime
 
+        mainActorRef ! MainActor.WriteListenerPlayState(Playing(pos, time))
         //the following seekTo call to the current position 
         //keeps the local player synchronized with the listeners' players
         //which call seekTo before starting.
@@ -49,7 +50,6 @@ class PlayerService extends Service {
         //because the queried position is a rounded.
         _mediaPlayer.seekTo(pos)
         _mediaPlayer.start() 
-        mainActorRef ! MainActor.WriteListenerPlayState(Playing(pos, time))
       } else {
         _mediaPlayer.pause()
         mainActorRef ! MainActor.WriteListenerPlayState(NotPlaying)
