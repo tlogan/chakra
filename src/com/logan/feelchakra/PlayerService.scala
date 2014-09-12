@@ -37,24 +37,39 @@ class PlayerService extends Service {
   }
 
   private def playOrPause(): Unit = {
-    if (_playing != _mediaPlayer.isPlaying()) {
-      if (_playing) { 
-        val pos = _mediaPlayer.getCurrentPosition()
-        val time = Platform.currentTime
 
-        mainActorRef ! MainActor.WriteListenerPlayState(Playing(pos, time))
-        //the following seekTo call to the current position 
-        //keeps the local player synchronized with the listeners' players
-        //which call seekTo before starting.
-        //perhaps the position after seeking to the current position is different
-        //because the queried position is a rounded.
-        _mediaPlayer.seekTo(pos)
-        _mediaPlayer.start() 
-      } else {
-        _mediaPlayer.pause()
-        mainActorRef ! MainActor.WriteListenerPlayState(NotPlaying)
-      }
-    }
+
+     if (_playing != _mediaPlayer.isPlaying()) {
+       if (_playing) { 
+
+         //wrap the starting of the player and time query in a delayed block
+         //to keep the station synchronized with the listeners
+         //after a quick succession of pause then play user requests.
+         //perhaps the mediaplayer becomes backedup so that the starting of the player
+         //doesn't happen as quickly as the sending of the message to the listeners.
+         //the time delay helps to give the mediaplayer time to catch up.
+         handler.postDelayed(new Runnable() { 
+           def run() = {
+
+             val pos = _mediaPlayer.getCurrentPosition()
+             //the following seekTo call to the current position 
+             //keeps the local player synchronized with the listeners' players
+             //each of which calls seekTo before starting.
+             //perhaps the position after seeking to the current position is different
+             //because the queried position is rounded.
+             _mediaPlayer.seekTo(pos)
+             _mediaPlayer.start() 
+             val time = Platform.currentTime
+             mainActorRef ! MainActor.WriteListenerPlayState(Playing(pos, time))
+           }
+         }, 500)
+
+       } else {
+         _mediaPlayer.pause()
+         mainActorRef ! MainActor.WriteListenerPlayState(NotPlaying)
+       }
+     }
+
   }
 
   private def reset(): Unit = {
@@ -64,7 +79,8 @@ class PlayerService extends Service {
 
   private def adjustMediaPlayer(): Unit = {
     _playState match {
-      case NotPlaying => _mediaPlayer.pause()
+      case NotPlaying => 
+        _mediaPlayer.pause()
       case Playing(startPos, startTime) => 
         _mediaPlayer.seekTo((startPos + Platform.currentTime - startTime).toInt)
         _mediaPlayer.start() 
