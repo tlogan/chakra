@@ -372,6 +372,7 @@ class PlayerService extends Service {
   }
 
   private def becomeTheStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
+     Log.d("chakra", "Becoming the Station")
 
     _mediaPlayer.setOnPrepared(mp => {
       _prepared = true
@@ -384,6 +385,7 @@ class PlayerService extends Service {
     _manager.addLocalService(_channel, serviceInfo, new WifiActionListener() {
       override def onSuccess(): Unit = { 
         mainActorRef ! MainActor.Discover
+        Log.d("chakra", "Discover")
       }
       override def onFailure(reason: Int): Unit = {
         Log.d("chakra", "failed advertising" + reason)

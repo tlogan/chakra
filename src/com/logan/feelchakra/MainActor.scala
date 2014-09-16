@@ -413,9 +413,7 @@ class MainActor extends Actor {
 
   private def disconnectStation(): Unit = {
     stationManager = {
-      stationManager
-        .setDiscovering(true)
-        .setCurrentConnection(StationDisconnected)
+      stationManager.setCurrentConnection(StationDisconnected)
     }
   }
 
