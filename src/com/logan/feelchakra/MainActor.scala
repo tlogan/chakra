@@ -58,6 +58,11 @@ object MainActor {
   case class SelectArtistTuple(artistTuple: (String, AlbumMap)) 
   case class SelectAlbumTuple(albumTuple: (Album, List[Track])) 
 
+  case class WriteTrackToListeners(track: Track)
+
+  case class PlayTrack(track: Track)
+  case class PlayTrackIfLocal(track: Track)
+
 
 }
 
@@ -69,6 +74,7 @@ class MainActor extends Actor {
 
   private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
+  private val trackDeckRef: ActorRef = context.actorOf(TrackDeck.props(), "TrackDeck")
 
   private var database: Database = null
   private var cacheDir: File = null
@@ -89,6 +95,7 @@ class MainActor extends Actor {
       mes.writerRef.!(message)
     })
   }
+
 
   def receive = {
 
@@ -123,16 +130,14 @@ class MainActor extends Actor {
         OnAlbumMapChanged(localManager.albumMap),
         OnTrackListChanged(localManager.trackList),
 
-        OnPastTrackListChanged(localManager.pastTrackList),
-        OnPresentTrackOptionChanged(localManager.presentTrackOp),
-        OnFutureTrackListChanged(localManager.futureTrackList),
-
         OnLocalStartPosChanged(localManager.startPos),
         OnLocalPlayingChanged(localManager.playing)
 
       ).foreach(response => {
         ui.obtainMessage(0, response).sendToTarget()
       })
+
+      trackDeckRef ! TrackDeck.Subscribe
 
       uis = uis.+((key, ui))
 
@@ -184,55 +189,27 @@ class MainActor extends Actor {
       appendFutureTrack(track)
 
     case AppendOrRemoveFutureTrack(track) =>
-      if (localManager.futureTrackList.contains(track)) {
-        localManager = localManager.removeFutureTrack(track)
-      } else {
-        appendFutureTrack(track)
-      }
+      trackDeckRef ! TrackDeck.AppendOrRemoveFutureTrack(track)
 
     case SetPresentTrack(track) =>
-      setPresentTrack(track)
+      trackDeckRef ! TrackDeck.SetPresentTrack(track)
+      trackDeckRef ! TrackDeck.RemoveFutureTrack(track)
+      if (stationManager.currentConnection == StationDisconnected) {
+        self ! WriteTrackToListeners(track)
+        self ! PlayTrack(track)
+      } 
 
     case SetPresentTrackToPrev =>
-      localManager.pastTrackList.lastOption match {
-        case Some(track) =>
-          localManager = localManager
-            .setPresentTrackFromPastIndex(localManager.pastTrackList.size - 1)
-          if (stationManager.currentConnection == StationDisconnected) {
-            playTrack(track)
-          } 
-        case None =>
-      }
+      trackDeckRef ! TrackDeck.SetPresentTrackToPrev
 
     case SetPresentTrackToNext =>
-      localManager.futureTrackList.headOption match {
-        case Some(track) => 
-          localManager = localManager.setPresentTrackFromFutureIndex(0)
-          if (stationManager.currentConnection == StationDisconnected) {
-            playTrack(track)
-          } 
-        case None =>
-      }
+      trackDeckRef ! TrackDeck.SetPresentTrackToNext
 
     case SetPresentTrackFromPastIndex(index) =>
-      localManager = localManager.setPresentTrackFromPastIndex(index)
-      localManager.presentTrackOp match {
-        case Some(track) => 
-          if (stationManager.currentConnection == StationDisconnected) {
-            playTrack(track)
-          } 
-        case None =>
-      }
+      trackDeckRef ! TrackDeck.SetPresentTrackToPastIndex(index)
         
     case SetPresentTrackFromFutureIndex(index) => 
-      localManager = localManager.setPresentTrackFromFutureIndex(index)
-      localManager.presentTrackOp match {
-        case Some(track) => 
-          if (stationManager.currentConnection == StationDisconnected) {
-            playTrack(track)
-          } 
-        case None =>
-      }
+      trackDeckRef ! TrackDeck.SetPresentTrackToFutureIndex(index)
 
     case AddStation(station) =>
       val chakraDomain = List(networkProfile.serviceName, networkProfile.serviceType, "local").mkString(".") + "."
@@ -272,15 +249,9 @@ class MainActor extends Actor {
 
       val writerRef = context.actorOf(ListenerWriter.props())
       writerRef ! ListenerWriter.SetSocket(socket)
-      localManager.presentTrackOp match {
-        case Some(track) =>
-          AudioReader(track.path).subscribe(
-            audioBuffer => writerRef ! ListenerWriter.WriteAudioBuffer(track.path, audioBuffer),
-            t => {},
-            () => writerRef ! ListenerWriter.WriteAudioDone(track.path)
-          )
-        case None =>
-      }
+
+      trackDeckRef ! TrackDeck.WritePresentTrackToListeners
+
 
       val reader = ListenerReader.create(socket, writerRef)
       reader.run()
@@ -366,37 +337,33 @@ class MainActor extends Actor {
           localManager.setAlbumTupleOp(Some(albumTuple))
       }
 
-  }
+    case PlayTrack(track) =>
+      notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
+      localManager = localManager.setStartPos(0)
+      localManager = localManager.setPlaying(true)
 
-  private def setPresentTrack(track: Track): Unit = {
-    localManager = localManager
-      .setPresentTrack(track)
-      .removeFutureTrack(track)
-    if (stationManager.currentConnection == StationDisconnected) {
-      writeTrackToListeners(track)
-      playTrack(track)
-    } 
-  }
+    case PlayTrackIfLocal(track) =>
+      if (stationManager.currentConnection == StationDisconnected) {
+        self ! PlayTrack(track)
+      } 
 
-  private def playTrack(track: Track): Unit = {
-    notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
-    localManager = localManager.setStartPos(0)
-    localManager = localManager.setPlaying(true)
+    case WriteTrackToListeners(track) =>
+      AudioReader(track.path).subscribe(
+        audioBuffer => notifyWriters(ListenerWriter.WriteAudioBuffer(track.path, audioBuffer)),
+        t => {},
+        () => notifyWriters(ListenerWriter.WriteAudioDone(track.path))
+      )
+
+
   }
 
   private def appendFutureTrack(track: Track): Unit = {
-    localManager = localManager.appendFutureTrack(track)
+    trackDeckRef ! TrackDeck.AppendFutureTrack(track)
     if (stationManager.currentConnection == StationDisconnected) {
-      writeTrackToListeners(track)
+      self ! WriteTrackToListeners(track)
     } 
   }
-  private def writeTrackToListeners(track: Track): Unit = {
-    AudioReader(track.path).subscribe(
-      audioBuffer => notifyWriters(ListenerWriter.WriteAudioBuffer(track.path, audioBuffer)),
-      t => {},
-      () => notifyWriters(ListenerWriter.WriteAudioDone(track.path))
-    )
-  }
+
 
 
   private def notifyHandlers(response: OnChange): Unit = {

@@ -3,9 +3,6 @@ package com.logan.feelchakra
 import android.util.Log
 
 case class LocalManager(
-  pastTrackList: List[Track],
-  presentTrackOp: Option[Track],
-  futureTrackList: List[Track],
   artistTupleOp: Option[(String, AlbumMap)],
   artistMap: ArtistMap,
   albumTupleOp: Option[(Album, List[Track])],
@@ -16,11 +13,12 @@ case class LocalManager(
   startPos: Int
 ) {
 
-  def this() = this(List(), None, List(), None, new ArtistMap(), None, AlbumMap(), List(), false, false, 0)
+  def this() = this(None, new ArtistMap(), None, AlbumMap(), List(), false, false, 0)
 
   import MainActor._
   import UI._
 
+  /*
   def setPresentTrackFromPastIndex(index: Int): LocalManager = {
     val newPastTrackList = pastTrackList.take(index)
     val newPresentTrackOp = pastTrackList.lift(index)
@@ -74,6 +72,7 @@ case class LocalManager(
     mainActorRef ! NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
     copy(futureTrackList = newFutureTrackList)
   }
+  */
 
   def setTrackList(list: List[Track]): LocalManager = {
 
