@@ -7,7 +7,7 @@ object TrackDeck {
 
   def props(): Props = Props[TrackDeck]
 
-  case object Subscribe
+  case class Subscribe(ui: Handler)
   case class SetPresentTrack(track: Track)
   case class RemoveFutureTrack(track: Track)
   case class SetPresentTrackToPastIndex(index: Int)
@@ -32,7 +32,7 @@ class TrackDeck extends Actor {
 
   def receiveTracks(pastTrackList: List[Track], presentTrackOp: Option[Track], futureTrackList: List[Track]): Receive = {
 
-    case Subscribe =>
+    case Subscribe(ui) =>
       mainActorRef ! MainActor.NotifyHandlers(OnPastTrackListChanged(pastTrackList))
       mainActorRef ! MainActor.NotifyHandlers(OnPresentTrackOptionChanged(presentTrackOp))
       mainActorRef ! MainActor.NotifyHandlers(OnFutureTrackListChanged(futureTrackList))

@@ -9,6 +9,7 @@ object MainActor {
   }
 
   //Requests
+  case class NotifyHandler(ui: Handler, onChange: UI.OnChange)
   case class NotifyHandlers(onChange: UI.OnChange)
   case class Subscribe(key: String, ui: Handler) 
   case class Unsubscribe(key: String) 
@@ -76,6 +77,8 @@ class MainActor extends Actor {
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
   private val trackDeckRef: ActorRef = context.actorOf(TrackDeck.props(), "TrackDeck")
   private val trackLibraryRef: ActorRef = context.actorOf(TrackLibrary.props(), "TrackLibrary")
+  private val stationTrackDeckRef: ActorRef = context.actorOf(StationTrackDeck.props(), "StationTrackDeck")
+
 
   private var database: Database = null
   private var cacheDir: File = null
@@ -99,6 +102,9 @@ class MainActor extends Actor {
 
 
   def receive = {
+
+    case NotifyHandler(ui, onChange) =>
+      ui.obtainMessage(0, onChange).sendToTarget()
 
     case NotifyHandlers(onChange) =>
       notifyHandlers(onChange)
@@ -134,8 +140,9 @@ class MainActor extends Actor {
         ui.obtainMessage(0, response).sendToTarget()
       })
 
-      trackDeckRef ! TrackDeck.Subscribe
-      trackLibraryRef ! TrackLibrary.Subscribe
+      trackDeckRef ! TrackDeck.Subscribe(ui)
+      trackLibraryRef ! TrackLibrary.Subscribe(ui)
+      stationTrackDeckRef ! StationTrackDeck.Subscribe(ui)
 
       uis = uis.+((key, ui))
 
@@ -287,36 +294,16 @@ class MainActor extends Actor {
 
     case ChangeStationTrackByOriginPath(originPath) =>
       Log.d("chakra", "ChangeStationTrackByOriginPath: " + originPath)
-      stationManager = stationManager.setTrackOriginPathOp(Some(originPath))
+      stationTrackDeckRef ! StationTrackDeck.SetTrackOriginPathOp(Some(originPath))
 
     case AddStationAudioBuffer(stationPath, audioBuffer) =>
-      stationManager.transferringAudioMap.get(stationPath) match {
-        case None =>
-          Log.d("chakra", "AddStationAudioBuffer: " + stationPath)
-          val name = "chakra" + Platform.currentTime 
-          val file = java.io.File.createTempFile(name, null, cacheDir)
-          val fileOutput = new BufferedOutputStream(new FileOutputStream(file))
-          stationManager = stationManager.addTrackAudio(stationPath, file.getAbsolutePath(), fileOutput)
-          fileOutput.write(audioBuffer)
-        case Some(transferringAudio) =>
-          transferringAudio._2.write(audioBuffer)
-      }
+      stationTrackDeckRef ! StationTrackDeck.AddAudioBuffer(stationPath, audioBuffer, cacheDir)
 
 
 
     case EndStationAudioBuffer(stationPath) =>
       Log.d("chakra", "end station: " + stationPath)
-      val transferringAudio = stationManager.transferringAudioMap(stationPath)
-      transferringAudio._2.close()
-      val path = transferringAudio._1
-
-      TrackFuture(path) onComplete {
-        case Success(track) => 
-          Log.d("chakra", "end station audio buffer track: " + track)
-          stationManager = stationManager.commitTrackTransfer(stationPath, track)
-        case Failure(t) => 
-          assert(false) 
-      }
+      stationTrackDeckRef ! StationTrackDeck.CommitTrackTransfer(stationPath)
 
     case SetStationPlayState(playState) =>
       Log.d("chakra", "set station playstate: " + playState)

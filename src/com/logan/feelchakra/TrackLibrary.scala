@@ -7,7 +7,7 @@ object TrackLibrary {
 
   def props(): Props = Props[TrackLibrary]
 
-  case object Subscribe
+  case class Subscribe(ui: Handler)
   case class SetTrackList(trackList: List[Track])
   case class SetArtistTupleOp(artistTupleOp: Option[(String, AlbumMap)])
   case class SetAlbumTupleOp(albumTupleOp: Option[(Album, List[Track])])
@@ -46,7 +46,7 @@ class TrackLibrary extends Actor {
       artistTupleOp: Option[(String, AlbumMap)]
   ): Receive = {
 
-    case Subscribe =>
+    case Subscribe(ui) =>
       List(
         OnTrackListChanged(trackList),
         OnAlbumMapChanged(albumMap),

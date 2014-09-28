@@ -8,9 +8,7 @@ case class StationManager(
   fullyDiscoveredStationMap: Map[String, Station],
   partlyDiscoveredStationMap: Map[String, Station],
   currentConnection: StationConnection,
-  trackOriginPathOp: Option[String],
-  transferredTrackMap: Map[String, Track],
-  transferringAudioMap: Map[String, (String, OutputStream)],
+
   playState: PlayState,
   discovering: Boolean,
   advertising: Boolean
@@ -20,9 +18,7 @@ case class StationManager(
     HashMap[String, Station](),
     HashMap[String, Station](),
     StationDisconnected,
-    None,
-    HashMap[String, Track](),
-    HashMap[String, (String, OutputStream)](),
+
     NotPlaying,
     false, 
     false
@@ -31,10 +27,6 @@ case class StationManager(
   import MainActor._
   import UI._
 
-  def trackOp: Option[Track] = trackOriginPathOp match {
-    case Some(path) => transferredTrackMap.get(path)
-    case None => None
-  }
 
   def stageStationDiscovery(station: Station): StationManager = {
     val newStagedMap = partlyDiscoveredStationMap.+(station.device.deviceAddress -> station)
@@ -71,6 +63,7 @@ case class StationManager(
     }
     
   }
+  /*
 
   def setTrackOriginPathOp(trackOriginPathOp: Option[String]): StationManager = {
 
@@ -100,6 +93,7 @@ case class StationManager(
   def addTrackAudio(originPath: String, path: String, fileOutput: OutputStream): StationManager = {
     this.copy(transferringAudioMap = transferringAudioMap.+(originPath -> (path -> fileOutput)))
   }
+  */
 
   def setPlayState(playState: PlayState): StationManager = {
     mainActorRef ! NotifyHandlers(OnStationPlayStateChanged(playState))
