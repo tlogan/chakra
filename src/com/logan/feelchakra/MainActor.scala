@@ -21,7 +21,6 @@ object MainActor {
   case class SetTrackList(trackList: List[Track]) 
   case class SetSelection(selection: Selection) 
 
-  case class AppendFutureTrack(track: Track) 
   case class AppendOrRemoveFutureTrack(track: Track) 
   case class SetPresentTrack(track: Track) 
   case class SetPresentTrackToPrev
@@ -60,6 +59,7 @@ object MainActor {
   case class SelectAlbumTuple(albumTuple: (Album, List[Track])) 
 
   case class WriteTrackToListeners(track: Track)
+  case class WriteTrackToListenersIfStationDisconnected(track: Track)
 
   case class PlayTrack(track: Track)
   case class PlayTrackIfLocal(track: Track)
@@ -102,9 +102,6 @@ class MainActor extends Actor {
 
 
   def receive = {
-
-    case NotifyHandler(ui, onChange) =>
-      ui.obtainMessage(0, onChange).sendToTarget()
 
     case NotifyHandlers(onChange) =>
       notifyHandlers(onChange)
@@ -190,8 +187,7 @@ class MainActor extends Actor {
     case WriteListenerPlayState(playState) => 
       notifyWriters(ListenerWriter.WritePlayState(playState))
 
-    case AppendFutureTrack(track) =>
-      trackDeckRef ! TrackDeck.AppendFutureTrack(track)
+    case WriteTrackToListenersIfStationDisconnected(track) =>
       if (stationManager.currentConnection == StationDisconnected) {
         self ! WriteTrackToListeners(track)
       } 
@@ -201,7 +197,6 @@ class MainActor extends Actor {
 
     case SetPresentTrack(track) =>
       trackDeckRef ! TrackDeck.SetPresentTrack(track)
-      trackDeckRef ! TrackDeck.RemoveFutureTrack(track)
       if (stationManager.currentConnection == StationDisconnected) {
         self ! WriteTrackToListeners(track)
         self ! PlayTrack(track)
@@ -335,11 +330,10 @@ class MainActor extends Actor {
 
   }
 
-
   private def notifyHandlers(response: OnChange): Unit = {
     uis.foreach(pair => {
       val ui = pair._2
-      ui.obtainMessage(0, response).sendToTarget()
+      notifyHandler(ui, response)
     })
   }
 

@@ -9,13 +9,10 @@ object TrackDeck {
 
   case class Subscribe(ui: Handler)
   case class SetPresentTrack(track: Track)
-  case class RemoveFutureTrack(track: Track)
   case class SetPresentTrackToPastIndex(index: Int)
   case class SetPresentTrackToFutureIndex(index: Int)
   case object SetPresentTrackToPrev
   case object SetPresentTrackToNext
-  case class PrependFutureTrack(track: Track)
-  case class AppendFutureTrack(track: Track)
   case class AppendOrRemoveFutureTrack(track: Track)
   case object WritePresentTrackToListeners
 
@@ -33,25 +30,23 @@ class TrackDeck extends Actor {
   def receiveTracks(pastTrackList: List[Track], presentTrackOp: Option[Track], futureTrackList: List[Track]): Receive = {
 
     case Subscribe(ui) =>
-      mainActorRef ! MainActor.NotifyHandlers(OnPastTrackListChanged(pastTrackList))
-      mainActorRef ! MainActor.NotifyHandlers(OnPresentTrackOptionChanged(presentTrackOp))
-      mainActorRef ! MainActor.NotifyHandlers(OnFutureTrackListChanged(futureTrackList))
+      List(
+        OnPastTrackListChanged(pastTrackList),
+        OnPresentTrackOptionChanged(presentTrackOp),
+        OnFutureTrackListChanged(futureTrackList)
+      ).foreach(m => notifyHandler(ui, m))
 
 
     case SetPresentTrack(track) =>
       val newPastTrackList = pastTrackList ++ presentTrackOp.toList 
       val newPresentTrackOp = Some(track) 
+      val newFutureTrackList = futureTrackList.filter(futureTrack => futureTrack != track )
       update(newPastTrackList, newPresentTrackOp, futureTrackList)
-      mainActorRef ! MainActor.NotifyHandlers(OnPastTrackListChanged(newPastTrackList))
-      mainActorRef ! MainActor.NotifyHandlers(OnPresentTrackOptionChanged(newPresentTrackOp))
-
-
-    case RemoveFutureTrack(track) =>
-      val newFutureTrackList = futureTrackList.filter(futureTrack => {
-        futureTrack != track
-      })
-      update(pastTrackList, presentTrackOp, newFutureTrackList)
-      mainActorRef ! MainActor.NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
+      List(
+        OnPastTrackListChanged(newPastTrackList),
+        OnPresentTrackOptionChanged(newPresentTrackOp),
+        OnFutureTrackListChanged(newFutureTrackList)
+      ).foreach(m => mainActorRef ! MainActor.NotifyHandlers(m))
 
     case SetPresentTrackToPrev =>
       pastTrackList.lastOption match {
@@ -75,15 +70,15 @@ class TrackDeck extends Actor {
       val newFutureTrackList = pastTrackList.drop(index + 1) ++ presentTrackOp.toList ++ futureTrackList
 
       update(newPastTrackList, newPresentTrackOp, newFutureTrackList)
-
       newPresentTrackOp match {
         case Some(track) => mainActorRef ! MainActor.PlayTrackIfLocal(track)
         case None =>
       }
-
-      mainActorRef ! MainActor.NotifyHandlers(OnPastTrackListChanged(newPastTrackList))
-      mainActorRef ! MainActor.NotifyHandlers(OnPresentTrackOptionChanged(newPresentTrackOp))
-      mainActorRef ! MainActor.NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
+      List(
+        OnPastTrackListChanged(newPastTrackList),
+        OnPresentTrackOptionChanged(newPresentTrackOp),
+        OnFutureTrackListChanged(newFutureTrackList)
+      ).foreach(m => mainActorRef ! MainActor.NotifyHandlers(m))
 
 
     case SetPresentTrackToFutureIndex(index) =>
@@ -96,28 +91,23 @@ class TrackDeck extends Actor {
         case Some(track) => mainActorRef ! MainActor.PlayTrackIfLocal(track)
         case None =>
       }
-      mainActorRef ! MainActor.NotifyHandlers(OnPastTrackListChanged(newPastTrackList))
-      mainActorRef ! MainActor.NotifyHandlers(OnPresentTrackOptionChanged(newPresentTrackOp))
-      mainActorRef ! MainActor.NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
-
-
-
-    case AppendFutureTrack(track) =>
-      val newFutureTrackList = futureTrackList.:+(track)
-      update(pastTrackList, presentTrackOp, newFutureTrackList)
-      mainActorRef ! MainActor.NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
-
-    case PrependFutureTrack(track) =>
-      val newFutureTrackList = futureTrackList.+:(track)
-      update(pastTrackList, presentTrackOp, newFutureTrackList)
-      mainActorRef ! MainActor.NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
+      List(
+        OnPastTrackListChanged(newPastTrackList),
+        OnPresentTrackOptionChanged(newPresentTrackOp),
+        OnFutureTrackListChanged(newFutureTrackList)
+      ).foreach(m => mainActorRef ! MainActor.NotifyHandlers(m))
 
     case AppendOrRemoveFutureTrack(track) =>
-      if (futureTrackList.contains(track)) {
-        self ! RemoveFutureTrack(track)
+      val newFutureTrackList = if (futureTrackList.contains(track)) {
+        futureTrackList.filter(futureTrack => {
+          futureTrack != track
+        })
       } else {
-        self ! PrependFutureTrack(track)
+        mainActorRef ! MainActor.WriteTrackToListenersIfStationDisconnected(track)
+        futureTrackList.:+(track)
       }
+      update(pastTrackList, presentTrackOp, newFutureTrackList)
+      mainActorRef ! MainActor.NotifyHandlers(OnFutureTrackListChanged(newFutureTrackList))
       
     case WritePresentTrackToListeners =>
       presentTrackOp match {

@@ -52,7 +52,7 @@ object TrackSelectionFragment {
         (parent: AdapterView[_], view: View, position: Int, id: Long) => {
           convertAdapter(lv.getAdapter(), adapter => {
             val track =  adapter.getItem(position)
-            mainActorRef ! MainActor.AppendFutureTrack(track) 
+            mainActorRef ! MainActor.AppendOrRemoveFutureTrack(track) 
           })
         }
       ) 

@@ -304,5 +304,9 @@ package com.logan {
       f"$minutes%02d:$seconds%02d"
     }
 
+    def notifyHandler(ui: Handler, onChange: UI.OnChange) = {
+      ui.obtainMessage(0, onChange).sendToTarget()
+    }
+
   }
 }

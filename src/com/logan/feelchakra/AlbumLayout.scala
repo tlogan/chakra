@@ -36,7 +36,7 @@ object AlbumLayout {
     }
     v.setOnLongClick(view => {
       trackList.foreach(track => {
-        mainActorRef ! MainActor.AppendFutureTrack(track)
+        mainActorRef ! MainActor.AppendOrRemoveFutureTrack(track)
       })
       true 
     })

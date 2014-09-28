@@ -47,7 +47,7 @@ class StationTrackDeck extends Actor {
 
       List(
         OnStationTrackOpChanged(trackOp)
-      ).foreach(m => mainActorRef ! MainActor.NotifyHandlers(m))
+      ).foreach(m => notifyHandler(ui, m))
 
     case SetTrackOriginPathOp(trackOriginPathOp) =>
 

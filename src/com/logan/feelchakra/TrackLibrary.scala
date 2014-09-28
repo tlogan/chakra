@@ -53,7 +53,7 @@ class TrackLibrary extends Actor {
         OnAlbumTupleOpChanged(albumTupleOp),
         OnArtistMapChanged(artistMap),
         OnArtistTupleOpChanged(artistTupleOp)
-      ).foreach(m => mainActorRef ! MainActor.NotifyHandlers(m))
+      ).foreach(m => notifyHandler(ui, m))
 
     case SetTrackList(trackList) =>
       val artistMap = ArtistMap(trackList)
