@@ -75,6 +75,7 @@ class MainActor extends Actor {
   private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
   private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
   private val trackDeckRef: ActorRef = context.actorOf(TrackDeck.props(), "TrackDeck")
+  private val trackLibraryRef: ActorRef = context.actorOf(TrackLibrary.props(), "TrackLibrary")
 
   private var database: Database = null
   private var cacheDir: File = null
@@ -126,10 +127,6 @@ class MainActor extends Actor {
         OnAdvertisingChanged(stationManager.advertising),
         OnStationListChanged(stationManager.fullyDiscoveredStationMap.values.toList),
 
-        OnArtistMapChanged(localManager.artistMap),
-        OnAlbumMapChanged(localManager.albumMap),
-        OnTrackListChanged(localManager.trackList),
-
         OnLocalStartPosChanged(localManager.startPos),
         OnLocalPlayingChanged(localManager.playing)
 
@@ -138,6 +135,7 @@ class MainActor extends Actor {
       })
 
       trackDeckRef ! TrackDeck.Subscribe
+      trackLibraryRef ! TrackLibrary.Subscribe
 
       uis = uis.+((key, ui))
 
@@ -161,7 +159,7 @@ class MainActor extends Actor {
       notifyHandlers(UI.OnModHeightChanged(_modHeight))
 
     case SetTrackList(trackList) =>
-      localManager = localManager.setTrackList(trackList)
+      trackLibraryRef ! TrackLibrary.SetTrackList(trackList)
 
     case SetSelection(selection) => 
       selectionManager = selectionManager.setCurrent(selection)
@@ -186,7 +184,10 @@ class MainActor extends Actor {
       notifyWriters(ListenerWriter.WritePlayState(playState))
 
     case AppendFutureTrack(track) =>
-      appendFutureTrack(track)
+      trackDeckRef ! TrackDeck.AppendFutureTrack(track)
+      if (stationManager.currentConnection == StationDisconnected) {
+        self ! WriteTrackToListeners(track)
+      } 
 
     case AppendOrRemoveFutureTrack(track) =>
       trackDeckRef ! TrackDeck.AppendOrRemoveFutureTrack(track)
@@ -322,20 +323,10 @@ class MainActor extends Actor {
       stationManager = stationManager.setPlayState(playState)
 
     case SelectArtistTuple(artistTuple) =>
-      localManager = localManager.artistTupleOp match {
-        case Some(currentArtistTuple) if currentArtistTuple == artistTuple =>
-          localManager.setArtistTupleOp(None)
-        case _ =>
-          localManager.setArtistTupleOp(Some(artistTuple))
-      }
+      trackLibraryRef ! TrackLibrary.SelectArtistTuple(artistTuple)
 
     case SelectAlbumTuple(albumTuple) =>
-      localManager = localManager.albumTupleOp match {
-        case Some(currentAlbumTuple) if currentAlbumTuple == albumTuple =>
-          localManager.setAlbumTupleOp(None)
-        case _ =>
-          localManager.setAlbumTupleOp(Some(albumTuple))
-      }
+      trackLibraryRef ! TrackLibrary.SelectAlbumTuple(albumTuple)
 
     case PlayTrack(track) =>
       notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
@@ -356,14 +347,6 @@ class MainActor extends Actor {
 
 
   }
-
-  private def appendFutureTrack(track: Track): Unit = {
-    trackDeckRef ! TrackDeck.AppendFutureTrack(track)
-    if (stationManager.currentConnection == StationDisconnected) {
-      self ! WriteTrackToListeners(track)
-    } 
-  }
-
 
 
   private def notifyHandlers(response: OnChange): Unit = {

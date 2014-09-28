@@ -150,6 +150,8 @@ class PlayerService extends Service {
 
   override def onCreate(): Unit = {
 
+    Log.d("chakra", "CHANGES MADE TLL")
+
     _mediaPlayer = new MediaPlayer()
     _manager = that.getSystemService(WIFI_P2P_SERVICE) match {
       case m: WifiP2pManager => m
