@@ -5,8 +5,6 @@ import android.util.Log
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class StationManager(
-  fullyDiscoveredStationMap: Map[String, Station],
-  partlyDiscoveredStationMap: Map[String, Station],
   currentConnection: StationConnection,
 
   playState: PlayState,
@@ -15,8 +13,6 @@ case class StationManager(
 ) { 
 
   def this() = this(
-    HashMap[String, Station](),
-    HashMap[String, Station](),
     StationDisconnected,
 
     NotPlaying,
@@ -27,24 +23,6 @@ case class StationManager(
   import MainActor._
   import UI._
 
-
-  def stageStationDiscovery(station: Station): StationManager = {
-    val newStagedMap = partlyDiscoveredStationMap.+(station.device.deviceAddress -> station)
-    this.copy(partlyDiscoveredStationMap = newStagedMap)
-  }
-
-  def commitStationDiscovery(device: WifiP2pDevice): StationManager = {
-
-    if (partlyDiscoveredStationMap.isDefinedAt(device.deviceAddress)) {
-      val station = partlyDiscoveredStationMap(device.deviceAddress)
-      val newMap = fullyDiscoveredStationMap.+(device.deviceAddress -> station)
-      mainActorRef ! NotifyHandlers(OnStationListChanged(newMap.values.toList))
-      this.copy(fullyDiscoveredStationMap = newMap)
-    } else {
-      this
-    }
-
-  }
 
   def setCurrentConnection(stationCon: StationConnection): StationManager = {
     mainActorRef ! NotifyHandlers(OnStationConnectionChanged(stationCon))
@@ -63,37 +41,6 @@ case class StationManager(
     }
     
   }
-  /*
-
-  def setTrackOriginPathOp(trackOriginPathOp: Option[String]): StationManager = {
-
-    trackOriginPathOp match {
-      case Some(trackOriginPath) =>
-        transferredTrackMap.get(trackOriginPath) match {
-          case Some(track) => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(Some(track)))
-          case None => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(None))
-        }
-      case None => mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(None))
-    }
-
-    this.copy(trackOriginPathOp = trackOriginPathOp)
-  }
-
-  def commitTrackTransfer(originPath: String, track: Track): StationManager = {
-
-    trackOriginPathOp match {
-      case Some(trackOriginPath) if trackOriginPath == originPath =>
-        mainActorRef ! NotifyHandlers(OnStationTrackOpChanged(Some(track)))
-      case _ => 
-    }
-    this.copy(transferredTrackMap = transferredTrackMap.+(originPath -> track), transferringAudioMap = transferringAudioMap.-(originPath))
-
-  }
-
-  def addTrackAudio(originPath: String, path: String, fileOutput: OutputStream): StationManager = {
-    this.copy(transferringAudioMap = transferringAudioMap.+(originPath -> (path -> fileOutput)))
-  }
-  */
 
   def setPlayState(playState: PlayState): StationManager = {
     mainActorRef ! NotifyHandlers(OnStationPlayStateChanged(playState))

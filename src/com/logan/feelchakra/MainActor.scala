@@ -78,7 +78,7 @@ class MainActor extends Actor {
   private val trackDeckRef: ActorRef = context.actorOf(TrackDeck.props(), "TrackDeck")
   private val trackLibraryRef: ActorRef = context.actorOf(TrackLibrary.props(), "TrackLibrary")
   private val stationTrackDeckRef: ActorRef = context.actorOf(StationTrackDeck.props(), "StationTrackDeck")
-
+  private val stationDeckRef: ActorRef = context.actorOf(StationDeck.props(), "StationDeck")
 
   private var database: Database = null
   private var cacheDir: File = null
@@ -128,7 +128,6 @@ class MainActor extends Actor {
         OnStationConnectionChanged(stationManager.currentConnection),
         OnDiscoveringChanged(stationManager.discovering),
         OnAdvertisingChanged(stationManager.advertising),
-        OnStationListChanged(stationManager.fullyDiscoveredStationMap.values.toList),
 
         OnLocalStartPosChanged(localManager.startPos),
         OnLocalPlayingChanged(localManager.playing)
@@ -218,11 +217,11 @@ class MainActor extends Actor {
       val chakraDomain = List(networkProfile.serviceName, networkProfile.serviceType, "local").mkString(".") + "."
       Log.d("chakra", "chakraDomain: " + chakraDomain)
       if (station.domain == chakraDomain) {
-        stationManager = stationManager.stageStationDiscovery(station)
+        stationDeckRef ! StationDeck.StageStationDiscovery(station)
       }
 
     case CommitStation(device) =>
-      stationManager = stationManager.commitStationDiscovery(device)
+        stationDeckRef ! StationDeck.CommitStationDiscovery(device)
      
     case CancelOrRequestStation(station) =>
       stationManager.currentConnection match {
