@@ -32,9 +32,6 @@ object UI {
 
   case class OnProfileChanged(networkProfile: NetworkProfile) extends OnChange
 
-  case class OnDiscoveringChanged(discovering: Boolean) extends OnChange
-  case class OnAdvertisingChanged(advertising: Boolean) extends OnChange
-
   case class OnPlayerPartListChanged(playerPartList: List[PlayerPart]) extends OnChange
   case class OnPlayerPartChanged(playerPart: PlayerPart) extends OnChange
 

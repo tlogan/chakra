@@ -116,9 +116,6 @@ object PlayerFragment {
         var _stationTrackDuration: Int = -1
         var _playState: PlayState = NotPlaying
 
-        var _stationConnection: StationConnection = StationDisconnected
-
-
         def stopProgress(): Unit = {
           frontBar.animate().cancel()
         }
@@ -155,21 +152,24 @@ object PlayerFragment {
           }
         }
 
+        var _stationDisconnected = true
+
         val handler = new Handler(new HandlerCallback() {
           override def handleMessage(msg: Message): Boolean = {
             import UI._ 
             msg.obj match {
 
-
               case OnStationConnectionChanged(stationConnection) =>
-                _stationConnection = stationConnection
                 stationConnection match {
                   case StationDisconnected =>
+                    _stationDisconnected = true
                     playlistView.setVisibility(VISIBLE)
-                  case _ => 
+                  case _ =>
+                    _stationDisconnected = false 
                     playlistView.setVisibility(GONE)
                 }
                 true
+
 
               case OnPlayerOpenChanged(playerOpen) => 
 
@@ -202,7 +202,7 @@ object PlayerFragment {
                 }
                 true
 
-              case OnLocalPlayingChanged(playing) if _stationConnection == StationDisconnected =>
+              case OnLocalPlayingChanged(playing) if _stationDisconnected =>
                 Log.d("chakra", "OnLocalPlayingChanged: " + playing)
                 _playing = playing
                 if (_playing && _localTrackDuration >= _localStartPos) {
@@ -213,7 +213,7 @@ object PlayerFragment {
                   stopProgress()
                 }
                 true
-              case OnLocalStartPosChanged(startPos) if _stationConnection == StationDisconnected =>
+              case OnLocalStartPosChanged(startPos) if _stationDisconnected =>
                 Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
                 _localStartPos = startPos 
                 _localStartTime = Platform.currentTime
@@ -222,7 +222,7 @@ object PlayerFragment {
                   frontBar.setX(startPos * width/_localTrackDuration)
                 }
                 true
-              case OnPastTrackListChanged(list) if _stationConnection == StationDisconnected => 
+              case OnPastTrackListChanged(list) if _stationDisconnected => 
                 withAdapter(adapter => {
                   adapter.setPastTrackList(list)
                 })
@@ -237,7 +237,7 @@ object PlayerFragment {
                     prevLayout.imageLayout.setImageDrawable(null)
                 }
                 true
-              case OnPresentTrackOptionChanged(trackOption) if _stationConnection == StationDisconnected => 
+              case OnPresentTrackOptionChanged(trackOption) if _stationDisconnected => 
                 trackOption match {
                   case Some(track) =>
                     _localTrackDuration = track.duration
@@ -256,7 +256,7 @@ object PlayerFragment {
                     playerLayout.imageLayout.setImageDrawable(null)
                 }
                 true
-              case OnFutureTrackListChanged(list) if _stationConnection == StationDisconnected => 
+              case OnFutureTrackListChanged(list) if _stationDisconnected => 
                 withAdapter(adapter => {
                   adapter.setFutureTrackList(list)
                 })

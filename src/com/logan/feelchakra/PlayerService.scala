@@ -27,8 +27,7 @@ class PlayerService extends Service {
 
   private var _playState: PlayState = NotPlaying
 
-  private var _stationConnection: StationConnection = StationDisconnected
-
+  private var _stationDisconnected = true
   private def seek(): Unit = {
     if (_startPos != _lastSeek) {
       _mediaPlayer.seekTo(_startPos)
@@ -91,17 +90,26 @@ class PlayerService extends Service {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
       msg.obj match {
-        case OnDiscoveringChanged(discovering: Boolean) => 
-          if (discovering) discoverServices() else stopDiscovering()
+
+        case OnStationConnectionChanged(stationConnection) =>
+          stationConnection match {
+            case StationDisconnected =>
+              _stationDisconnected = true
+              localize()
+            case StationRequested(station) =>
+              _stationDisconnected = false 
+              expand(station)
+            case StationConnected(station) =>
+              _stationDisconnected = false
+          }
           true
+
+
+
         case OnProfileChanged(networkProfile) =>
           that.setServiceInfo(networkProfile)
           true
-        case OnStationConnectionChanged(stationConnection) =>
-          _stationConnection = stationConnection
-          that.changeStation(stationConnection)
-          true
-        case OnPresentTrackOptionChanged(presentTrackOp) if _stationConnection == StationDisconnected =>
+        case OnPresentTrackOptionChanged(presentTrackOp) if _stationDisconnected =>
           Log.d("chakra", "OnLocalTrackChanged")
           reset()
           presentTrackOp match {
@@ -111,14 +119,14 @@ class PlayerService extends Service {
             case None => 
           }
           true
-        case OnLocalPlayingChanged(playing) if _stationConnection == StationDisconnected =>
+        case OnLocalPlayingChanged(playing) if _stationDisconnected =>
           Log.d("chakra", "OnLocalPlayingChanged: " + playing)
           _playing = playing
           if (_prepared) {
             playOrPause()
           }
           true
-        case OnLocalStartPosChanged(startPos) if _stationConnection == StationDisconnected =>
+        case OnLocalStartPosChanged(startPos) if _stationDisconnected =>
           Log.d("chakra", "OnLocalStartPosChanged: " + startPos)
           _startPos = startPos 
           if (_prepared) { seek() }
@@ -242,6 +250,7 @@ class PlayerService extends Service {
       override def onDnsSdServiceAvailable(name: String, 
           regType: String, device: WifiP2pDevice): Unit = {
 
+        Log.d("chakra", "committing station: " + device)
         mainActorRef ! MainActor.CommitStation(device)
       }
     }
@@ -354,23 +363,21 @@ class PlayerService extends Service {
 
   private var count = 0
 
-  private def changeStation(stationConnection: StationConnection): Unit = {
 
-    stationConnection match {
-      case StationDisconnected => 
-        _mediaPlayer.setOnCompletion(mp => {
-          count = count + 1
-          mainActorRef ! MainActor.SetPresentTrackToNext
-        })
-        removeLegacyConnection()
-        tryBecomingTheStation() 
-      case StationRequested(station) => 
-        _mediaPlayer.setOnCompletion(mp => {})
-        removeLegacyConnection()
-        tuneIntoStation(station)
-      case _ =>
-    }
+  def localize(): Unit = {
+    _mediaPlayer.setOnCompletion(mp => {
+      count = count + 1
+      mainActorRef ! MainActor.SetPresentTrackToNext
+    })
+    removeLegacyConnection()
+    tryBecomingTheStation() 
+  }
 
+  def expand(station: Station): Unit = {
+    _mediaPlayer.setOnCompletion(mp => {})
+    removeLegacyConnection()
+    tuneIntoStation(station)
+    stopDiscovering()
   }
 
   private def becomeTheStation(serviceInfo: WifiP2pDnsSdServiceInfo): Unit = {
@@ -386,13 +393,14 @@ class PlayerService extends Service {
 
     _manager.addLocalService(_channel, serviceInfo, new WifiActionListener() {
       override def onSuccess(): Unit = { 
-        mainActorRef ! MainActor.Discover
-        Log.d("chakra", "Discover")
       }
       override def onFailure(reason: Int): Unit = {
         Log.d("chakra", "failed advertising" + reason)
       }
     })
+
+    discoverServices()
+    Log.d("chakra", "discovering")
 
   }
 
@@ -403,13 +411,13 @@ class PlayerService extends Service {
       adjustMediaPlayer()
     })
 
-
-    val config: WifiP2pConfig = { 
+    val config: WifiP2pConfig = {
       val c = new WifiP2pConfig() 
       c.deviceAddress = station.device.deviceAddress 
       c.groupOwnerIntent = 0 
       c.wps.setup = WpsInfoPBC; c
     }
+
     _manager.connect(_channel, config, new WifiActionListener() {
       override def onSuccess(): Unit = { 
         Log.d("chakra", "requesting connection")
@@ -418,8 +426,6 @@ class PlayerService extends Service {
         Log.d("chakra", "failed requesting connection: " + reason)
       }
     })
-
   }
 
 }
-

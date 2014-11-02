@@ -41,13 +41,12 @@ object MainActor {
   case class ConnectStation(remoteHost: String)
   case class ChangeStationMessenger(socket: Socket)
 
+  case class ConnectAsClient(remoteAddress: InetSocketAddress)
+
   case class WriteListenerPlayState(playState: PlayState) 
 
   case class SetLocalAddress(localAddress: InetSocketAddress)
   case class AddListenerWriter(remote: InetSocketAddress, socket: Socket)
-
-  case object Advertise
-  case object Discover 
 
   case class ChangeStationTrackByOriginPath(originPath: String)
 
@@ -79,6 +78,7 @@ class MainActor extends Actor {
   private val trackLibraryRef: ActorRef = context.actorOf(TrackLibrary.props(), "TrackLibrary")
   private val stationTrackDeckRef: ActorRef = context.actorOf(StationTrackDeck.props(), "StationTrackDeck")
   private val stationDeckRef: ActorRef = context.actorOf(StationDeck.props(), "StationDeck")
+  private val stationConnectionActorRef: ActorRef = context.actorOf(StationConnectionActor.props(), "StationConnectionActor")
 
   private var database: Database = null
   private var cacheDir: File = null
@@ -125,10 +125,6 @@ class MainActor extends Actor {
         OnSelectionChanged(selectionManager.current),
         OnPlayerOpenChanged(localManager.playerOpen),
 
-        OnStationConnectionChanged(stationManager.currentConnection),
-        OnDiscoveringChanged(stationManager.discovering),
-        OnAdvertisingChanged(stationManager.advertising),
-
         OnLocalStartPosChanged(localManager.startPos),
         OnLocalPlayingChanged(localManager.playing)
 
@@ -139,6 +135,8 @@ class MainActor extends Actor {
       trackDeckRef ! TrackDeck.Subscribe(ui)
       trackLibraryRef ! TrackLibrary.Subscribe(ui)
       stationTrackDeckRef ! StationTrackDeck.Subscribe(ui)
+      stationDeckRef ! StationDeck.Subscribe(ui)
+      stationConnectionActorRef ! StationConnectionActor.Subscribe(ui)
 
       uis = uis.+((key, ui))
 
@@ -167,9 +165,6 @@ class MainActor extends Actor {
     case SetSelection(selection) => 
       selectionManager = selectionManager.setCurrent(selection)
 
-    case Discover => 
-      stationManager = stationManager.setDiscovering(true)
-
     case SetStartPos(startPos) =>
       localManager = localManager.setStartPos(startPos)
 
@@ -187,19 +182,14 @@ class MainActor extends Actor {
       notifyWriters(ListenerWriter.WritePlayState(playState))
 
     case WriteTrackToListenersIfStationDisconnected(track) =>
-      if (stationManager.currentConnection == StationDisconnected) {
-        self ! WriteTrackToListeners(track)
-      } 
+      stationConnectionActorRef ! StationConnectionActor.WriteTrackToListenersIfStationDisconnected(track, false)
 
     case AppendOrRemoveFutureTrack(track) =>
       trackDeckRef ! TrackDeck.AppendOrRemoveFutureTrack(track)
 
     case SetPresentTrack(track) =>
       trackDeckRef ! TrackDeck.SetPresentTrack(track)
-      if (stationManager.currentConnection == StationDisconnected) {
-        self ! WriteTrackToListeners(track)
-        self ! PlayTrack(track)
-      } 
+      stationConnectionActorRef ! StationConnectionActor.WriteTrackToListenersIfStationDisconnected(track, true)
 
     case SetPresentTrackToPrev =>
       trackDeckRef ! TrackDeck.SetPresentTrackToPrev
@@ -221,28 +211,13 @@ class MainActor extends Actor {
       }
 
     case CommitStation(device) =>
-        stationDeckRef ! StationDeck.CommitStationDiscovery(device)
+      stationDeckRef ! StationDeck.CommitStationDiscovery(device)
      
     case CancelOrRequestStation(station) =>
-      stationManager.currentConnection match {
-        case StationRequested(currentStation) if (currentStation == station) => 
-          disconnectStation()
-        case StationConnected(currentStation) if (currentStation == station) => 
-          disconnectStation()
-        case _ =>
-          stationManager = {
-            stationManager
-              .setDiscovering(false)
-              .setCurrentConnection(StationRequested(station))
-          }
-      }
+      stationConnectionActorRef ! StationConnectionActor.CancelOrRequest(station)
 
     case BecomeTheStation =>
-      stationManager = {
-        stationManager
-          .setCurrentConnection(StationDisconnected)
-          .setDiscovering(selectionManager.current == StationSelection)
-      }
+      stationConnectionActorRef ! StationConnectionActor.Disconnect
 
     case SetLocalAddress(localAddress) =>
       networkProfile = networkProfile.setLocalAddress(localAddress)
@@ -266,24 +241,17 @@ class MainActor extends Actor {
 
     case ConnectStation(remoteHost) =>
       localManager = localManager.setPlaying(false)
-      stationManager.currentConnection match {
-        case StationRequested(station) =>
-          val remoteAddress = 
-            new InetSocketAddress(remoteHost, station.record.get("port").toInt)
-          clientRef.!(Client.Connect(remoteAddress))
-          Log.d("chakra", "staiton requested: " + remoteAddress)
-        case StationConnected(station) =>
-          Log.d("chakra", "Can't connect when station is already connected")
-        case StationDisconnected => 
-          Log.d("chakra", "Can't connect when station is disconnected")
-      }
+      stationConnectionActorRef ! StationConnectionActor.Connect(remoteHost)
+
+    case ConnectAsClient(remoteAddress) =>
+      clientRef ! Client.Connect(remoteAddress)
 
     case ChangeStationMessenger(socket) =>
       val writerRef = context.actorOf(StationWriter.props(), "StationWriter")
       writerRef ! StationWriter.SetSocket(socket)
       val reader = StationReader.create(socket, writerRef)
       reader.run()
-      stationManager = stationManager.commitStationConnection()
+      stationConnectionActorRef ! StationConnectionActor.CommitStationConnection
       stationMessengerOp = Some(Messenger(writerRef, reader))
 
     case ChangeStationTrackByOriginPath(originPath) =>
@@ -315,9 +283,7 @@ class MainActor extends Actor {
       localManager = localManager.setPlaying(true)
 
     case PlayTrackIfLocal(track) =>
-      if (stationManager.currentConnection == StationDisconnected) {
-        self ! PlayTrack(track)
-      } 
+      stationConnectionActorRef ! StationConnectionActor.PlayIfDisconnected
 
     case WriteTrackToListeners(track) =>
       AudioReader(track.path).subscribe(
@@ -341,10 +307,5 @@ class MainActor extends Actor {
     playerPartManager.copy(current = current)
   }
 
-  private def disconnectStation(): Unit = {
-    stationManager = {
-      stationManager.setCurrentConnection(StationDisconnected)
-    }
-  }
 
 }

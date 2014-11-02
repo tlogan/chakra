@@ -18,9 +18,6 @@ object MainActivity {
 class MainActivity extends Activity {
 
   private val that = this
-
-
-
   private val albumSelectionFragment =  AlbumSelectionFragment.create()
   private val artistSelectionFragment =  ArtistSelectionFragment.create()
   private val trackSelectionFragment =  TrackSelectionFragment.create()
