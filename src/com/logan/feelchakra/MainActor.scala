@@ -72,27 +72,38 @@ class MainActor extends Actor {
   import UI._
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
-  private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
+
+  //GOOD MODELS
   private val trackDeckRef: ActorRef = context.actorOf(TrackDeck.props(), "TrackDeck")
   private val trackLibraryRef: ActorRef = context.actorOf(TrackLibrary.props(), "TrackLibrary")
   private val stationTrackDeckRef: ActorRef = context.actorOf(StationTrackDeck.props(), "StationTrackDeck")
   private val stationDeckRef: ActorRef = context.actorOf(StationDeck.props(), "StationDeck")
   private val stationConnectionActorRef: ActorRef = context.actorOf(StationConnectionActor.props(), "StationConnectionActor")
+  private val selectionActorRef: ActorRef = context.actorOf(SelectionActor.props(), "SelectionActor")
+  private val playerPartActorRef: ActorRef = context.actorOf(PlayerPartActor.props(), "PlayerPartActor")
+  private val viewActorRef: ActorRef = context.actorOf(ViewActor.props(), "ViewActor")
+  private val playerActorRef: ActorRef = context.actorOf(PlayerActor.props(), "PlayerActor")
+  private val networkActorRef: ActorRef = context.actorOf(NetworkActor.props(), "NetworkActor")
+  ///////////
 
-  private var database: Database = null
-  private var cacheDir: File = null
-  private var uis: Map[String, Handler] = new HashMap[String, Handler]()
-
-  private var _modHeight: Int = 0
-  private var selectionManager: SelectionManager = new SelectionManager
-  private var playerPartManager: PlayerPartManager = PlayerPartManager.create()
-  private var localManager: LocalManager = new LocalManager 
-  private var stationManager: StationManager = new StationManager
-  private var networkProfile: NetworkProfile = new NetworkProfile
-
+  //BAD NETWORK PARTS
+  private val serverRef: ActorRef = context.actorOf(Server.props(), "Server")
+  private val clientRef: ActorRef = context.actorOf(Client.props(), "Client")
   private var stationMessengerOp: Option[Messenger] = None
   private var messengers = HashMap[InetSocketAddress, Messenger]()
+  /////////////
+
+
+  //BAD STORAGE
+  private var database: Database = null
+  private var cacheDir: File = null
+  //////////////////
+
+
+  //BAD CONTROL STATE
+  private var uis: Map[String, Handler] = new HashMap[String, Handler]()
+  //////
+
   private def notifyWriters(message: Object): Unit = {
     messengers.foreach(pair => { 
       val mes = pair._2
@@ -107,36 +118,16 @@ class MainActor extends Actor {
       notifyHandlers(onChange)
 
     case Subscribe(key, ui) =>
-      networkProfile.localAddressOp match {
-        case Some(localAddress) => 
-          val response = OnProfileChanged(networkProfile)
-          ui.obtainMessage(0, response).sendToTarget()
-        case None => {}
-      }
-
-      List(
-
-        OnModHeightChanged(_modHeight),
-
-        OnPlayerPartListChanged(playerPartManager.list),
-        OnPlayerPartChanged(playerPartManager.current),
-
-        OnSelectionListChanged(selectionManager.list),
-        OnSelectionChanged(selectionManager.current),
-        OnPlayerOpenChanged(localManager.playerOpen),
-
-        OnLocalStartPosChanged(localManager.startPos),
-        OnLocalPlayingChanged(localManager.playing)
-
-      ).foreach(response => {
-        ui.obtainMessage(0, response).sendToTarget()
-      })
 
       trackDeckRef ! TrackDeck.Subscribe(ui)
       trackLibraryRef ! TrackLibrary.Subscribe(ui)
       stationTrackDeckRef ! StationTrackDeck.Subscribe(ui)
       stationDeckRef ! StationDeck.Subscribe(ui)
       stationConnectionActorRef ! StationConnectionActor.Subscribe(ui)
+      selectionActorRef ! SelectionActor.Subscribe(ui)
+      playerPartActorRef ! PlayerPartActor.Subscribe(ui)
+      viewActorRef ! ViewActor.Subscribe(ui)
+      playerActorRef ! PlayerActor.Subscribe(ui)
 
       uis = uis.+((key, ui))
 
@@ -156,27 +147,25 @@ class MainActor extends Actor {
       this.cacheDir = cacheDir
 
     case SetModHeight(height) =>
-      _modHeight = height
-      notifyHandlers(UI.OnModHeightChanged(_modHeight))
+      viewActorRef ! ViewActor.SetModHeight(height)
 
     case SetTrackList(trackList) =>
       trackLibraryRef ! TrackLibrary.SetTrackList(trackList)
 
     case SetSelection(selection) => 
-      selectionManager = selectionManager.setCurrent(selection)
+      selectionActorRef ! SelectionActor.SetSelection(selection)
 
     case SetStartPos(startPos) =>
-      localManager = localManager.setStartPos(startPos)
+      playerActorRef ! PlayerActor.SetStartPos(startPos)
 
     case FlipPlaying => 
-      val playing = !localManager.playing
-      localManager = localManager.setPlaying(playing)
+      playerActorRef ! PlayerActor.FlipPlaying
 
     case FlipPlayer =>
-      localManager = localManager.flipPlayer()
+      playerActorRef ! PlayerActor.FlipPlayerOpen
 
     case SetPlayerOpen(playerOpen) =>
-      localManager = localManager.setPlayerOpen(playerOpen)
+      playerActorRef ! PlayerActor.SetPlayerOpen(playerOpen)
 
     case WriteListenerPlayState(playState) => 
       notifyWriters(ListenerWriter.WritePlayState(playState))
@@ -204,11 +193,7 @@ class MainActor extends Actor {
       trackDeckRef ! TrackDeck.SetPresentTrackToFutureIndex(index)
 
     case AddStation(station) =>
-      val chakraDomain = List(networkProfile.serviceName, networkProfile.serviceType, "local").mkString(".") + "."
-      Log.d("chakra", "chakraDomain: " + chakraDomain)
-      if (station.domain == chakraDomain) {
-        stationDeckRef ! StationDeck.StageStationDiscovery(station)
-      }
+      networkActorRef ! NetworkActor.AddStation(station, stationDeckRef)
 
     case CommitStation(device) =>
       stationDeckRef ! StationDeck.CommitStationDiscovery(device)
@@ -220,7 +205,7 @@ class MainActor extends Actor {
       stationConnectionActorRef ! StationConnectionActor.Disconnect
 
     case SetLocalAddress(localAddress) =>
-      networkProfile = networkProfile.setLocalAddress(localAddress)
+      networkActorRef ! NetworkActor.SetLocalAddress(localAddress)
 
     case AddListenerWriter(remote, socket) =>
 
@@ -240,7 +225,7 @@ class MainActor extends Actor {
       serverRef.!(Server.Accept)
 
     case ConnectStation(remoteHost) =>
-      localManager = localManager.setPlaying(false)
+      playerActorRef ! PlayerActor.SetPlaying(false)
       stationConnectionActorRef ! StationConnectionActor.Connect(remoteHost)
 
     case ConnectAsClient(remoteAddress) =>
@@ -269,7 +254,7 @@ class MainActor extends Actor {
 
     case SetStationPlayState(playState) =>
       Log.d("chakra", "set station playstate: " + playState)
-      stationManager = stationManager.setPlayState(playState)
+      playerActorRef ! PlayerActor.SetPlayState(playState)
 
     case SelectArtistTuple(artistTuple) =>
       trackLibraryRef ! TrackLibrary.SelectArtistTuple(artistTuple)
@@ -279,8 +264,8 @@ class MainActor extends Actor {
 
     case PlayTrack(track) =>
       notifyWriters(ListenerWriter.WriteCurrentTrackPath(track.path))
-      localManager = localManager.setStartPos(0)
-      localManager = localManager.setPlaying(true)
+      playerActorRef ! PlayerActor.SetStartPos(0)
+      playerActorRef ! PlayerActor.SetPlaying(true)
 
     case PlayTrackIfLocal(track) =>
       stationConnectionActorRef ! StationConnectionActor.PlayIfDisconnected
@@ -292,7 +277,6 @@ class MainActor extends Actor {
         () => notifyWriters(ListenerWriter.WriteAudioDone(track.path))
       )
 
-
   }
 
   private def notifyHandlers(response: OnChange): Unit = {
@@ -301,11 +285,5 @@ class MainActor extends Actor {
       notifyHandler(ui, response)
     })
   }
-
-  private def setCurrentPlayerPart(current: PlayerPart): PlayerPartManager = {
-    notifyHandlers(UI.OnPlayerPartChanged(current))
-    playerPartManager.copy(current = current)
-  }
-
 
 }

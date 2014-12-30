@@ -86,6 +86,9 @@ class PlayerService extends Service {
     }
   }
 
+  private var _serviceName = ""
+  private var _serviceType = ""
+
   private val handler = new Handler(new HandlerCallback() {
     override def handleMessage(msg: Message): Boolean = {
       import UI._
@@ -104,10 +107,14 @@ class PlayerService extends Service {
           }
           true
 
-
-
-        case OnProfileChanged(networkProfile) =>
-          that.setServiceInfo(networkProfile)
+        case OnServiceNameChanged(serviceName) =>
+          _serviceName = serviceName
+          true
+        case OnServiceTypeChanged(serviceType) =>
+          _serviceType = serviceType
+          true
+        case OnLocalAddressOpChanged(localAddressOp) =>
+          that.setServiceInfo(_serviceName, _serviceType, localAddressOp)
           true
         case OnPresentTrackOptionChanged(presentTrackOp) if _stationDisconnected =>
           Log.d("chakra", "OnLocalTrackChanged")
@@ -289,12 +296,10 @@ class PlayerService extends Service {
 
   }
 
-  private def setServiceInfo(networkProfile: NetworkProfile): Unit = {
+  private def setServiceInfo(serviceName: String, serviceType: String, localAddressOp: Option[InetSocketAddress]): Unit = {
 
-    networkProfile.localAddressOp match {
+    localAddressOp match {
       case Some(localAddress) =>
-        val serviceName = networkProfile.serviceName
-        val serviceType = networkProfile.serviceType
         val record = new java.util.HashMap[String, String]()
         record.put("port", localAddress.getPort().toString)
 

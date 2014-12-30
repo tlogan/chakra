@@ -30,7 +30,9 @@ object UI {
   case class OnStationTrackOpChanged(trackOp: Option[Track]) extends OnChange
   case class OnStationPlayStateChanged(playState: PlayState) extends OnChange
 
-  case class OnProfileChanged(networkProfile: NetworkProfile) extends OnChange
+  case class OnServiceNameChanged(serviceName: String) extends OnChange
+  case class OnServiceTypeChanged(serviceType: String) extends OnChange
+  case class OnLocalAddressOpChanged(localAddressOp: Option[InetSocketAddress]) extends OnChange
 
   case class OnPlayerPartListChanged(playerPartList: List[PlayerPart]) extends OnChange
   case class OnPlayerPartChanged(playerPart: PlayerPart) extends OnChange
